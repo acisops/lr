@@ -41,6 +41,12 @@ grep 1HHTRBO /data/acis/LoadReviews/20*/*/ofls/ACIS-LoadReview.txt \
 | sorttbl -uniq time \
 >! dhheater_history.rdb
 
+# new for v0.2: make the tlast command match the last observed command
+set lastcmd=`tail -1 < dhheater_history.rdb | awk '{print $1}'`
+cat tlast.rdb \
+| compute command = $lastcmd \
+>! tmp1.rdb
+mv tmp1.rdb tlast.rdb
 
 
 cat < dhheater_history.rdb \
