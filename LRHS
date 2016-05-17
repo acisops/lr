@@ -1,0 +1,958 @@
+#! /usr/local/bin/python
+#
+class StateVector:
+
+   def __init__(self):
+     #
+     # State variables
+     #
+     # Possible State values: SCIENCE, SAFE, Unknown, PerigeePassage
+     self.State = "SAFE"
+     self.RADMON = 'Unknown'
+ 
+     # Possible FPInstrument values: HRC-I, HRC-S, ACIS-I, ACIS-S, Unknown
+     self.FPInstrument = 'Unknown'
+     self.OBSID = 0
+     # The 5 point perigee passage markers
+     self.OORMPDS = False
+     self.EEF1000 = False
+     self.EPERIGEE = False
+     self.XEF1000 = False
+     self.OORMPEN = False
+     # CHANDRA Specific values
+     self.DidSIMTranslate = False
+     self.DITHER = 'ENAB'
+     self.FORMAT = "Unknown"
+     self.HETG = "HETG-OUT"
+     self.LETG = "LETG-OUT"
+     self.SIMFOCUS = -1
+     # ACIS packets
+     self.SIMODE = ''
+     self.AcisStartScience = False        # no XZT
+     self.AcisStopScience = False         # no AA00
+     self.AcisHasObserved = False         # XTZ and AA00 both true
+ 
+   #----------------------------------------------------------
+   #
+   # RADMON ENABLE State Set - Set some State Variables to a 
+   #               "neutral" state.  But do not affect the instrument
+   #               or OBSID values. Set the State variable to
+   #               "SCIENCE". 
+   #
+   #               This is to be exectuted in any rule that recognizes
+   #               a RADMON ENABLE command.
+   #
+   #----------------------------------------------------------
+
+   def RadmonEnableSet(self):
+     # Possible State values: SCIENCE, SAFE, Unknown, PerigeePassage
+     self.State = "SCIENCE"
+     self.RADMON = 'OORMPEN'
+     # Set the 5 point perigee passage markers to FALSE
+     self.OORMPDS = False
+     self.EEF1000 = False
+     self.EPERIGEE = False
+     self.XEF1000 = False
+     self.OORMPEN = False
+     #
+    
+   #----------------------------------------------------------
+   #
+   # Get Methods
+   #
+   #----------------------------------------------------------
+   def GetState(self):
+     return self.State
+
+   # The 5 point perigee passage markers
+   def GetRADMON(self):
+     return self.RADMON
+
+   def GetOORMPDS(self):
+     return self.OORMPDS
+
+   def GetEEF1000(self):
+     return self.EEF1000
+
+   def GetEPERIGEE(self):
+     return self.EPERIGEE
+
+   def GetXEF1000(self):
+     return self.XEF1000
+
+   def GetOORMPEN(self):
+     return self.OORMPEN
+
+   # ACIS packet GET methods
+   def GetAcisHasObserved(self):
+     return self.AcisHasObserved
+
+   def GetAcisStartScience(self):
+     return self.AcisStartScience
+
+   def GetAcisStopScience(self):
+     return self.AcisStopScience
+
+   # CHANDRA Specific values
+   def GetFPInstrument(self):
+     return self.FPInstrument
+
+   def GetOBSID(self):
+     return self.OBSID
+
+   def GetHETG(self):
+     return self.HETG
+
+   def GetLETG(self):
+     return self.LETG
+
+   def GetFORMAT(self):
+     return self.FORMAT
+
+   def GetDITHER(self):
+     return self.DITHER
+
+   def GetSIMFOCUS(self):
+     return self.SIMFOCUS
+
+   def GetDidSIMTranslate(self):
+     return self.DidSIMTranslate
+
+   #----------------------------------------------------------
+   #
+   # Set Methods
+   #
+   #----------------------------------------------------------
+   def SetState(self, value):
+      self.State = value
+
+     # The 5 point perigee passage markers
+
+   def SetRADMON(self, value):    # either 'OORMPEN' or 'OORMPDS'
+      self.RADMON = value
+
+   def SetOORMPDS(self, value):
+      self.OORMPDS = value
+
+   def SetEEF1000(self, value):
+      self.EEF1000 = value
+
+   def SetEPERIGEE(self, value):
+      self.EPERIGEE = value
+
+   def SetXEF1000(self, value):
+      self.XEF1000 = value
+
+   def SetOORMPEN(self, value):
+      self.OORMPEN = value
+
+   # ACIS packet SET methods
+   def SetAcisHasObserved(self, value):
+     self.AcisHasObserved = value
+
+   def SetAcisStartScience(self, value):
+     self.AcisStartScience = value
+
+   def SetAcisStopScience(self, value):
+     self.AcisStopScience = value
+
+   # CHANDRA Specific values
+
+   def SetFPInstrument(self, value):
+      self.FPInstrument = value
+
+   def SetOBSID(self, value):
+     self.OBSID = value
+
+   def SetHETG(self, value):
+     self.HETG = value
+
+   def SetLETG(self, value):
+     self.LETG = value
+
+   def SetFORMAT(self, value):
+     self.FORMAT = value
+
+   def SetDITHER(self, value):
+     self.DITHER = value
+
+   def SetSIMFOCUS(self, value):
+     self.FOCUS = value
+
+   def SetDidSIMTranslate(self, value):
+     self.DidSIMTranslate = value
+
+   #----------------------------------------------------------
+   #
+   # SetHistory - take the status line from the previous History file 
+   #              and init the State Vector to those values
+   #
+   #----------------------------------------------------------
+   def SetHistory(self, histline, outfile):
+     #
+     # Extract the parenthetical phrase of the history file line by
+     # locating the first left paren. Grab the parenthetical
+     # - leaving out the "\n" at the end. Next strip out any spaces.
+     # Split that csv list of status tokens (e.g. ['ACIS-S', 'HETG-OUT',...]
+     # on commas
+     #
+     histtokens = histline[histline.find('('):-1].replace(' ','')[1:-1].split(',') 
+#     histtokens = histline.split()[-1][1:-1].split(',')
+
+     print "The HIST line is: ", histline
+     print "\nHIST TOKENS ARE: ", histtokens
+
+     # Pull out each relevant item and initialize the State Vector
+     self.FPInstrument = histtokens[0]
+     self.HETG = histtokens[1]
+     self.LETG = histtokens[2]
+     self.OBSID = int(histtokens[3])  # an int
+     self.RADMON = histtokens[4]
+     if self.RADMON == 'OORMPEN':
+        self.SetOORMPEN(True)
+     else:
+        self.SetOORMPDS(True)
+     self.FORMAT = histtokens[5]
+     self.DITHER = histtokens[6]
+     self.SIMODE = histtokens[-1]
+
+     #
+     # Print out the state for the user in the same fashion as LR
+     print '\nCHANDRA STATUS ARRAY AT START OF LOAD REVIEW (FROM PREVIOUS LOAD HISTORY FILE):'
+     print '(FP SI,HETG status,LETG status,current OBSID,RadMon status,current TLM FMT,Dither)\n'
+     print '\t\t= ('+self.FPInstrument+','+self.HETG+','+self.LETG+','+str(self.OBSID)+','+self.RADMON+','+self.FORMAT+','+self.DITHER+')\n'
+           
+     #
+     # Write the information to the file
+     outfile.write('\nCHANDRA STATUS ARRAY AT START OF LOAD REVIEW (FROM PREVIOUS LOAD HISTORY FILE): \n')
+     outfile.write('(FP SI,HETG status,LETG status,current OBSID,RadMon status,current TLM FMT,Dither)\n')
+     outfile.write('\t\t= ('+self.FPInstrument+','+self.HETG+','+self.LETG+','+str(self.OBSID)+','+self.RADMON+','+self.FORMAT+','+self.DITHER+')\n\n')
+     #print "\nHistory Set: ",self.FPInstrument,self.HETG,self.LETG,str(self.OBSID),self.OORMPDS,self.OORMPEN,self.FORMAT,self.SIMODE
+#################################################################
+#
+# WhoInFP.py - Returns a string telling you which instrument is 
+#              in the Focal Plane.
+#
+#     input: - TSC position (simpos) - INTEGER
+#
+#     output - String indicating what is in the focal plane
+#              "launchlock" - default
+#              "ACIS-I"
+#              "ACIS-S"
+#              "HRC-I"
+#              "HRC-S"
+#              
+#
+#################################################################
+def WhoInFP(simpos = 80655):
+   "Returns a string indicating which instrument is in the Focal Plane."
+   IsInTheFP = 'launchlock'
+#
+#  Set the value of IsInTheFP to the appropriate value. It will default
+#  to "launchlock" if no value matches
+#
+   if ((simpos >= 83853) and (simpos <= 103578)):
+      IsInTheFP = 'ACIS-I'
+   elif ((simpos >= 70877) and (simpos <= 80655)):
+      IsInTheFP = 'ACIS-S'
+   elif ((simpos >= -76514) and (simpos <= -24205)):
+      IsInTheFP = 'HRC-I'
+   elif ((simpos >= -103143) and (simpos <= -95182)):
+      IsInTheFP = 'HRC-S'
+#
+#  return the string indicating which instrument is in the Focal Plane
+#
+   return IsInTheFP
+
+################################################################################
+#
+#  ProcessBackstopFile.py - Open the backstop file. Read each line. 
+#                           If the line is relevant to this Health & Safety
+#                           load review, capture the relevant information, 
+#                           place it in a list and append that list to the
+#                           output list.
+#
+#                  inputs - The path to the backstop file
+#
+#                 outputs - A list of relevant data from the backstop file
+#
+################################################################################
+#--------------------------------------------------------------------------
+#
+#   CleanUpLine - Take each line that has been extracted as relevant, and 
+#                 extract the important information depending upon the 
+#                 Command:
+#
+#                 MP_OBSID - extract the obsid in the data section
+#
+#                 SIMTRANS, ACISPKT, COMMAND_SW
+#                          - extract the SIM position from the data section
+#                            and convert the numerical position to a string
+#                            indicating which instrument is in the Focal
+#                            Plane. 
+#
+#--------------------------------------------------------------------------
+def CleanUpLine(cmdline):
+   # 1st column - Time (with spaces at the end eliminated
+   cleanedline = [cmdline[CmdDOYTime].rstrip()]
+   # 2nd column - which is ???
+   cleanedline.append(cmdline[Some2ple].split()[0])
+   # 3rd column - Command itself (e.g. COMMAND_HW, etc.); spaces stripped
+   cmd = cmdline[Command].lstrip()
+   cleanedline.append(cmd.rstrip() )
+   
+   # Check for and process MP_OBSID command
+   #
+   if cleanedline[Command] == 'MP_OBSID':
+      id = (cmdline[CmdSpecifics].split(',')[2]).split()[1]
+      cleanedline.append(id)
+   else: # ELSE it's an ACISPKT, SIMTRANS, COMMAND_SW, COMMAND_HW 
+         # and you use the TLMSID= pr POS= value
+      value = (cmdline[CmdSpecifics].split(',')[0]).split()[1]
+      cleanedline.append(value)
+
+   #
+   # Now if this is a SIMTRANS command, swap the instrument name for the 
+   # SIM position so that it's Human Readable
+   #if cleanedline[Command] == 'SIMTRANS':
+   # cleanedline[-1] = WhoInFP(int(cleanedline[-1]))
+
+   #
+   # return the cleaned up line to the Processor of the Backstop file
+   return cleanedline
+
+
+def ProcessBackstopFile3(backstopfilepath):
+   # Indices into a backstop line
+   CmdDOYTime = 0
+   Some2ple = 1
+   Command = 2
+   CmdSpecifics = 3
+
+   # list of relevant CHANDRA commands whose lines will be pulled out of
+   # backstop file for analysis
+   #
+   RelevantCmdList = ['SIMTRANS', 'MP_OBSID', 'ACISPKT', 'ORBPOINT', 'COMMAND_SW', 'COMMAND_HW', 'SIMFOCUS' ]
+
+   # Open the file
+   backstopfile = open(backstopfilepath, 'r')
+
+   # Init ACISlinelist to the empty list. This variable will hold 
+   # a backstop file lines which are relevant to the Expert System and 
+   # have been cleaned up by the function CleanUpLine
+   ACISlinelist = []
+    
+   # Read the file line by line and grab the relevant lines
+   # And throw them into a list
+   #
+   for line in backstopfile:
+     #
+     # First break the command line into tokens split on '|'
+     linetokens = line.split('|')
+     #zzzzzzzzz
+     #print linetokens
+
+     #
+     # Now extract the command(3rd token) and clean up leading 
+     # and trainling blanks
+     linecommand = linetokens[Command].lstrip()
+     linecommand = linecommand.rstrip()
+
+     # Now if this command is at all relevant to what we are doing, process it
+     # and append it to the ACISlinelist. If not relevant, ignore it
+     if linecommand in RelevantCmdList:
+
+        #
+        # Clean up the line and place it in the relevant line list
+        cleanedline = CleanUpLine(linetokens)
+        #zzzzz
+        #print cleanedline
+
+        # The lines are cleaned up but they still need to be filtered for
+        # relevancy since not all COMMAND_HW commands are relevant. For
+        # example, if this is a COMMAND_SW command, only add it if 
+        # it's OORMPDS or OORMPEN
+
+        if (cleanedline[Command]=='SIMTRANS') or \
+           (cleanedline[Command]=='SIMFOCUS') or \
+           (cleanedline[Command]=='MP_OBSID') or \
+           (cleanedline[Command]=='ACISPKT'):
+              ACISlinelist.append(cleanedline )
+
+        # if it's a COMMAND_SW, then gratings status, RADMON en/dis
+        # and Dither are important. Relevant value is in the TLMSID=
+        if (cleanedline[Command]=='COMMAND_SW'):
+           if (cleanedline[CmdSpecifics] == 'OORMPDS') or \
+              (cleanedline[CmdSpecifics] == 'OORMPEN') or \
+              (cleanedline[CmdSpecifics] == '4OLETGIN')or \
+              (cleanedline[CmdSpecifics] == '4OLETGRE')or \
+              (cleanedline[CmdSpecifics] == '4OHETGIN')or \
+              (cleanedline[CmdSpecifics] == '4OHETGRE')or \
+              (cleanedline[CmdSpecifics] == 'AOENDITH')or \
+              (cleanedline[CmdSpecifics] == 'AODSDITH'):
+                 ACISlinelist.append(cleanedline )
+
+        # If this is a COMMAND_HW command, only add it if it's CSELFMT1
+        # or CSELFMT2 
+        if (cleanedline[Command]=='COMMAND_HW'):
+           if (cleanedline[CmdSpecifics] == 'CSELFMT1') or \
+              (cleanedline[CmdSpecifics] == 'CSELFMT2') or \
+              (cleanedline[CmdSpecifics] == 'CSELFMT4'):
+                 ACISlinelist.append(cleanedline )
+
+        #
+        # Otherwise if this is an 'ORBPOINT' command, only add the line 
+        # if it's 'EEF1000', 'EPERIGEE', or 'XEF1000'
+        elif cleanedline[Command]=='ORBPOINT':
+             if (cleanedline[CmdSpecifics] == 'EEF1000') or \
+                (cleanedline[CmdSpecifics] == 'EPERIGEE') or \
+                (cleanedline[CmdSpecifics] == 'XEF1000'):
+                   ACISlinelist.append(cleanedline )
+
+   #
+   # Close the backstop file
+   #
+   backstopfile.close()
+
+   # Return the relevant command list
+
+   return ACISlinelist
+def LRPerigeePassageChecks3(cmdline, sv, outfile):
+   RuleFired = False
+
+   #
+   # Extract each part of the command into their own variables
+   thisTime = cmdline[CmdDOYTime]
+   thisSome2ple = cmdline[Some2ple]
+   thisCommand = cmdline[Command]
+   thisCmdValue = cmdline[CmdSpecifics]
+
+   # create the output line
+   outputline = thisTime+'    '+thisSome2ple+'  '+thisCommand+'  '+thisCmdValue
+
+   if (thisCommand == ORBPOINT) and \
+      ((thisCmdValue == 'OORMPDS') or \
+       (thisCmdValue == 'EEF1000') or \
+       (thisCmdValue == 'EPERIGEE') or \
+       (thisCmdValue == 'XEF1000') or \
+       (thisCmdValue == 'OORMPEN')) and \
+      ((sv.GetFPInstrument() == 'ACIS-I') or \
+       (sv.GetFPInstrument() == 'ACIS-S')):
+      sv.SetEEF1000(True)
+      sv.SetState('PerigeePassage')
+      print outputline+'=====> ERROR !!! PERIGEE PASSAGE VIOLATION!\n'
+      outfile.write(outputline+'=====>  ERROR !!!PERIGEE PASSAGE VIOLATION!\n')
+      RuleFired = True
+      
+
+   if (thisCommand == SIMTRANS) and \
+      ((sv.GetFPInstrument() == 'ACIS-I') or \
+       (sv.GetFPInstrument() == 'ACIS-S')) and \
+      (sv.GetState() == 'PerigeePassage'):
+      print outputline+'=====> ERROR !!! PERIGEE PASSAGE VIOLATION!\n'
+      outfile.write(outputline+'=====>  ERROR !!!PERIGEE PASSAGE VIOLATION!\n')
+      sv.SetState('VIOLATION')
+      RuleFired = True
+
+   if (sv.GetState()=='PerigeePassage') and \
+      ( (sv.GetFPInstrument() == 'ACIS-S') or \
+        (sv.GetFPInstrument() == 'ACIS-I')):
+      print outputline+'=====> ERROR !!!PERIGEE PASSAGE VIOLATION!\n'
+      outfile.write(outputline+'=====>  ERROR !!!PERIGEE PASSAGE VIOLATION!\n')
+      sv.SetState('VIOLATION')
+      RuleFired = True
+##################################################################################
+#
+# LRFindObservationRuleSet3.py - Rule set to process ACIS packets and locate 
+#                                an ACIS Observation and display the
+#                        
+#
+#          input: cmdline - One conditioned line from the backstop file
+#                 
+#                 sv - State Vector indicating the status of the spacecraft and 
+#                 instrument at the point in time before the exectuion of cmdline
+#
+##################################################################################
+
+def LRFindObservationRuleSet3(cmdline, sv, outfile):
+   RuleFired = False
+
+   #
+   # Extract each part of the command into their own variables
+   thisTime = cmdline[CmdDOYTime]
+   thisSome2ple = cmdline[Some2ple]
+   thisCommand = cmdline[Command]
+   thisCmdValue = cmdline[CmdSpecifics]
+
+   # create the output line
+   outputline = thisTime+'    '+thisSome2ple+'  '+thisCommand+'  '+thisCmdValue
+
+   #
+   # ACISPKT Processing rules
+   #
+
+   if (thisCommand == ACISPKT)       and \
+      ((thisCmdValue == XTZ0000005) or \
+       (thisCmdValue == XCZ0000005)) and \
+      (sv.GetState() != 'PerigeePassage'):
+       sv.SetAcisStartScience(True)
+       sv.SetAcisStopScience(False)
+       print  outputline+'\t\t   ( Rule FORS-1)'
+       statusarray = '('+sv.GetFPInstrument()+','+sv.GetHETG()+','+sv.GetLETG()+','+str(sv.GetOBSID())+','+sv.GetRADMON()+','+sv.GetFORMAT()+','+sv.GetDITHER()+')'
+       print 'ACIS Science Observation: '
+       print '====> Chandra Status Array='+statusarray+'\t\t\t  ( Rule FORS-1)\n'
+       outfile.write(outputline+'\n')
+       outfile.write('ACIS Science Observation: \n')
+       outfile.write('====> Chandra Status Array='+statusarray+'\n\n')
+       RuleFired = True
+
+   if (thisCommand == ACISPKT)       and \
+      ((thisCmdValue == XTZ0000005) or \
+       (thisCmdValue == XCZ0000005)) and \
+      (sv.GetState() == 'PerigeePassage'):
+       sv.SetAcisStartScience(True)
+       sv.SetAcisStopScience(False)
+       print  outputline+'\t\t\t - Rule FORS-2'
+       statusarray = '('+sv.GetFPInstrument()+','+sv.GetHETG()+','+sv.GetLETG()+','+str(sv.GetOBSID())+','+sv.GetRADMON()+','+sv.GetFORMAT()+','+sv.GetDITHER()+')'
+       print 'ACIS CTI Observation: '
+       print '====> Chandra Status Array='+statusarray+'\t\t   ( Rule FORS-2)\n\n'
+       outfile.write(outputline+'\n')
+       outfile.write('\n====> Chandra Status Array='+statusarray+'\n\n')
+       RuleFired = True
+
+
+   if (thisCommand == ACISPKT) and \
+      (thisCmdValue == AA00000000):
+      sv.SetAcisStopScience(True)
+      print outputline+      "\t\t   ( Rule FORS-3)"
+      outfile.write(outputline+'\n')
+      RuleFired = True
+
+   # Print out every acis packet you get except XTZ/XCZ's and AA00's
+   if (thisCommand == ACISPKT)      and \
+      ((thisCmdValue != XTZ0000005) and \
+       (thisCmdValue != XCZ0000005))and \
+      (thisCmdValue != AA00000000):
+      print outputline+      "\t\t   ( Rule FORS-4)"
+      outfile.write(outputline+'\n')
+      RuleFired = True
+
+
+   #
+   # XTZ-AA00 found 
+   #
+   if (sv.GetAcisStartScience() == True)    and \
+      (sv.GetAcisStopScience() == True)     and \
+      ((sv.GetFPInstrument() == 'ACIS-I')  or \
+       (sv.GetFPInstrument() == 'ACIS-S')):
+      print "\t\t   ( Rule FORS-5)"
+      sv.SetAcisHasObserved(True)
+      sv.SetAcisStartScience(False)
+      sv.SetAcisStopScience(False)
+      RuleFired = True
+
+   if (sv.GetAcisStartScience() == True)    and \
+      (sv.GetAcisStopScience() == True)     and \
+      (sv.GetOBSID() >= 50000)              and \
+      ((sv.GetFPInstrument() == 'HRC-I')  or \
+       (sv.GetFPInstrument() == 'HRC-S')):
+      sv.SetAcisHasObserved(True)
+      sv.SetAcisStartScience(False)
+      sv.SetAcisStopScience(False)
+      RuleFired = True
+
+   #
+   # Look for any illegal acis command.i.e. one that starts with a numeral 1
+   #
+   if ((thisCommand == ACISPKT)     or \
+      (thisCommand == COMMAND_SW)   or \
+      (thisCommand == COMMAND_HW)) and \
+      (thisCmdValue[0] == '1'):
+      print '*************WARNING! ACIS Command ISSUED:'
+      print outputline+      "\t\t   ( Rule FORS-7 )"
+      outfile.write(outputline+'\n')
+      print 'THIS COMMAND VALUE ZERO IS: '+thisCmdValue[0]
+
+
+   if (sv.GetAcisStartScience() == True)    and \
+      (sv.GetFORMAT()!= CSELFMT2)           and \
+      ((sv.GetFPInstrument() == 'ACIS-I')  or \
+       (sv.GetFPInstrument() == 'ACIS-S')):
+      print "\t\t   ( Rule FORS-8)"
+      outputline = "******** ERROR - ACIS OBSERVATION; NOT IN FORMAT 2!!"
+      outfile.write(outputline+'\n')
+      RuleFired = True
+
+      
+   return RuleFired
+##################################################################################
+#
+# LRCleanUpRules3.py - Rule set be run after all the relevant lines in the 
+#                      backstop file have been processed and to be sure
+#                      nothing is left undone. for example, the FOT
+#                      attempts to never have a start science without a stop
+#                      science and the rule below checks for that.
+#                        
+#
+#          input: sv - State Vector indicating the status of the spacecraft and 
+#                 instrument at the point in time before the exectuion of cmdline
+#
+##################################################################################
+def LRCleanUpRules3(sv, outfile):
+
+   RuleFired = False
+
+
+   if (sv.GetAcisStartScience == True) and \
+      (sv.GetAcisStopScience == False):
+      print '*****WARNING!!!!***** A science run was started at the end of this load, but not stopped'
+      outfile.write('*****WARNING!!!!***** A science run was started at the end of this load, but not stopped\n')
+################################################################################
+#
+# LRChandraStateRuleSet3.py - Rule set to recognize Chandra type status
+#                            changes like Dither, Gratings, Format, SIMTRAN,
+#                            SIMFOCUS, RADMON enab/disab
+#
+#          input: cmdline - One conditioned line fromt he backstop file
+#                 
+#                 sv - State Vector indicating the status of the spacecraft and 
+#                 instrument at the point in time before the exectuion of cmdline
+#
+################################################################################
+def LRChandraStateRuleSet3(cmdline, sv, outfile):
+   RuleFired = False
+
+   #
+   # Extract each part of the command into their own variables
+   thisTime = cmdline[CmdDOYTime]
+   thisSome2ple = cmdline[Some2ple]
+   thisCommand = cmdline[Command]
+   thisCmdValue = cmdline[CmdSpecifics]
+
+   # create the output line
+   outputline = thisTime+'    '+thisSome2ple+'  '+thisCommand+'  '+thisCmdValue
+
+   #
+   # SIMTRANS and OBSIDs
+   #
+   if thisCommand == SIMTRANS:
+      sv.SetFPInstrument(WhoInFP(int(thisCmdValue)) )
+      sv.SetDidSIMTranslate(True)
+      print '\n----------------------------------------------------------------------------------'
+      print outputline+'        '+WhoInFP(int(thisCmdValue))+'\t   ( Rule 1 )'
+      outfile.write('\n----------------------------------------------------------------------------------\n')
+      outfile.write(outputline+'        '+WhoInFP(int(thisCmdValue))+'\n')
+      RuleFired = True
+
+   if (thisCommand == MP_OBSID):
+      sv.SetOBSID(int(thisCmdValue))
+      print '\n'+outputline+'\t\t   ( Rule 2 )'
+      outfile.write('\n'+outputline+'\n')
+      RuleFired = True
+
+
+   # Gratings Rules
+   #
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == LETGIN):
+        sv.SetLETG('LETG-IN')        # Set the LETG state to IN
+        print outputline+'\t  ( Rule 3 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == LETGRE):
+      sv.SetLETG('LETG-OUT')        # Set the LETG state to OUT
+      print outputline+'\t  ( Rule 4 )\n'
+      outfile.write(outputline+'\n')
+      RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == HETGIN):
+        sv.SetHETG('HETG-IN')        # Set the HETG state to IN
+        print outputline+'\t  ( Rule 5 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == HETGRE):
+        sv.SetHETG('HETG-OUT')        # Set the HETG state to IN
+        print outputline+'\t  ( Rule 6 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+# FORMAT RULES
+   if (thisCommand == COMMAND_HW) and \
+      (thisCmdValue == CSELFMT1):
+      sv.SetFORMAT(CSELFMT1)        
+      print outputline+'\t  ( Rule 7 )\n'
+      outfile.write(outputline+'\n')
+      RuleFired = True
+
+   if (thisCommand == COMMAND_HW) and \
+      (thisCmdValue == CSELFMT2):
+        sv.SetFORMAT(CSELFMT2)        
+        print outputline+'\t  ( Rule 8 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_HW) and \
+      (thisCmdValue == CSELFMT4):
+        sv.SetFORMAT('MAN')        
+        print outputline+'\t  ( Rule 9 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+   if (thisCommand == SIMFOCUS):
+        sv.SetSIMFOCUS(int(thisCmdValue))
+        print outputline+'\t\t   ( Rule 10 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == AOENDITH):
+        sv.SetDITHER('ENAB')        
+        print thisTime+'    '+thisSome2ple+'  '+thisCmdValue+'  '+thisCmdValue+'\t  ( Rule 11 )\n'
+        outfile.write(outputline+'\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == AODSDITH):
+        sv.SetDITHER('DISAB')        
+        print thisTime+'    '+thisSome2ple+'  '+thisCmdValue+'  '+thisCmdValue+'\t  ( Rule 12 )\n'
+        print "  ==> DITHER DISABLED\n"
+        outfile.write(outputline+'\n')
+        outfile.write("  ==> DITHER DISABLED\n")
+        RuleFired = True
+
+# ORBPOINT Commands
+   if (thisCommand == ORBPOINT) and \
+      (thisCmdValue == 'EEF1000'):
+        sv.SetEEF1000(True)
+        sv.SetState('PerigeePassage')
+        print outputline+'      EEF1000\t   ( Rule 13 )\n'
+        outfile.write(outputline+'        EEF1000\n')
+        RuleFired = True
+ 
+   if (thisCommand == ORBPOINT) and \
+      (thisCmdValue == 'EPERIGEE'):
+        sv.SetEPERIGEE(True)
+        sv.SetState('PerigeePassage')
+        print outputline+'     EPERIGEE\t  ( Rule 14 )\n'
+        outfile.write(outputline+'      EPERIGEE\n')
+        RuleFired = True
+
+   if (thisCommand == ORBPOINT) and \
+      (thisCmdValue == 'XEF1000'):
+        sv.SetState('PerigeePassage')
+        sv.SetEEF1000(True)
+        print outputline+'      XEF1000\t  ( Rule 15 )\n'
+        outfile.write(outputline+'        XEF1000\n\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == 'OORMPDS'):
+        sv.SetRADMON(thisCmdValue)
+        sv.SetOORMPDS(True)
+        sv.SetState('PerigeePassage')
+        print outputline+'     RADMON DISABLE\t  ( Rule 16 )\n'
+        outfile.write(outputline+'     RADMON DISABLE\n')
+        RuleFired = True
+
+   if (thisCommand == COMMAND_SW) and \
+      (thisCmdValue == 'OORMPEN'):
+        sv.SetRADMON(thisCmdValue)
+        sv.SetState('SCIENCE')
+        sv.SetOORMPEN(True)
+        sv.RadmonEnableSet()          # reset the state variable
+        print outputline+'     RADMON ENABLE\t  ( Rule 17 )'
+        print '===========================================================================\n'
+        outfile.write(outputline+'     RADMON ENABLE\n')
+        outfile.write('===========================================================================\n')
+        RuleFired = True
+
+   return RuleFired
+#! /usr/local/bin/python
+##################################################################################
+#
+#  LRHS.py - Expert System to check the health and safety of ACIS in 
+#               a load. 
+#
+#               V2.0 - Main routine becomes a function and you pass in the
+#                      History file and the backstop file
+#
+#     inputs:  A History File ACIS-History.txt
+#              A backstop file (e.g. CR163_1205.backstop)
+#
+#    outputs:  Verbal acknowledgement that ACIS will either be safe or not safe
+#
+##################################################################################
+
+#__metaclass__ = type # Make sure New Style classes are used
+
+
+#
+# Imports
+#
+import glob
+import sys
+#
+# Bring in other definitions
+#
+#execfile("StateVectorClass3.py")
+#execfile("ProcessBackstopFile3.py")
+#execfile("LRChandraStateRuleSet3.py")
+#execfile("LRFindObservationRuleSet3.py")
+#execfile("LRCleanUpRules3.py")
+#execfile("LRPerigeePassageChecks3.py")
+#execfile("WhoInFP.py")
+
+#
+# Globals
+#
+# Indices into a backstop line
+CmdDOYTime = 0
+Some2ple = 1
+Command = 2
+CmdSpecifics = 3
+
+# Command mnemonics for handy rule use
+SIMTRANS = 'SIMTRANS'
+MP_OBSID = 'MP_OBSID'
+ACISPKT =  'ACISPKT'
+ORBPOINT = 'ORBPOINT'
+COMMAND_HW = 'COMMAND_HW'
+COMMAND_SW = 'COMMAND_SW'
+AOENDITH = 'AOENDITH'
+AODSDITH = 'AODSDITH'
+SIMFOCUS = 'SIMFOCUS'
+SIMODE = 'SIMODE'
+RADMON = 'RADMON'
+
+# TLMSID=
+AA00000000 = 'AA00000000'
+XCZ0000005 = 'XCZ0000005'
+XTZ0000005 = 'XTZ0000005'
+LETGIN = '4OLETGIN'
+LETGRE = '4OLETGRE'
+HETGIN = '4OHETGIN'
+HETGRE = '4OHETGRE'
+CSELFMT1 = 'CSELFMT1'
+CSELFMT2 = 'CSELFMT2'
+CSELFMT4 = 'CSELFMT4'
+WSPOW00000 = 'WSPOW00000'
+RS_0000001 = 'RS_0000001'
+RH_0000001 = 'RH_0000001'
+WSVIDALLDN = 'WSVIDALLDN'
+WSPOW00000 = 'WSPOW00000'
+
+#--------------------------------------------------------------------------
+#
+#   HSES - Health and Safety Expert System
+#
+#        - Open the backstop file, extract all commands relevant to this 
+#          processing.  Clean up each line and send each cleaned line - one 
+#          by one - to the Rules Processor.
+#
+#--------------------------------------------------------------------------
+def HSES(backstopfilepath = "/home/gregg/PYTHON/LR/JUN1311/CR163_1205.backstop", priorloadpath = "/home/gregg/PYTHON/LR/JUN0811/ACIS-History.txt"):
+   #
+   # Create an instance of the State Vector class
+   myStateVector = StateVector()
+
+   print "INPUTS: ", backstopfilepath, priorloadpath
+   #
+   # Open the backstop file for INPUT
+   #
+   
+   #backstopfilepath = glob.glob(backstopfiledir+"/"+testprefix+"*")[0]
+
+   #
+   # Create the path for the output file, and open the file
+   #loadreviewpath = backstopfilepath+'ACIS-LoadReview.txt'
+   
+   outputfilepath = backstopfilepath[0:backstopfilepath.find("CR")]+"ACIS-LoadReview_HandS.txt"
+   print " output file directory is: ", outputfilepath
+   lroutputfile = open(outputfilepath, 'w')
+
+   #
+   # Print the header to the Load Review file
+   print '-------------------------------------------------'
+   print 'ACIS Health and Safety Load Review OUTPUT V3.0:'
+   print 'FOR REVIEW BY CXC ACIS OPS PERSONNEL\n'
+   print '-------------------------------------------------\n\n'
+   print 'USING  '+backstopfilepath+'\n\n'
+   lroutputfile.write('-------------------------------------------------\n' )
+   lroutputfile.write('ACIS Health and Safety Load Review OUTPUT V3.0:\n' )
+   lroutputfile.write('FOR REVIEW BY CXC ACIS OPS PERSONNEL\n\n' )
+   lroutputfile.write('-------------------------------------------------\n\n\n' )
+   lroutputfile.write('USING  '+backstopfilepath+'\n\n\n' )
+
+   #
+   # Open the ACIS history file, and read the single line
+   #
+   histfile = open(priorloadpath, 'r')
+   history = histfile.readline()
+   histfile.close()
+   print 'LOAD HISTORY FROM: '+priorloadpath
+   print '\n-- CHANDRA LOAD START --'
+   lroutputfile.write( 'LOAD HISTORY FROM: '+priorloadpath+'\n')
+   lroutputfile.write( '\n-- CHANDRA LOAD START --\n')
+
+   # 
+   # Now call the State Vector method which extracts the relevant information
+   # from the history file line and initialize the State Vector to that info
+   myStateVector.SetHistory(history, lroutputfile)
+
+   # ACISlinelist  will hold backstop file lines which are relevant 
+   # to the Expert System and thathave been cleaned up by the function CleanUpLine
+   ACISlinelist = ProcessBackstopFile3(backstopfilepath)
+
+   #
+   # Now you have captured all the relevant lines out of the backstop file
+   # and stored them in ACISlinelist. Now process ACISlinelist one line at 
+   # a time.
+   # Start to go through them and figure out what state you are in.
+   #
+   for eachline in ACISlinelist:
+      #print "EACHLINE: ", eachline
+      RuleFired = LRChandraStateRuleSet3(eachline, myStateVector, lroutputfile)
+      RuleFired = LRFindObservationRuleSet3(eachline, myStateVector, lroutputfile)
+      RuleFired = LRPerigeePassageChecks3(eachline, myStateVector, lroutputfile)
+   #
+   # Now run the Cleanup Rules
+   RuleFired = LRCleanUpRules3(myStateVector, lroutputfile)
+   #
+   # close the load review output file
+   lroutputfile.close()
+#
+# Run it
+#
+
+args = sys.argv[1:]
+
+newload = args[0]
+pastload = args[1]
+
+#print newload
+#print pastload
+
+HSES(newload, pastload )
+
+
+#HSES("./JUN1311", "./JUN0811")
+#HSES("./MAY1611/", "./MAY0911/", )
+
+#backstopfile = open("CR163_1205.backstop", 'r')
+#backstopfile = open("CR163_1205.backstop.PerigeePassage", 'r')
+#backstopfile = open("CR163_1205.backstop.PPVioAfterOORMPDS", 'r')
+#backstopfile = open("CR163_1205.backstop.PPVioAfterEEF1000", 'r')
+#backstopfile = open("CR163_1205.backstop.PPVioAfterEEPERIGEE", 'r')
+#backstopfile = open("CR163_1205.backstop.PPVioAfterXEF1000", 'r')
+#
+#backstopfile = open("CR163_1205.backstop.PPNOOORMPDS", 'r')
+#backstopfile = open("CR163_1205.backstop.PPNOEEF1000", 'r')
+#backstopfile = open("CR163_1205.backstop.PPNOEEPERIGEE", 'r')
+#backstopfile = open("CR163_1205.backstop.PPNOXEF1000", 'r')
+#
+#backstopfile = open("CR163_1205.backstop.PPmissingOORMPEN", 'r')

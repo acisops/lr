@@ -1,0 +1,536 @@
+# Makefile for load review software regression testing.
+#   Assumes operator has already issued a setloads command
+#   and sourced lr_test_source.
+#   The working directory is $REGRESS.
+#   $SCRIP points to "production" area, $RSCRIP to the directory 
+#   containing links either to new code to be tested, or to $SCRIP versions. 
+# Usage:
+#  (This comment needs rewrite badly) -
+#  Command line for each individual case must have
+#  "CASE=" switch, pointing to the subdirectory of $LRTESTSRC/input and 
+#  $LRTESTSRC/output containing the regression files for the preferred test.
+# lr_regress_Makefile
+# Copy into load review regression test directory as Makefile.
+#    (as is done, e.g., by lr_test_source.)
+#  Targets ending in underscore are not intended to be called interactively.  
+# $Log: lr_regress_Makefile,v $
+# Revision 1.43  2012/12/14 21:40:10  royceb
+# Copy replan_replies to $REGRESS.
+# Clearer instructions on Query replies.
+# Expand cleancases target to include replans.
+#
+# Revision 1.42  2012/12/07 23:07:00  royceb
+# Sketch in target replanq, for scenario REPLAN. Correct one more
+# display of query replies.
+#
+# Revision 1.41  2012/11/01 20:39:11  royceb
+# Added replan cases oct2511b, mar1612b, mar2612b, may3112a.
+# ACIS_regress files now copied from the correct directory.
+# Links target corrects ACIS tables pointer in pblockreader.pl.
+#
+# Revision 1.38  2012/09/04 20:14:55  acisdude
+# Restore history comments lost during merge with branch.
+#
+# Revision 1.37  2012/09/04 20:07:34  acisdude
+# Add lrq and lrq_ targets, to be invoked for automated python run of
+# trio scenario.
+#
+# Revision 1.36  2012/08/14 19:16:42  acisdude
+# added new line for script fptemp_sens_finder.pl
+#
+# Revision 1.35 Target backstops now incorporates aug0210x 
+# and aug0210y cases.
+#
+# Revision 1.34 Allow certain already existing soft links to stand;
+# Silence chatter about links, and eliminate obsolete comment lines.
+#
+# Revision 1.33  2012/07/17 19:55:30  acisdude
+# Drop obsolete commented-out lines.
+# Initial installation of aug0210y target.
+#
+# Revision 1.32  2012/07/12 20:22:28  acisdude
+# Auxiliary input files moved to backstop target.
+# Where soft links are required, insert them into the <case>_ target,
+# or where useful into the <scenario>_ target.
+#
+# Revision 1.27  2012/04/11 17:44:14  royceb
+# Refined LRHS processing.
+# Set off "At sftp prompt" text more boldly.
+# Modify backstop to look for biasTiming in ACIS_regress.dat rather than
+# current.dat, and adjust aug0210a accordingly.
+#
+# Revision 1.26  2012/02/16 19:45:08  royceb
+# Add Health and safety only scenario, H_AND_S.
+#
+# Revision 1.25  2011/12/29 16:46:08  nadams
+# replaced run_PSMC.pl with run_models.pl
+# to allow for dpa_check model to be executed
+#
+# Revision 1.24  2011/12/22 22:06:41  royceb
+# Have realclean clean up links.
+# Add target start, which does a realclean and a chkout.
+#
+# Revision 1.23  2011/12/20 21:05:47  royceb
+# Make console output a little more friendly.
+# Move backstop target closer to bstop_.
+#
+# Revision 1.22  2011/12/20 15:03:51  royceb
+# Backstops target calls bs_gunz.pl, to imitate unpacking done by lr.
+# Scenarios spelled out in SCEN gmake variable.
+#
+# Revision 1.21  2011/12/08 20:24:20  royceb
+# Throw a temporary sed command into diff target, to clean up the
+# extraneous "B " in SI mode name in the history file.
+# Silence a good many more commands.
+#
+# Revision 1.20  2011/11/29 20:33:45  royceb
+# Restore missing carriage return that was preventing RSCRIP definition.
+#
+# Revision 1.19  2011/11/29 20:28:19  royceb
+# Correct conditional syntax for SCEN check.
+#
+# Revision 1.17  2011/11/17 17:08:39  royceb
+# Fixed second typo with feb2811a => feb2811b.
+#
+# Revision 1.16  2011/11/17 16:52:14  royceb
+# Fix typo in tln file name for feb2811a.
+#
+# Revision 1.15  2011/11/16 19:48:32  royceb
+# lr's dependency on chkout was not harmless, because it invoked cleanlinks.
+#
+# Revision 1.14  2011/11/16 14:49:22  royceb
+# Eliminate last references to LRPROD, now SCRIP.
+# Sanity target cleans cases, links, and $REGRESS first.
+# Cleanup of old comments relevant only to sacgs regression.
+#
+# Revision 1.13  2011/11/15 22:06:42  royceb
+# Add the sanity target, for a quick sweep once a change has been
+# checked in to production.  Also, have realclean clean the RG_
+# directories too.
+#
+# Revision 1.12  2011/11/15 20:37:55  royceb
+# A major revision, fully implementing links and cleanlinks targets, and
+# providing correct handling of ACIS tables tln file.
+#
+# Revision 1.11  2011/11/14 20:40:34  royceb
+# Expand list of links to subscripts.
+#
+# Revision 1.10  2011/11/14 20:23:49  royceb
+# Fix construction of LR_SUBDIR.
+# Introduce targets backstops and bstop_, details to be filled in.
+#
+# Revision 1.9  2011/11/10 22:12:15  acisdude
+# Add cleancases target, to clean all cases.
+#
+# Revision 1.8  2011/11/10 22:02:53  acisdude
+# Run all scripts from /data/acis/acisdude/reg_script directory,
+# and set up the links therein.
+#
+# Revision 1.7  2011/10/18 17:56:12  royceb
+# Includes test case aug0210x.
+#
+# Revision 1.6  2011/09/19 20:31:04  royceb
+# Specify output directory for test_all_history.pl.
+# Update opening comments.
+#
+#---------------------------------------------------------------------
+
+SUFF = `lr_suffix.pl`
+XSUFF = `lr_suffix.pl -x`
+#XSUFF = `perl -e '$$cmd=$$ENV{"SUFF"};if ($$cmd) { print substr(`$$cmd`,1,4); } else {print "";}'`
+
+#P14_PATH now set in lr_test_source and lr_test_source_bak.
+#P14_PATH = /pool14/duderg
+LRTESTSRC = $(P14_PATH)/src
+REGIN = $(LRTESTSRC)/regress/$(CASE)/inputs
+REGRESS = $(P14_PATH)/regress
+REGOUT = $(LRTESTSRC)/regress/$(CASE)/outputs
+LDREVS = /data/acis$(SUFF)/LoadReviews
+SCRIP = $(LDREVS)/script
+
+# Next directory contains either links to scripts, or lr with modified paths
+RSCRIP = /data/acis$(SUFF)/acisdude/reg_script
+
+CASELD = `perl -e '$$case = $$ENV{"CASE"}; print "\U$$case";'`
+LR_SUBDIR=  `perl -e '$$case = $$ENV{"CASE"}; $$yy = chop $$case; print "RG_\U$$case";'`
+CASEYR = `perl -e '$$yy = $$ENV{"CASE"}; $$yy =~ /.....(\d\d)/; print "20$$1";'`
+CASEVER = `perl -e '$$yy = $$ENV{"CASE"}; $$yy =~ /(.)$$/; print "$$1";'`
+UCASEVER = `perl -e '$$yy = $$ENV{"CASE"}; $$yy =~ /(.)$$/; print "\U$$1";'`
+CASEDIR = $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)
+LR_SSDIR = $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls$(CASEVER)
+CASE_CMPR = $(P14_PATH)/src/regress/$(CASE)/outputs
+
+ifndef SCEN 
+	SCEN = NOT_DEFINED
+endif
+
+TODAY = `date +"%j_%y"`
+
+main: $(CASE)
+
+# scenario - full LR test ('trio')
+lr:
+	gmake SCEN=TESTLR lr_
+
+lr_:
+	gmake CASE=aug0210a aug0210a
+	gmake CASE=nov0110a nov0110a
+	gmake CASE=feb2811b feb2811b
+#	@echo "****PASSED***** all three regression cases"
+
+lrq:
+	gmake SCEN=TESTLR lrq_
+lrq_:
+#	bullrsh.py aug0210a nov0110a feb2811b
+	bullrsh.py aug0210a nov0110a feb2811b oct2811x
+
+replan: 
+	gmake SCEN=REPLAN replan_
+replan_:
+	gmake CASE=oct2511b oct2511b
+	gmake CASE=oct2811x oct2811x
+	gmake CASE=mar1412a mar1412a
+	gmake CASE=mar2612b mar2612b
+	gmake CASE=may3112a may3112a
+
+replanq:
+	gmake SCEN=REPLAN replanq_
+
+replanq_:
+	bullrsh.py oct2511b oct2811x mar1412a mar2612b may3112a
+
+# scenario backstops
+# Run all the backstop regressions, without lr.
+backstops:
+	gmake SCEN=BACKS backstops_
+
+backstops_:
+	gmake CASE=aug0210a bstop_
+	gmake CASE=nov0110a bstop_
+	gmake CASE=feb2811b bstop_
+	gmake CASE=feb2811x bstop_
+	gmake CASE=aug0210x lnkaug0210x
+	gmake CASE=aug0210x bstop_
+	gmake CASE=aug0210y lnkaug0210y
+	gmake CASE=aug0210y bstop_
+	@echo "***Backstop regression complete. INSPECT qwik_regr.log"
+
+# scenario sanity check.
+# For use to validate installed version of lr and its callees.
+# Just shows that everything runs, expected files exist, and
+# most basic outputs match, for one typical regression case.
+sanity:
+	gmake SCEN=SANITY sanity_
+
+sanity_: cleancases clean chkout links
+	gmake CASE=aug0210a aug0210a
+
+# scenario hands (health & safety)
+hands:
+	gmake SCEN=H_AND_S hands_
+
+hands_:
+	gmake CASE=aug0210a PREV=JUL2610 hands1_
+	gmake CASE=aug0210a diff
+	gmake CASE=aug0210x lnkaug0210x
+	gmake CASE=aug0210x PREV=JUL2610 hands1_
+	gmake CASE=aug0210x diff
+	gmake CASE=aug0210y lnkaug0210y
+	gmake CASE=aug0210y PREV=JUL2610 hands1_
+	gmake CASE=aug0210y diff
+	gmake CASE=nov0110a PREV=OCT2510 hands1_
+	gmake CASE=nov0110a diff
+	gmake CASE=feb2811b PREV=FEB2111 hands1_
+	gmake CASE=feb2811b diff
+	gmake CASE=feb2811x PREV=FEB2111 hands1_
+	gmake CASE=feb2811x diff
+
+hands1_:	# Perform one health and safety case
+	gmake backstop  # Create dir and copy in backstop file
+	-@bs_gunz.pl $(LR_SSDIR)
+	cd $(LR_SSDIR); $(RSCRIP)/LRHS $(LR_SSDIR)/`ls *.backstop` \
+/data/acis$(SUFF)/LoadReviews/$(CASEYR)/$(PREV)/ofls/ACIS-History.txt > /dev/null
+
+breaks:
+	gmake SCEN=BREAKS breaks_
+
+breaks_:
+	gmake CASE=oct2811b oct2811b
+
+#---- End scenarios
+# For one case, grab and unpack the tarball, and run acis_backstop
+bstop_: backstop
+	# Unpack here.
+	-@bs_gunz.pl $(LR_SSDIR)
+	-@cd $(LR_SSDIR); \
+	$(RSCRIP)/acis-backstop.pl -s ocatsqlsrv \
+	$(LR_SSDIR)/`ls *backstop` \
+	`cat $(REGIN)/prev-week`/ACIS-History.txt
+	cd $(REGRESS); gmake diff
+
+backstop:
+	-@mkdir $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)
+	-@mkdir $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls$(CASEVER)
+	-@rm $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls
+	@ln -s $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls$(CASEVER) \
+	$(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls
+	-cp $(REGIN)/$(CASE).tln $(SCRIP)/ACIS_regress.tln
+	-cp $(REGIN)/$(CASE).dat $(SCRIP)/ACIS_regress.dat
+	-cp $(REGIN)/regress_Chandra.stk $(LDREVS)/data
+	-cp $(REGIN)/regress_Sun.stk $(LDREVS)/data
+	-cp $(REGIN)/replan_replies $(REGRESS)
+#	-cp $(REGIN)/replan_replies $(REGRESS) $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls
+	cp $(REGIN)/$(CASELD)_backstop.tar.gz $(LDREVS)/$(CASEYR)/$(LR_SUBDIR)/ofls
+
+chkout: cleanlinks
+	-mkdir $(LRTESTSRC)
+	cd $(LRTESTSRC); cvs -q co regress >& latest_checkout.txt 
+	-@ln -s $(LRTESTSRC)/regress/aug0210a/aug0210a.tln  $(LRTESTSRC)/regress/feb2811b/feb2811b.tln
+	-@ln -s $(LRTESTSRC)/regress/aug0210a/aug0210a.tln  $(LRTESTSRC)/regress/feb2811x/feb2811x.tln
+
+start: realclean chkout
+
+links:
+	-cd $(RSCRIP); ln -s $(SCRIP)/lr$(XSUFF) lr$(XSUFF)
+	-cd $(RSCRIP); ln -s $(SCRIP)/acis-backstop.pl acis-backstop.pl
+	-cd $(RSCRIP); ln -s $(SCRIP)/pblockreader.pl pblockreader.pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/LRHS LRHS
+	-@cd $(RSCRIP); ln -s $(SCRIP)/saa_checker.pl saa_checker.pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/run_models.pl run_models.pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/plot_FOV_data.pl plot_FOV_data.pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/edit_history.pl edit_history.pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/fptemp_sens_finder.pl fptemp_sens_finder.pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/history-files$(XSUFF).pl history-files$(XSUFF).pl
+	-@cd $(RSCRIP); ln -s $(SCRIP)/ACE-update$(XSUFF).pl ACE-update$(XSUFF).pl
+# More pointers to be used when models are pulled into the regression scheme.
+#	cd $(RSCRIP); ln -s $(SCRIP)/
+#	cd $(RSCRIP); ln -s $(SCRIP)/
+# Edit scripts to point to case versions of ACIS tables 
+#   .dat, cfg and .tln files.
+	@sed -e 's/LoadReviews\/script/acisdude\/reg_script/g' $(RSCRIP)/lr$(XSUFF) > $(RSCRIP)/lr_temp
+	@sed -e 's/_angles.txt/_angles.txt -c $$lr_dir\/data\/regress_Chandra.stk -s $$lr_dir\/data\/regress_Sun.stk/g' $(RSCRIP)/lr_temp > $(RSCRIP)/lr_temp2
+	@rm $(RSCRIP)/lr$(XSUFF)
+	@mv $(RSCRIP)/lr_temp2 $(RSCRIP)/lr$(XSUFF)
+	@rm $(RSCRIP)/lr_temp
+	@sed -e 's/ACIS_current\.tln/ACIS_regress\.tln/g' $(RSCRIP)/acis-backstop.pl > $(RSCRIP)/acis-backstop.pl-temp1
+	@sed -e 's/cmdgen\/sacgs\/current/LoadReviews\/script\/ACIS_regress/g' $(RSCRIP)/acis-backstop.pl-temp1 > $(RSCRIP)/acis-backstop.pl-temp2
+	@rm $(RSCRIP)/acis-backstop.pl-temp1 
+	@mv $(RSCRIP)/acis-backstop.pl-temp2 $(RSCRIP)/acis-backstop.pl
+	@sed -e 's/sacgs\/current/LoadReviews\/script\/ACIS_regress/g' $(RSCRIP)/pblockreader.pl > $(RSCRIP)/pblockreader.pl-temp
+	@rm $(RSCRIP)/pblockreader.pl
+	@mv $(RSCRIP)/pblockreader.pl-temp $(RSCRIP)/pblockreader.pl
+	@chmod u+x $(RSCRIP)/lr$(XSUFF) $(RSCRIP)/acis-backstop.pl
+
+aug0210a: aug0210a_
+	gmake CASE=aug0210a diff
+
+aug0210a_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "At sftp prompt, ^Z\ngmake CASE=aug0210a backstop\nfg\nquit\n";'
+	@perl -e 'print "****************\n";'
+	$(RSCRIP)/lr$(XSUFF) AUG0210A JUL2610 -t RG_AUG0210
+
+aug0210x: aug0210x_
+	gmake CASE=aug0210x diff
+
+aug0210x_: lnkaug0210x
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "At sftp prompt, ^Z\ngmake CASE=aug0210x backstop\nfg\n\nquit\n";'
+	@perl -e 'print "\n****************\n"'
+	$(RSCRIP)/lr$(XSUFF) AUG0210X JUL2610 -t RG_AUG0210
+
+lnkaug0210x:
+	-@ln -s $(REGIN)/../../aug0210a/inputs/aug0210a.tln $(REGIN)/aug0210x.tln
+	-@ln -s $(REGIN)/../../aug0210a/inputs/aug0210a.dat $(REGIN)/aug0210x.dat
+	-@ln -s $(REGIN)/../../aug0210a/inputs/regress_Chandra.stk $(REGIN)/regress_Chandra.stk
+	-@ln -s $(REGIN)/../../aug0210a/inputs/regress_Sun.stk $(REGIN)/regress_Sun.stk
+
+aug0210y: aug0210y_
+	gmake CASE=aug0210y diff
+
+aug0210y_: lnkaug0210y
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "At sftp prompt, ^Z\ngmake CASE=aug0210y backstop\nfg\n\nquit\n";'
+	@perl -e 'print "\n****************\n"'
+	$(RSCRIP)/lr$(XSUFF) AUG0210Y JUL2610 -t RG_AUG0210
+
+lnkaug0210y:
+	-@ln -s $(REGIN)/../../aug0210a/inputs/aug0210a.tln $(REGIN)/aug0210y.tln
+	-@ln -s $(REGIN)/../../aug0210a/inputs/aug0210a.dat $(REGIN)/aug0210y.dat
+	-@ln -s $(REGIN)/../../aug0210a/inputs/regress_Chandra.stk $(REGIN)/regress_Chandra.stk
+	-@ln -s $(REGIN)/../../aug0210a/inputs/regress_Sun.stk $(REGIN)/regress_Sun.stk
+
+
+nov0110a: nov0110a_
+	gmake CASE=nov0110a diff
+
+nov0110a_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\nAt sftp prompt, ^Z\ngmake CASE=nov0110a backstop\nfg\nquit\n"';
+	@perl -e 'print "\n****************\n"'
+	$(RSCRIP)/lr$(XSUFF) NOV0110A OCT2510 -t RG_NOV0110
+
+feb2811b: feb2811b_
+	gmake CASE=feb2811b diff
+
+feb2811b_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\nAt sftp prompt, ^Z\ngmake CASE=feb2811b backstop\nfg\nquit\n"';
+	@perl -e 'print "\n****************\n"'
+	$(RSCRIP)/lr$(XSUFF) FEB2811B FEB2111 -t RG_FEB2811
+
+feb2811x: feb2811x_
+	gmake CASE=feb2811x diff
+
+feb2811x_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\nAt sftp prompt, ^Z\ngmake CASE=feb2811x backstop\nfg\nquit\n"';
+	@perl -e 'print "\n****************\n"'
+	$(RSCRIP)/lr$(XSUFF) FEB2811X FEB2111 -t RG_FEB2811
+
+jun0811a: jun0811a_
+	gmake CASE=jun0811a diff
+
+jun0811a_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=jun0811a backstop\nfg\nquit\n"';
+	@echo "*** Interrupt time is 2011:159:11:59:50.000, SCS 107 interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break JUN0811A JUN0611 -t RG_JUN0811
+
+oct2811b: oct2811b_
+	gmake CASE=oct2811b diff
+
+oct2811b_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=oct2811b backstop\nfg\nquit\n"';
+	@echo "*** Query replies 1, 2, 2 (No, Yes, Yes)\n"
+	@echo "*** Interrupt time is 2011:299:11:52:28, SCS 107 interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break OCT2811B OCT2511 -t RG_OCT2811
+
+oct2811x: oct2811x_
+	gmake CASE=oct2811x diff
+
+oct2811x_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=oct2811x backstop\nfg\nquit\n"';
+	@echo "*** Query replies 1, 2, 2 (No, Yes, Yes)\n"
+	@echo "*** Interrupt time is 2011:299:11:52:28, SCS 107 interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break OCT2811X OCT2511 -t RG_OCT2811
+
+oct2511b: oct2511b_
+	gmake CASE=oct2511b diff
+
+oct2511b_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=oct2511b backstop\nfg\nquit\n"';
+	@echo "*** Query replies 2,2 (Yes, Yes)"
+	@echo "*** Interrupt time is 2011:298:21:59:59.000, SCS 107 interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break OCT2511B OCT2511 -t RG_OCT2511
+
+mar1412a: mar1412a_
+	gmake CASE=mar1412a diff
+
+mar1412a_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=mar1412a backstop\nfg\nquit\n"';
+	@echo "*** Query reply 2 (Yes)"
+	@echo "*** Interrupt time is 2012:073:13:27:00.000, SCS 107 interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break MAR1412A MAR1312 -t RG_MAR1412
+
+mar2612b: mar2612b_
+	gmake CASE=mar2612b diff
+
+mar2612b_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=mar2612b backstop\nfg\nquit\n"';
+	@echo "*** Query replies 2, 1 (Yes, No)"
+	@echo "*** Interrupt time is 2012:085:14:58:22.209, TOO interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break MAR2612B MAR2612 -t RG_MAR2612
+
+may3112a: may3112a_
+	gmake CASE=may3112a diff
+
+may3112a_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=may3112a backstop\nfg\nquit\n"';
+	@echo "*** Query reply 2 (Yes)"
+	@echo "*** Interrupt time is 2012:152:19:30:00.000, SCS-107 interrupt\n"
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break MAY3112A MAY2812 -t RG_MAY3112
+
+jun1112b: jun1112b_
+	gmake CASE=jun1112b diff
+
+jun1112b_:
+	@perl -e 'print "\n****************\n"'
+	@perl -e 'print "\n\nAt sftp prompt, ^Z\ngmake CASE=jun1112b backstop\nfg\nquit\n"';
+	@perl -e 'print "\n****************\n"'
+	@$(RSCRIP)/lr$(XSUFF) -break JUN1112B JUN0412 -t RG_JUN1112
+
+clean: clean_
+
+clean_:
+# Clean everything but Makefile out of working directory
+	-rm $(REGRESS)/*
+	-cp $(SCRIP)/lr_regress_Makefile $(REGRESS)/Makefile
+
+realclean:  clean_ cleancases cleanlinks
+	-rm -R $(LRTESTSRC)/regress
+
+histclean: 
+	-rm  $(LRTESTSRC)/regress/history-files/*/in/*
+
+cleancase:
+	-rm -R $(CASEDIR)
+
+cleancases:
+	gmake CASE=aug0210a cleancase
+	gmake CASE=nov0110a cleancase
+	gmake CASE=feb2811b cleancase
+	gmake CASE=aug0210x cleancase
+	gmake CASE=aug0210y cleancase
+	gmake CASE=oct2811b cleancase
+	gmake CASE=oct2811x cleancase
+	gmake CASE=oct2511b cleancase
+	gmake CASE=mar1412a cleancase
+	gmake CASE=mar2612b cleancase
+	gmake CASE=may3112a cleancase
+
+cleanlinks:
+	-@rm $(RSCRIP)/*
+
+diff:
+	# Remove next sed/mv once history files bug is fixed.
+	cd $(LR_SSDIR); pwd
+	cd $(LR_SSDIR); \
+	sed -e 's/B )/)/g' ACIS-History.txt > tmp; \
+	mv tmp ACIS-History.txt
+	cd $(REGRESS); \
+	lr_regress_check.pl -o $(REGOUT) -s $(CASE) -r $(REGRESS)
+	-mkdir $(REGRESS)/regsave_$(TODAY)_$(SCEN)
+	cp $(REGRESS)/*log $(REGRESS)/*alldiffs regsave_$(TODAY)_$(SCEN)
+
+update_lr_compare:
+	cd $(CASEDIR)/ofls; \
+	cp ACIS-LoadReview.txt ACIS-History.txt $(CASE_CMPR); \
+	cp ACIS-*.dat $(CASE_CMPR)
+	cd $(CASE_CMPR); \
+	cvs commit ACIS-LoadReview.txt ACIS-History.txt ACIS-*.dat
+
+history-files: histclean
+	@echo "Ignore mantest/in 'lost' messages from CVS"
+	cvs update $(LRTESTSRC)/regress/history-files
+	-ln -s $(RSCRIP)/history-files.pl $(REGRESS)/../src/regress/history-files/history-files.pl
+	-ln -s $(RSCRIP)/ACE-update.pl $(REGRESS)/../src/regress/history-files/ACE-update.pl
+	cd $(REGRESS)/../src/regress/history-files; \
+	which test_all_history.pl; \
+	$(SCRIP)/test_all_history.pl 2>&1 tee $(REGRESS)/history-files.log
+ 
+done:
+	echo scenario is $(SCEN)

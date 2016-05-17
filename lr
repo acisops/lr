@@ -1,0 +1,762 @@
+#!/usr/bin/env perl 
+use Getopt::Std;
+use Getopt::Long;
+use POSIX qw(uname);
+use File::Path;
+use File::Copy;
+use Cwd;
+use Archive::Tar;
+use Plucknames;
+#Save time executing Load Reviews
+#Creates neccesary directories for current load.
+#SFTP's to lucky, user enters name and pwd and 
+#manually gets the zipped tarball.
+#DO NOT specify any directory path in FTP copying, quit FTP and script 
+#finds, extracts and runs ACIS LR script on backstop file.
+#If print option used: prints ACIS-LoadReview.txt file to chosen printer.
+#Default is no print, "hp0" print to hp0, "happy" will print to happy
+#History file will not work if symbolic link to "ofls" has 
+#not been made for previous week, even if only one version of load!
+#written by:  Joe DePasquale
+#started:     Sept 2001
+#to see updates, please go the CVS version
+#last update: 08 OCT 2009
+
+###########################################################
+# usage: lr [present load] [previous week]                #
+#         example:  lr AUG2701A AUG2001                   #
+###########################################################  
+#Check for options: will remove options from argv
+$server="ocatsqlsrv";
+$hostname="acis.cfa.harvard.edu";   #for PSMC
+$skiplucky = 0;
+$break = 0;
+$easy_clean = 0;
+GetOptions('break' => \$break, #run lr_break options,
+	   's=s' => \$server, #to be passed to acisparams.pl
+	   'n=s' => \$hostname, #to be passed to run_PSMC.pl
+	   'nolucky' => \$skiplucky, # acquire backstop manually
+	   'clean' => \$easy_clean,
+	   't=s' => \$test_dir); #test directory name
+$argc = @ARGV;
+$argc >= 2  or die "ERROR! AT LEAST TWO INPUTS REQUIRED!\nUSAGE: lr {present load} {preceeding week} [-s alternate database server] [-n alternate PSMC code node] [-t test directory name] [-b or --break use for a replan or interrupt]\n";
+
+#----------------------------------------
+# Prepare for i/o control from python subprocess
+#----------------------------------------
+$| = 1;   # Autoflush after every stdout print, write
+
+#--------------------------------------------------------------------
+# NEW CODE to allow one lr to run in regular and backup 
+# modes
+# SET UP the directory for the scripts
+#--------------------------------------------------------------------
+$appx = `lr_suffix.pl`;   # Null or "_bak"
+if($0 =~ /bak/) {
+    $base_dir=</data/acis-bak>;
+}
+else{
+    $base_dir=</data/acis>;
+}
+#----------------------------------------
+#directory definitions
+#----------------------------------------
+$lr_dir = <${base_dir}/LoadReviews>;
+$lr_bak_dir = </data/acis-bak/LoadReviews>;
+$script_store_dir = <${base_dir}/LoadReviews/script>;
+$backstop = <${base_dir}/LoadReviews/script/acis-backstop.pl>;
+
+#------------------------------
+#Get the directory to use for the C++ code
+#------------------------------
+my ($uname_s, $uname_r)  = (POSIX::uname())[0,2];
+
+#Set up the Linux executable paths
+if (($uname_s eq "Linux")) {
+    $cc_directory=<${base_dir}/LoadReviews/Linux/bin>;
+    $tar=</bin/tar>;
+    $gzip=</bin/gzip>;
+    $sftp=</usr/bin/sftp>;
+    $ftp=</usr/bin/ftp>;
+    $gunzip=</bin/gunzip>;
+} else {
+    die("$0 is only supported on Linux: This version $uname_r\n");
+}
+
+
+
+###FIND THIS AND MOVE IT TO LOADREVIEWS
+$cur_load_dir=<${base_dir}/LoadReviews/>; #needed for ACE Update
+
+#directory generation and tar file copying
+$cur_load=@ARGV[0];
+$prev_load=@ARGV[1];
+
+$load_dir="";
+$prev_dir="";
+$prev_year="";
+$cur_year="";
+$load_version="";
+$load_name="";
+
+
+#PARSE THE LOAD INFORMATION
+find_names($cur_load,$prev_load,$test_dir);
+#------------------------------
+#Set the directories & files
+#------------------------------
+$ofls_dir="${lr_dir}/20${cur_year}/$load_dir/ofls${load_version}";
+$cur_load_dir="${lr_dir}/20${cur_year}/$load_dir/";
+$prev_load_dir="${lr_dir}/20${prev_year}/$prev_dir/ofls";
+$back_ofls_dir="${lr_bak_dir}/20${cur_year}/$load_dir/ofls${load_version}";
+$back_dir="${lr_bak_dir}/20${cur_year}/$load_dir/";
+$web_dir = $ENV{"WEB_ACIS"};
+$web_lr_dir = "${web_dir}/lr_texts";
+
+# Location of web pages on the backup machine (colossus-v).
+$web_bak = "/data/anc/apache/htdocs/acis";
+#    $web_lr_dir = "/proj/web-cxc-dmz/htdocs/acis/lr_texts";
+
+$ace_helper="${cur_load_dir}ofls";
+$hist = "$prev_load_dir/ACIS-History.txt";
+$old_perigee= <$prev_load_dir/ACIS-Perigee.txt>;
+$old_crm = `ls $prev_load_dir/*CRM*`;
+chomp($old_crm);
+@ocrm = split(/\//, $old_crm);
+$ocrm_file = $ocrm[7];
+#--------------------
+#Check user
+#--------------------
+$acisdude_uid=getpwnam acisdude;
+$acisdude_uid == $< or die "Error: Must be logged in as acisdude. You are $<\n";
+#--------------------
+#check directory existance
+#--------------------
+if (-d $lr_dir) {
+    $work_dir = $lr_dir;
+    $script_dir = $script_store_dir;
+}
+else{
+    die "ERROR: ${lr_dir} is unreachable. Use backup script.\n";
+}
+#CLEAN DIRECTORIES
+#------------------------------------------------------------
+# Command line included a -clean switch. Recursively delete
+# $lr_dir and $back_ofls_dir, if present.
+#------------------------------------------------------------
+if ($easy_clean == 1) {
+    if (-d $back_ofls_dir) {
+	print "system: rm -r ${back_ofls_dir}\n";
+	system("rm -r ${back_ofls_dir}");
+    }
+    if (-d $ofls_dir) {
+	print "system: rm -r ${ofls_dir}\n";
+	system("rm -r ${ofls_dir}");
+    }
+    exit(0);
+} 
+
+#BUILD THE DIRECTORIES
+#------------------------------
+# mkpath will build the entire path IF NEEDED. This eliminates the need to 
+# do several mkdirs in if/else loops
+#------------------------------
+unless( -d $ofls_dir){
+    mkpath($ofls_dir, 1, 0775);
+}
+else{
+    die "The directory $ofls_dir already exists. Code exiting\n";
+}
+
+#only do the backup if this is not a test
+# and we're not already on the backup system
+if( (! $test_dir) &&
+    ($base_dir eq "/data/acis")){
+    unless( -d $back_ofls_dir){
+	mkpath($back_ofls_dir, 1, 0775);
+    }
+    else{
+	die "The directory $back_ofls_dir already exists. Code exiting\n";
+    }
+}
+#------------------------------------------------------
+# Transfer file from Lucky after making the directories
+#------------------------------------------------------
+chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
+if ($skiplucky) {
+    print "In another window, please copy desired backstop tarball\n";
+    print "into load directory $ofls_dir\n";
+    print "DO NOT unzip the tarball.\n";
+    print "\n\nfile copied, ready to continue?(Y/N)\: ";
+    $user=<STDIN>;
+   unless ($user =~/y/ || $user =~/Y/) {
+       die "No backstop.tar.gz file available, exiting.\n";
+   }
+} else {  # using sftp lucky
+    print "Copy zipped tarball file from lucky\n";
+    print "get /home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz \n";
+#----------------------------------------
+#fork a process to sftp to lucky
+#----------------------------------------
+    print "\n\nSFTP to lucky: Please enter username to connect: ";
+    $user=<STDIN>;
+    chop($user);
+    my $pid = fork();
+    if (not defined $pid) {
+	print "ERROR>>>resources not avilable. Cannot connect to Lucky.\n";
+    } 
+    elsif ($pid == 0) {
+	exec("${sftp} ${user}\@lucky.harvard.edu");
+	exit(0);
+    } else {
+	waitpid($pid,0);
+    }
+}
+
+#------------------------------------------------
+#Unzip the file an extract the items we need.
+#------------------------------------------------
+@zip = Plucknames->findNames($ofls_dir, "backstop.tar.gz");
+$zip = $zip[0];
+print "unzipping: $zip ...\n";
+`${gunzip} $zip`;
+#get tar file
+$file = (Plucknames->findNames(".", "backstop.tar"))[0];
+
+#backstop extraction and acis script
+@tarTOC = Archive::Tar->list_archive($file, 0);
+@bck = Plucknames->tarNames(\@tarTOC, "backstop"); 
+foreach $b (@bck){
+    @field = split(/\s+/, $b);
+    $bfile=pop(@field);
+    if($bfile =~ /^CR/){
+	$backfile=$bfile;
+	chomp ($backfile);
+    }
+    if($bfile =~ /VR/){
+	$vfile=$bfile; 
+	chomp ($vfile);
+	@vfield2 = split(/\//, $vfile);
+	$v_name=pop(@vfield2);
+	chomp($v_name);
+    }
+    chomp ($backfile);
+} #end each backstop file found    
+if ($backfile eq ""){
+    die "ERROR: can't extract backstop file.";
+}
+if($vfile eq ""){
+    warn "Warning: No VR backstop file.\n";   
+}
+
+#file used in determining bad pitch angle observations
+@mm_sum = Plucknames->tarNames(\@tarTOC, "sum", "mps", "mm");
+@field2 = split(/\s+/, $mm_sum[0]);
+$mmfile=pop(@field2);
+chomp ($mmfile);
+if ($mmfile eq ""){
+    die "ERROR: can't extract mm*.sum file.";
+}
+@field3 = split(/\//, $mmfile);
+$mm_name=pop(@field3);
+chomp ($mm_name); #mmfile short name
+
+#file used in displaying version of ACIS tables used in load
+@ms_sum = Plucknames->tarNames(\@tarTOC, "sum", "mps", "ms"); 
+@field4 = split(/\s+/, $ms_sum[0]);
+$msfile=pop(@field4);
+chomp($msfile);
+if ($msfile eq ""){
+    die "ERROR: can't extract ms*.sum file.";
+}
+@field5 = split(/\//, $msfile); #msfile short name
+$ms_name=pop(@field5);
+chomp($ms_name);
+
+#file used in comparing backstop pad time against crm pad time
+@crm_file = Plucknames->tarNames(\@tarTOC, "CRM"); 
+@crm_field = split(/\s+/, $crm_file[0]);
+$crm=pop(@crm_field);
+chomp($crm);
+if ($crm eq ""){
+    $crm_flag = 1;
+    print "\nERROR: can't extract *_CRM.txt file.\n";
+    print "Do you want to specify your own CRM file? (1=Yes, 2=No)\n Choose \"2\" to use previous version of CRM file:\n\t $old_crm\n";
+    $crm_in=<STDIN>;
+    chomp($crm_in);
+
+    if ($crm_in eq 1){
+	print "Please specify the CRM input filename with no directory paths\n\t (and be sure to copy it into the load directory):\n";
+	$ocrm_file = <STDIN>;
+	chomp($ocrm_file);
+    }
+    elsif ($crm_in eq 2 &&
+	   $old_crm =~ /^x/){
+	print "Using previous CRM file from interrupted load: $old_crm\n";
+	`cp $old_crm ${ofls_dir}`;
+    }
+    elsif ($crm_in != 1 || $r != 2){
+	die "please enter only 1 or 2\n";
+    }
+}#end crm
+
+@crm_field2 = split(/\//, $crm);
+$crm_name=pop(@crm_field2);
+chomp($crm_name);
+
+#Get NIL er file
+@nil_file = Plucknames->tarNames(\@tarTOC, "mps", "er", "C${load_name}"); 
+@nil_field = split(/\s+/, $nil_file[0]);
+$nil=pop(@nil_field);
+chomp($nil);
+if ($nil eq ""){
+    print "WARNING: can't extract C${load_name} NIL file.\n";
+}
+@nil_field2 = split(/\//, $nil); #short name
+$nil_name=pop(@nil_field2);
+chomp($nil_name);
+
+
+#Get MNVR file name
+@mnvr_file = Plucknames->tarNames(\@tarTOC, "output", "MNVR"); 
+@mnvr_field = split(/\s+/,$mnvr_file[0]);
+$mnvr=pop(@mnvr_field);
+chomp($mnvr);
+if ($mnvr eq ""){
+    print "WARNING: can't extract MNVR Summary file.\n";
+}
+@mnvr_field2 = split(/\//, $mnvr);
+chomp($mnvr_field2[1]);
+
+#Get the name of where we are running
+$localdir = getcwd();
+`$tar -xvf $file $backfile $mmfile $msfile $crm $nil $mnvr $vfile`;
+
+#----------------------------------------
+#Run ONLY if the -b flag is set
+#----------------------------------------
+if ($break == 1){
+    lr_break();
+    $hist=$edit_hist;
+}
+
+
+#--------------------------------------------------------------------
+#Let's go!
+#--------------------------------------------------------------------
+#------------------------------
+#Print files in use
+#------------------------------
+print "\n\tFOR LOAD ${load_name}\n";
+print "\tNew Directory: $localdir\n";
+print "\tCombined Backstop File: $backfile\n";
+print "\tVehicle Backstop: $vfile\n";
+print "\tmm*.sum File: $mm_name\n";
+print "\tms*.sum File: $ms_name\n";
+print "\tCRM Pad Time file: $crm_name\n";
+print "\tHistory File Used: $hist\n";
+print "\tManuever File Used: $mnvr\n";
+
+#unlink ("*.tar");
+
+
+#move files to the right locations.
+rename("$mmfile","./$mm_name");
+rename("$msfile","./$ms_name");
+rename("$crm","./$crm_name");
+
+if(-e "$nil"){
+    rename("$nil","$nil_name");
+}
+if(-e "./er"){
+    system("mv er/* .");
+    rmdir("er");
+}
+rmtree("./mps");
+#------------------------------
+#Informational 
+#------------------------------
+
+#Run the Health and Safety script
+
+print "\tRunning Health and Safety Script...\n\n";
+system("${script_store_dir}/LRHS $localdir/${backfile} ${hist} > ${ofls_dir}/LRHS.output "); 
+print "\tRunning ACIS Load Review Script...\n\n"; 
+#RUN ACIS BACKSTOP
+$backstop_str = "$backstop -s ${server} ${localdir}/${backfile} ${hist}"; 
+print "\n$backstop_str...\n";
+system("$backstop_str");
+#print "Back from acis-backstop.pl\n";
+#------------------------------
+#Set up soft links
+#------------------------------
+chdir("$cur_load_dir") || die "cannot change to ${cur_load_dir}\n";
+
+if(-e "./ofls"){
+    unlink("./ofls");
+}
+symlink( "${ofls_dir}", "./ofls");
+
+chdir("${ofls_dir}") || die "Cannot change to {$ofls_dir}";
+
+#determine and display version of ACIS tables used:
+
+open(DAT, $ms_name) || die "ERROR! can't open ms*.sum file";
+open(OUT, ">ACIS-Tables.txt");
+while (<DAT>)
+{
+    @row = split (/\s+/, $_);
+    if (@row != " ")
+    {
+	$description = $row[0];
+	chomp($description);
+	if ($description eq "ACIS" && $row[1] eq "Configuration:")
+	{
+	    @cfg_list = split (/\//, $row[2]);
+	    $cfg_file = $cfg_list[8];
+	    chomp($cfg_file);
+	}
+	if($description eq "ACIS" && $row[1] eq "Data:")
+	{
+	    @dat_list = split (/\//, $row[2]);
+	    $dat_file = $cfg_list[8];
+	    chomp($dat_file);
+	}
+     }
+}
+print OUT "$cfg_file\n$dat_file\n";
+close(OUT);
+close(DAT);      
+
+#------------------------------
+#check for bad sun angle observations: changed to take previous directory string
+#------------------------------
+print "Running saa_checker.pl...$script_dir/saa_checker.pl ${prev_load_dir}\n";
+system ("$script_dir/saa_checker.pl ${prev_load_dir}");
+open(SAA,"saa_check.txt") || warn "\nNo Observations with bad Sun Angles\n";
+print "\nATTENTION! Observations with bad sun angles:\n";
+while(<SAA>){
+    print $_;
+}
+close(SAA);
+
+#------------------------------
+#run bright-source violations:
+#------------------------------
+print "Running bright-source...\n";
+print "$cc_directory/bright-source ${localdir}/${mnvr}\n";
+system("$cc_directory/bright-source ${localdir}/${mnvr}");
+if(-f "violations.txt") { # only if file exists
+    open(VIO,"violations.txt") || warn "Error opening violations.txt\n" ; 
+    $count=0;
+    while(<VIO>){
+	$count++;
+    }
+    if($count > 2){
+	seek(VIO,0,0);
+	while(<VIO>){
+	    print $_;
+	}
+    }
+    else{
+	print "\n***No bright-source violations in this load.***\n";
+    }
+    close(VIO);
+}
+else
+{
+    print "\nBright source code failed. Email nadams\@cfa with above errors.\n";
+}
+
+#--------------------------------------------------------------------
+# Run psmc_check and dpa_check, dea_check and fp_check...
+# will secure shell to acis.cfa.harvard.edu if not on a linux machine
+#--------------------------------------------------------------------
+print "\nRunning the thermal code...\n";
+if ($appx) {
+    print "Thermal models skipped when not on HEAD LAN\n";
+} else {
+# Get FP sensitive obsids from prev, current, and next AO cycles
+    $fps_cmd = "$script_dir/fptemp_sens_finder.pl -o $ofls_dir/fp_sensitive.txt ";
+    $yr = 0 + $cur_year;
+    $ao_str = "$yr";
+    $yr++;
+    $ao_str .= ",$yr";
+    $yr++;
+    $ao_str .= ",$yr";
+    $fps_cmd = "$fps_cmd -c $ao_str";
+    system($fps_cmd);
+    
+    if($test_dir){
+	system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir");
+    }else{
+	system ("$script_dir/run_models.pl $cur_load -h $hostname");
+    }
+    #update the webpage
+    if( ! $test_dir){
+	system("$script_dir/mk_thermal_html.pl $cur_load");
+    }
+}
+print "Done with thermal codes...\n\n";
+
+#--------------------------------------------------------------------
+#run code to find earth-acis-angles
+#--------------------------------------------------------------------
+#run the earth-acis-fov code
+$fov_cmd = "$cc_directory/earth-acis-FOV ${localdir}/${mnvr} -o ${localdir}/${load_dir}_angles.txt";
+if ($appx) {
+    print "FOV code skipped when not on HEAD LAN\n";
+} else {
+    print "Executing the earth-acis-FOV code with\n$fov_cmd\n";
+    system($fov_cmd);
+    print "Done with Earth-acis-FOV code...Plotting FOV angles\n";
+    if($test_dir){
+	system("$script_dir/plot_FOV_data.pl ${load_dir} -t $ofls_dir");
+    }
+    else{
+	system("$script_dir/plot_FOV_data.pl ${load_dir}");
+    }
+}
+
+#----------------------------------------------------
+# Create web version of lr text, and copy to web area.
+#----------------------------------------------------
+$swl_source = "${ofls_dir}/ACIS-LoadReview.txt";
+$html_str = "${load_dir}\u${load_version}_lr.html";
+$web_target_dir = "${web_lr_dir}/20${cur_year}";
+if (! -d "$web_target_dir") {
+    system ("mkdir ${web_target_dir}");
+    system("cp ${web_lr_dir}/lr_web.css ${web_target_dir}");
+    if ($appx ne "")
+      { # Not running as lr_bak?
+	system ('ssh acisdude\@colossus-v\: "mkdir ${web_bak}/lr_dir/20${cur_year}"');
+	system ("scp ${web_lr_dir}/lr_web.css acisdude\@colossus-v:${web_bak}/lr_dir/20${cur_year}");
+       }
+}
+print "system: show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
+    . "-o ${ofls_dir}/${html_str}\n";
+system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
+       . "-o ${ofls_dir}/${html_str}");
+
+if (! $test_dir) { # A real run?
+    print "system: cp ${ofls_dir}/${html_str} ${web_target_dir}\n";
+    system("cp ${ofls_dir}/${html_str} ${web_target_dir}");
+    # Update web page table of load review texts
+    system("mk_lrtext_html.pl ${load_dir}\u${load_version}");
+}
+if ($appx eq "") { # Not running as lr_bak?
+    # Copy updated table to backup machine
+    system("scp ${web_lr_dir}/lrtexts.html acisdude\@colossus-v:${web_bak}/lr_dir");
+}
+#--------------------------------------------------------------------
+#run code to compare the backstop files
+#--------------------------------------------------------------------
+print "Executing the backstop_compare code\n";
+system("$script_dir/backstop_comp.sh");
+
+#--------------------------------------------------
+#close down
+#--------------------------------------------------------------------
+print "\nACIS TABLES USED IN THIS LOAD:\n$cfg_file\n$dat_file\n";
+
+chdir("$lr_dir");
+#do NOT use this directory for ACE if there is test directory
+unless($test_dir){
+    open(OUT2, ">current_load.txt");
+    print OUT2 "$ace_helper\n";
+    close(OUT2);
+}
+
+#delete backstop file and re-gzip the tar file to save space
+unlink("{$ofls_dir}/$backfile");
+`$gzip -c ${ofls_dir}/$file > ${ofls_dir}/$zip`;
+unlink("${ofls_dir}/$file");
+
+#copy current load version to backup directory
+if(! $test_dir){
+print "\nCopying this version of the load to ${back_ofls_dir}...\n";
+`cp -r ${ofls_dir} ${back_dir}`;
+}
+if(-e "${back_dir}/ofls"){
+    unlink("${back_dir}/ofls");
+}
+symlink( "${back_ofls_dir}", "${back_dir}/ofls");
+
+
+print "\nScript done.\n";
+
+exit(0);
+
+#--------------------------------------------------------------------
+# function to parse out the names correctly
+#--------------------------------------------------------------------
+sub find_names{
+    my($cur_load,$prev_load,$test_dir)=@_;
+#directory generation and tar file copying
+    if($test_dir){
+	$load_dir=$test_dir;
+    }
+    else{
+	$load_dir=$cur_load;
+    }
+    
+    
+#Parse- this is the expected MMMDDYYA load
+    if($cur_load =~ m/^[A-Z]{3}[0-3][0-9]{3}[A-Z]$/){
+	$load_name=$cur_load;
+	$load_version=substr($load_name,7,1);
+	chop($load_name);
+	if(! $test_dir){
+	    chop($load_dir);
+	}
+    }
+    else{
+	if ($cur_load =~ /[A-Z][A-Z][A-Z][0-3][0-9][0-9][0-9]$/){
+	    print "The load version is missing. Please supply the load version(A-Z): ";
+	    $load_version=<STDIN>;
+	    chop($load_version);	# remove carriage return
+	    $load_name=$cur_load;	
+	}
+	else{
+	    die "Cannot process the input loads: $cur_load, $prev_load\n";
+	}
+    }
+    
+    if($prev_load =~ m/^[A-Z]{3}[0-3][0-9]{3}$/){
+    }
+    else{
+	if($prev_load =~ m/^[A-Z]{3}[0-3][0-9]{3}[A-Z]$/){
+	chop($prev_load);
+    }
+    }
+    $load_version=~ tr/[A-Z]/[a-z]/;
+    if(length($load_name)== 7){
+	$cur_year=substr($load_name,5,2);
+    }
+    else{
+	die "$cur_load could not be parsed for the appropriate load name\n";
+    }
+    if(length($prev_load)== 7){
+	$prev_year=substr($prev_load,5,2);
+    }
+    else{
+	die "$prev_load could not be parsed for the appropriate load name\n";
+    }
+    $prev_dir=$prev_load;
+    
+# SANITY CHECKS:
+    if($cur_year !~ m/^[0-9][0-9]$/){
+	die "ERROR: The year string was not properly extracted. Please check the input: $cur_load\n";
+    }
+    if($prev_year !~ m/^[0-9][0-9]$/){
+	die "ERROR: The year string was not properly extracted. Please check the input: $prev_load\n";
+    }
+    if($load_name !~ m/^[A-Z][A-Z][A-Z][0-3][0-9][0-9][0-9]$/){
+	die "ERROR: This script could not extract the load name correctly. Please check the input: $cur_load\n";
+    }
+    if($prev_dir !~ m/^[A-Z][A-Z][A-Z][0-3][0-9][0-9][0-9]$/){
+	die "ERROR: This script could not extract the previous load name correctly. Please check the input: $prev_dir\n";
+    }
+    if($load_version !~ m/^[a-z]$/){
+	die "ERROR: This script could not find the load version. Please check the input:$cur_load\n";
+    }
+    
+    
+    
+    return (0);
+}
+#--------------------------------------------------------------------
+#lr_break: subroutine to collect the correct information
+#--------------------------------------------------------------------
+sub lr_break(){
+    #copy history file from interrupted load to current dir if "A" version
+    if (${load_version} eq "a" ) {
+    `cp $hist ACIS-History_edit.txt`;
+    $edit_hist = <$localdir/ACIS-History_edit.txt>;
+    chomp ($edit_hist);
+} #otherwise, use the already hand-edited history file (except if replan and approved load are same)
+
+elsif (${load_version} ne "a") {
+    print "\nWas this load already approved once, and the replan has the same name?\n\t (1=no, 2=yes)\n\tex: NOV1102 was already approved last week, but the replan is also\n\t called NOV1102.\n";
+    $ques = <STDIN>;
+    chomp($ques);
+    #Check for same interrupt time
+    if($ques == 1){
+	print "\n If not the A load, is the interrupt time the same as the A load?\n\t(1=no, 2=yes)\n";
+	$inter = <STDIN>;
+	chomp($inter);
+    }
+    if ($ques eq 1 && $inter eq 2){
+	$q="1";
+    }
+    else{
+	$q="2";
+    }
+
+
+    if ($q eq "1"){
+	`cp ${cur_load_dir}/oflsa/ACIS-History_edit.txt $localdir/.`;
+	$edit_hist = <$localdir/ACIS-History_edit.txt>;    
+	`chmod g+w $edit_hist`;
+        #copy over the perigee file from the A load
+	`cp ${cur_load_dir}/oflsa/ACIS-Perigee_edit.txt $localdir/.`;
+	$edit_perigee = <$localdir/ACIS-Perigee_edit.txt>;    
+	`chmod g+w $edit_perigee`;
+    }
+    elsif ($q eq "2"){
+	`cp $hist ACIS-History_edit.txt`;
+	$edit_hist = <$localdir/ACIS-History_edit.txt>;
+	chomp ($edit_hist);
+	`chmod g+w $edit_hist`;
+    }
+    else {die "please enter only 1 or 2\n";}
+
+} #end else if not A version
+
+#only display history editing instructions for "A" version of load 
+#(or if replan has same name as approved load)
+if (${load_version} eq "a" || $q eq "2" || $test_dir){
+    $display_flag = 1;
+    print "\nIMPORTANT!Please answer these questions:\n";
+    $ans=0;
+    print "\tHas the Spacecraft autonomously put HRC-S in the focal plane?\n\t(1=no 2=yes)\n";
+    $ans=<STDIN>;
+    chop($ans);
+    print "\tPlease enter the interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
+    $int = <STDIN>;
+    chop($int);
+    
+    unless($ans eq "2"){
+	$edit_call="$script_store_dir/edit_history.pl ${ofls_dir} ${prev_load_dir} $int";
+    }
+    else{
+        $edit_call="$script_store_dir/edit_history.pl ${ofls_dir} ${prev_load_dir} $int -h ";
+    } 
+    
+    print STDERR "$edit_call\n";  # Debug
+    system($edit_call);
+    `chmod g+w $edit_hist`;
+}
+elsif (${load_version} ne "a" && $q eq "1"){
+    print "\n\tThe edited history file and the edited perigee file were copied from the oflsa\n\tdirectory for this load to the current directory.\n\n";
+}
+}
+
+sub logprint {
+    my ($a_string) = @_;
+    print $a_string;
+    open(LRLOG, ">>lr_log:") | die "Couldn't open lr_log for appending.\n";
+    print LRLOG a_string;
+    close LRLOG;
+}
+
+sub logdie {
+    my ($a_string) = @_;
+    logprint ($a_string);
+    die a_string;
+}
+
+sub logsystem {
+    my ($a_string) = @_;
+    system($a_string + " 2>&1 | tee  >> lr_log");
+}

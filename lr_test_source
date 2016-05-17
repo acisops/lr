@@ -1,0 +1,52 @@
+# lr_test_source sets up temporary directories in pool14,
+# and environment variables needed to run regression tests
+# on ACIS load review scripts.
+# Usage is just:
+# source lr_test_source
+#
+# Intended to be run by user acisdude.
+# $Log: lr_test_source,v $
+# Revision 1.6  2012/08/15 18:29:07  acisdude
+# Include $SGPROD/lib in PERL5LIB environment variable.
+#
+# Revision 1.5  2011/11/16 18:33:38  royceb
+# Fix typo in path to script directory.
+#
+# Revision 1.4  2011/11/14 19:39:34  royceb
+# Production version relocated from $SGPROD to /data/acis/LoadReviews/script.
+#
+# Revision 1.3  2011/11/07 20:46:27  royceb
+# Copy in Makefile whether $P14_PATH/src exists or not.
+# Define $REGRESS.
+#
+# Revision 1.2  2011/07/18 19:24:57  acisdude
+# Check out sources to duderg/src rather than duderg/regress/src.
+#
+# Revision 1.1  2011/05/24 19:30:22  royceb
+# Initial version.
+#
+#-------------------------------------------------------------
+setenv P14_PATH /pool14/duderg
+setenv PERL5LIB /data/acis/cmdgen/sacgs/lib\:$PERL5LIB
+
+pushd /pool14
+
+if (! -d duderg) then
+   mkdir duderg
+endif
+
+if (! -d /pool14/duderg/regress) then
+   mkdir /pool14/duderg/regress
+endif
+
+if (! -d /pool14/duderg/src) then
+   mkdir /pool14/duderg/src
+endif
+if (! -f /pool14/duderg/regress/Makefile) then
+   cp /data/acis/LoadReviews/script/lr_regress_Makefile /pool14/duderg/regress/Makefile
+endif
+
+setenv CVSROOT /data/acis/LoadReviews/cvs-repository
+setenv REGRESS $P14_PATH/regress
+
+popd
