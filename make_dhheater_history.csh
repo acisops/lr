@@ -21,12 +21,6 @@ S	S
 1HHTRBON	2014:259:02:13:00.000
 TZERO
 
-cat << TLAST >! tlast.rdb
-command	time
-S	S
-1HHTRBON	2098:001:00:00:00.000
-1HHTRBON	2098:001:00:00:01.000
-TLAST
 
 grep 1HHTRBO /data/acis/LoadReviews/20*/*/ofls/ACIS-LoadReview.txt \
 | grep -v ERROR \
@@ -41,6 +35,12 @@ grep 1HHTRBO /data/acis/LoadReviews/20*/*/ofls/ACIS-LoadReview.txt \
 | sorttbl -uniq time \
 >! dhheater_history.rdb
 
+# new for v0.2: make the tlast command match the last observed command
+set lastcmd=`tail -1 < dhheater_history.rdb | awk '{print $1}'`
+cat tlast.rdb \
+| compute command = $lastcmd \
+>! tmp1.rdb
+mv tmp1.rdb tlast.rdb
 
 
 cat < dhheater_history.rdb \
@@ -50,6 +50,7 @@ cat < dhheater_history.rdb \
 | cat dhheater_history2.hdr - \
 | rdbcat dhheater_history.rdb - | sorttbl time \
 | rdbcat tzero.rdb - tlast.rdb \
+| sorttbl -uniq time \
 | tee ht.tmp \
 | row time gt 1999:000:00:00:00.000 \
 >! ht2.tmp
