@@ -56,7 +56,7 @@ cat < dhheater_history.rdb \
 | cat dhheater_history2.hdr - \
 | rdbcat dhheater_history.rdb - | sorttbl time \
 | rdbcat tzero.rdb - tlast.rdb \
-| sorttbl -uniq time \
+| sorttbl time \
 | tee ht.tmp \
 | row time gt 1999:000:00:00:00.000 \
 >! ht2.tmp
