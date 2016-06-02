@@ -21,6 +21,12 @@ S	S
 1HHTRBON	2014:259:02:13:00.000
 TZERO
 
+cat << TLAST >! tlast.rdb
+command	time
+S	S
+RANDOM	2098:001:00:00:00.000
+RANDOM	2098:001:00:00:01.000
+TLAST
 
 grep 1HHTRBO /data/acis/LoadReviews/20*/*/ofls/ACIS-LoadReview.txt \
 | grep -v ERROR \
@@ -50,7 +56,7 @@ cat < dhheater_history.rdb \
 | cat dhheater_history2.hdr - \
 | rdbcat dhheater_history.rdb - | sorttbl time \
 | rdbcat tzero.rdb - tlast.rdb \
-| sorttbl -uniq time \
+| sorttbl time \
 | tee ht.tmp \
 | row time gt 1999:000:00:00:00.000 \
 >! ht2.tmp
