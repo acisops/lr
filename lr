@@ -21,7 +21,17 @@ use Plucknames;
 #started:     Sept 2001
 #to see updates, please go the CVS version
 #last update: 08 OCT 2009
-
+#
+# Update: January 12, 2017
+#         Gregg Germain
+#         Fixed the reporting of the ACIS tables
+#
+# Update: February 21, 2017
+#         Gregg Germain
+#         Added the creation of a file: ACIS-Continuity.txt
+#         which contains ONLY the user-supplied continuity 
+#         file name (e.g. FEB0517) and a carriage return
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -179,6 +189,7 @@ if( (! $test_dir) &&
 	die "The directory $back_ofls_dir already exists. Code exiting\n";
     }
 }
+
 #------------------------------------------------------
 # Transfer file from Lucky after making the directories
 #------------------------------------------------------
@@ -212,6 +223,14 @@ if ($skiplucky) {
 	waitpid($pid,0);
     }
 }
+
+# Now write out the previous load argument from the command line
+# Create file ACIS-Continuity.txt
+open(CONTFILE, ">$ofls_dir/ACIS-Continuity.txt");
+    print CONTFILE $prev_load, "\n";
+
+# Close the continuity file
+close(CONTFILE);
 
 #------------------------------------------------
 #Unzip the file an extract the items we need.
@@ -419,7 +438,7 @@ while (<DAT>)
 	if($description eq "ACIS" && $row[1] eq "Data:")
 	{
 	    @dat_list = split (/\//, $row[2]);
-	    $dat_file = $cfg_list[8];
+	    $dat_file = $dat_list[8];
 	    chomp($dat_file);
 	}
      }
