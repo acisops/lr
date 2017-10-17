@@ -38,7 +38,13 @@
 #          - The dollar sign has been missing on the s107 choice
 #            since October 2013
 # 
-# 
+# Update:  October 6, 2017
+#          Gregg Germain
+#          V2.17
+#          - Added query to user regarding the type of Full Stop
+#            whether it's an NSM or a BSH.
+#          - If NSM, asks for Quaternions and makes entry into the
+#            NLET file
 ####################################################################
 #COFT=COMMENTED OUT FOR TESTING
 #--------------------------------------------------------------------
@@ -189,7 +195,6 @@ if($choice =~ /x/)
 
 if($test || $sa_testdir)
   {
-      print "\n IM CALLING SET_TEST_ENV***********************************************************\n";
     &set_test_env();
   }
 
@@ -474,14 +479,15 @@ if($test == 0){
 }
 
 #
-# Thermally Consequential Non-Load Event Tracking
+# NLET - Thermally Consequential Non-Load Event Tracking
 #
 # First set the command line to Non-Test
-my $NLET_cmd = "python /data/acis/LoadReviews/script/RecordNonLoadEvent.py ";
+my $NLET_cmd = "/proj/sot/ska/bin/python /data/acis/LoadReviews/script/NONLOADEVENTTRACKER/RecordNonLoadEvent.py ";
 
-# Now, if this was a history-files.pl -t command, add the -t switch
+# Now, if this was a history-files.pl -t or SATEST command, add the -t switch
+# NOTE: IT is RecordNonLoadEvent.py that decides to which file the data gets written
 if($test || $sa_testdir)
-  { $NLET_cmd = "python /data/acis/LoadReviews/script/RecordNonLoadEvent.py -t "; }
+  { $NLET_cmd = "/proj/sot/ska/bin/python /data/acis/LoadReviews/script/NONLOADEVENTTRACKER/RecordNonLoadEvent.py -t "; }
 
 my $descr = "None Given";
 
@@ -494,12 +500,83 @@ if ( $choice eq "too" || $choice eq "stop" || $choice eq "s107" || $choice eq "m
    }
 
 # Now record this event in the NonLoadTrackedEvents.txt file
+# PROCESS STOP
 if ($choice eq "stop")
   {
+    # First record the Actual STOP
     #           Type             Time                       Source                  Status array
    `$NLET_cmd $choice --event_time $status_array[0] --source history_files.pl --status_line $status_array[1] --desc "$descr" `; 
-  }
 
+    # Determine if this is a Normal Sun Mode action
+
+    my $nsm_q = "";
+    
+    while ( ( $nsm_q ne "Y") & ( $nsm_q ne "N"))
+      {
+       print STDOUT "\nIs this a NORMAL SUN MODE action? [y/n - RET = NO]: ";
+       $nsm_q=<STDIN>; 
+       chop($nsm_q);
+    
+       # Uppercase the response
+       $nsm_q = uc $nsm_q;
+    
+       # If the user just hit Return, take that as a no
+       if ($nsm_q eq "")
+         {
+          print "\nYou just hit return so I'll take that as a NO\n";
+          $nsm_q = "N";
+         }
+    
+       # If the user typed something other than Y, N or RET, then
+       # prompt again
+       if ( ( $nsm_q ne "Y") & ( $nsm_q ne "N"))
+         {print "\nYou entered: $nsm_q. \nPlease Enter Y, N or hit Return (RET = NO).\n"}
+    
+      } # End While ( ( $nsm_q ne "Y") | ( $nsm_q ne "N")
+    
+    
+    print "\nUser Response - Is this an NSM? $nsm_q\n";
+    
+    # If the user typed YES, then obtain 4 Quaternions
+    if ($nsm_q eq "Y")
+      {
+    
+        print STDOUT "\nPlease enter Q1: ";
+        $q1=<STDIN>; 
+        chop($q1);
+        if ($q1 eq "")
+          {$q1 = 3000.0;}
+        
+        print STDOUT "\nPlease enter Q2: ";
+        $q2=<STDIN>; 
+        chop($q2);
+        if ($q2 eq "")
+          {$q2 = 4000.0;}
+        
+        print STDOUT "\nPlease enter Q3: ";
+        $q3=<STDIN>; 
+        chop($q3);
+        if ($q3 eq "")
+          {$q3 = 5000.0;}
+        
+        print STDOUT "\nPlease enter Q4: ";
+        $q4=<STDIN>; 
+        chop($q4);
+        if ($q4 eq "")
+          {$q4 = 6000.0;}
+
+        # Print out the user's data responses
+        print "\nUser Data Responses for this NSM:\n $q1 $q2 $q3 $q4\n";
+
+        # Now record the Maneuver in the NLET file
+        # You have to make another call to RecordNonLoadEvent.py in order to record
+        # The fact that the spacecraft transitioned to Normal Sun Mode
+         `$NLET_cmd MAN --event_time $status_array[0] --source history_files.pl --desc "NSM Pitch to 90 degrees"  --q1 $q1 --q2 $q2 --q3 $q3 --q4 $q4 `; 
+      } # End IF ($nsm_q eq "Y")
+    
+    
+   } # END IF CHOICE == STOP
+    
 elsif ($choice eq "too")
   {
     #           Type             Time                       Source                  Status array
@@ -730,6 +807,7 @@ sub set_test_env()
     
     else
       {
+
 	# Assumes desired input global files in $sa_testdir before 
 	# calling history-files.pl or history-files_bak.pl.
 	$ops_dir = $sa_testdir;
