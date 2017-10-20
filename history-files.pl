@@ -535,38 +535,66 @@ if ($choice eq "stop")
       } # End While ( ( $nsm_q ne "Y") | ( $nsm_q ne "N")
     
     
-    print "\nUser Response - Is this an NSM? $nsm_q\n";
+    print "\nUser Response to:  Is this an NSM? is: $nsm_q\n";
     
+    # Create flag to determine if any quaternion value is
+    # bogus, and therefore non-normalized. Initialize to
+    # False - the quaternions are NOT bogus
+    my $q_bogus = 0;
+
     # If the user typed YES, then obtain 4 Quaternions
     if ($nsm_q eq "Y")
       {
-    
+        # Prompt user.....
         print STDOUT "\nPlease enter Q1: ";
+        # Get the user intput.....
         $q1=<STDIN>; 
+	# Chop the <CR>
         chop($q1);
+        # If the user just hit Return set the Q to a bogus value
+        # and set the q_bogus flag to True (1)
         if ($q1 eq "")
-          {$q1 = 3000.0;}
+          {$q1 = 3000.0;
+           $q_bogus = 1;
+          }
         
         print STDOUT "\nPlease enter Q2: ";
         $q2=<STDIN>; 
         chop($q2);
         if ($q2 eq "")
-          {$q2 = 4000.0;}
+          {$q2 = 4000.0;
+           $q_bogus = 1;
+          }
         
         print STDOUT "\nPlease enter Q3: ";
         $q3=<STDIN>; 
         chop($q3);
         if ($q3 eq "")
-          {$q3 = 5000.0;}
+          {$q3 = 5000.0;
+           $q_bogus = 1;
+          }
         
         print STDOUT "\nPlease enter Q4: ";
         $q4=<STDIN>; 
         chop($q4);
         if ($q4 eq "")
-          {$q4 = 6000.0;}
+          {$q4 = 6000.0;
+           $q_bogus = 1;
+          }
 
         # Print out the user's data responses
         print "\nUser Data Responses for this NSM:\n $q1 $q2 $q3 $q4\n";
+
+        # Determine if the user hit Return for any of the Q's
+        # If so, then Warn the user that the NLET file MUST be updated
+        # before running a model.
+        if ($q_bogus)
+	{
+	    print "\n\nWARNING!!!!!!  You have entered a bogus value for one or more of the Quaternion values.\nThese values will be entered in the Non-Load Event Tracking file as is.\n\nHOWEVER, you MUST edit the file:\n\n/data/acis/LoadReviews/NonLoadTrackedEvents.txt\n\n... and insert the Correct Values BEFORE you attempt to run a thermal model.\n";
+	}
+
+  
+
 
         # Now record the Maneuver in the NLET file
         # You have to make another call to RecordNonLoadEvent.py in order to record
