@@ -554,7 +554,7 @@ if ($choice eq "stop")
         # If the user just hit Return set the Q to a bogus value
         # and set the q_bogus flag to True (1)
         if ($q1 eq "")
-          {$q1 = 3000.0;
+          {$q1 = "None";
            $q_bogus = 1;
           }
         
@@ -562,7 +562,7 @@ if ($choice eq "stop")
         $q2=<STDIN>; 
         chop($q2);
         if ($q2 eq "")
-          {$q2 = 4000.0;
+          {$q2 = "None";
            $q_bogus = 1;
           }
         
@@ -570,7 +570,7 @@ if ($choice eq "stop")
         $q3=<STDIN>; 
         chop($q3);
         if ($q3 eq "")
-          {$q3 = 5000.0;
+          {$q3 = "None";
            $q_bogus = 1;
           }
         
@@ -578,7 +578,7 @@ if ($choice eq "stop")
         $q4=<STDIN>; 
         chop($q4);
         if ($q4 eq "")
-          {$q4 = 6000.0;
+          {$q4 = "None";
            $q_bogus = 1;
           }
 
