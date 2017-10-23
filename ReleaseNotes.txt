@@ -1,0 +1,76 @@
+
+
+Date: October 23, 3017
+
+Change Description
+==================
+
+history-files.pl is an ACIS Ops program which is run during various
+shutdown events (e.g. NSM, BSH, SCS-107).  A previous update recorded
+these events in the Non-Load Event Tracking file. 
+
+In the case of a Full Stop (both vehicle and science loads stopped)
+event, the user is now asked whether or not the event is a Normal Sun
+Mode Event (NSM).  If the answer is yes, then the user is prompted to
+enter the present values of the 4 spacecraft quaternions.  A line entry in the
+Non-Load Event Tracking file is entered recording the fact that the
+spacecraft has maneuvered to the Normal Sun Mode pitch of 90 degrees. 
+
+This change makes the entry of the maneuver to 90 degrees pitch more
+automatic since ACIS Ops must run history-files.pl as soon as possible after
+a shut down (the moment the OCC supplies the accurate shutdown time). 
+
+Quaternions are obtained from one of the ACIS Ops 4 R/T web pages or
+the two MTA Chandra State of Health Web pages:
+
+Load Review
+S/C Configuration
+
+
+Files Changed:
+==============
+
+history-files.pl and the changes can be seen at::
+
+https://github.com/acisops/lr/pull/8/files
+
+
+VERSION - 
+
+https://github.com/acisops/lr/pull/9/files
+
+
+Testing:
+========
+
+The software requires that the user answer either y (yes) n (no) or
+RETURN when asked if this is a Normal Sun Mode event. No other response
+is allowed. If the user types RETURN it's taken as a No.
+
+The tests covered the various possible user responses to queries ("u"
+was used to represent a keystroke other than y or n).
+
+Tests done with both capital and lower case Y's and N's
+
+
+NSM? RETURN - PASS
+NSM? N      - PASS
+NSM? u, N   - PASS
+NSM? u, Y   - PASS
+
+When the user indicates that this is an NSM event, the user is
+prompted to enter the 4 present Quaternions.  The user can either
+enter the proper Quaternion or hit return if they user does not know
+one or more. 
+
+NSM? y - Correct Q's 066 - PASS
+     y - Q1 bogus    066 - PASS
+     y - Q2 bogus    066 - PASS
+     y - Q3 bogus    066 - PASS
+     y - Q4 bogus    066 - PASS
+     y - all bogus   066 - PASS
+
+Deployment:
+===========
+
+Immediately after approval.
