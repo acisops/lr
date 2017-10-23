@@ -35,7 +35,10 @@ history-files.pl and the changes can be seen at::
 https://github.com/acisops/lr/pull/8/files
 
 
-VERSION - 
+ReleaseNotes.txt - Start of the release notes for this repo.
+VERSION
+
+Both can be seen at:
 
 https://github.com/acisops/lr/pull/9/files
 
