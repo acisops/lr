@@ -1,0 +1,183 @@
+     The Rules:
+
+    1)  4 seconds (at least) between ANY two ACIS Commands
+          
+
+    2)  24 seconds between WSPOW00000 (Power *DOWN*) 
+        and ANY ACIS command (built in SI mode)
+
+
+    3)  63 seconds between any POWER *UP* command and ANY ACIS command
+        (in SI mode)
+           - Power up commands are WSPOW commands that has non-zero
+	     hex values
+
+    4)  3 minutes between the AA00000000 and the WSPOW00000 or WSPOW0002A
+
+
+    5) Must be 18 seconds after a WSVIDALLDN
+     There seems to be 18 seconds between WSVIDALLDN's and the next
+     power up command when you are re-using an SI mode.
+
+    6)  If WSPOW00000 issued and an hour goes by without any power
+       command,, issue a WSPOW0002A
+
+
+ Errors introduced into the GG_MAR0518 Backstop file:
+ =====================================================
+
+
+1) 4 second error:
+
+    ORIG:
+    -----
+    
+    2018:064:14:35:20.065 | 11785016 0 | ACISPKT          | TLMSID= AA00000000, 
+    2018:064:14:35:24.065 | 11785031 0 | ACISPKT          | TLMSID= AA00000000,
+    
+    EDITED:
+    -------
+    2018:064:14:35:20.065 | 11785016 0 | ACISPKT          | TLMSID= AA00000000,
+    2018:064:14:35:23.065 | 11785031 0 | ACISPKT          | TLMSID= AA00000000
+
+
+2) 24 seconds after a WSPOW00000
+
+    ORIG:
+    -----
+    2018:064:14:35:28.065 | 11785047 0 | ACISPKT          | TLMSID= WSPOW00000
+    2018:064:14:35:52.065 | 11785141 0 | ACISPKT          | TLMSID= WSPOW1E01E
+
+    EDITED:
+    -------
+    2018:064:14:35:28.065 | 11785047 0 | ACISPKT          | TLMSID= WSPOW00000,
+    2018:064:14:35:51.065 | 11785141 0 | ACISPKT          | TLMSID= WSPOW1E01E
+
+
+ 3) 63 seconds between any POWER *UP* command and ANY ACIS command
+
+    ORIG:
+    -----
+    2018:064:20:12:23.529 | 11863937 0 | ACISPKT          | TLMSID= WSPOW1CC3E
+    2018:064:20:13:26.529 | 11864183 0 | ACISPKT          | TLMSID= WT004A6024
+
+    EDITED:
+    -------
+   2018:064:20:12:23.529 | 11863937 0 | ACISPKT          | TLMSID= WSPOW1CC3E,
+   2018:064:20:13:00.000 | 11864183 0 | ACISPKT          | TLMSID= WT004A6024
+
+
+ 4) 3 minutes between the AA00000000 and the WSPOW00000 or WSPOW0002A
+
+
+    ORIG:
+    -----
+    2018:064:22:32:48.529 | 11896815 0 | ACISPKT | TLMSID= AA00000000,
+    ................
+    2018:064:22:35:52.529 | 11785047 0 | ACISPKT | TLMSID= WSPOW00000
+
+    EDITED:
+    -------
+    2018:064:22:32:48.529 | 11896815 0 | ACISPKT | TLMSID= AA00000000,
+    ................
+    2018:064:22:33:48.529 | 11863812 0 | ACISPKT          | TLMSID= AA00000000,
+    2018:064:22:33:52.000 | 11785047 0 | ACISPKT          | TLMSID= WSPOW00000
+
+    Moved these two lines up before the OBSID change
+
+
+
+ 5) Must be 18 seconds after a WSVIDALLDN
+
+    ORIG:
+    -----
+    2018:065:09:33:17.089 | 12051463 0 | ACISPKT          | TLMSID= WSVIDALLDN,
+    2018:065:09:33:35.089 | 12051533 0 | ACISPKT          | TLMSID= WSPOW04F3E,
+
+    EDITED:
+    -------
+    2018:065:09:33:17.089 | 12051463 0 | ACISPKT          | TLMSID= WSVIDALLDN,
+    2018:065:09:33:34.000 | 12051533 0 | ACISPKT          | TLMSID= WSPOW04F3E,
+
+
+
+ 6) If WSPOW00000 issued and an hour goes by without any power
+       command,, issue a WSPOW0002A
+
+    ORIG:
+    -----
+    2018:066:00:07:31.536 | 11785047 0 | ACISPKT          | TLMSID= WSPOW00000
+    2018:066:00:08:34.536 | 12256409 0 | ACISPKT          | TLMSID= RS_0000001
+    2018:066:00:45:22.137 | 12256409 0 | ORBPOINT         | TYPE= EPF1000,
+    2018:066:01:07:31.536 | 12256163 0 | ACISPKT          | TLMSID= WSPOW0002A
+
+
+    EDITED:
+    -------
+    2018:066:00:07:31.536 | 11785047 0 | ACISPKT          | TLMSID= WSPOW00000,
+    2018:066:00:08:34.536 | 12256409 0 | ACISPKT          | TLMSID= RS_0000001,
+    2018:066:00:45:22.137 | 12256409 0 | ORBPOINT         | TYPE= EPF1000,
+    2018:066:02:07:31.536 | 12256163 0 | ACISPKT          | TLMSID= WSPOW0002A
+
+
+
+To test:
+===========
+
+rm -Rf /data/acis/LoadReviews/2018/ERRORS_MAR0518
+
+/data/acis/LoadReviews/script/lr-v3.2 -T ERRORS_MAR0518B MAR0518B FEB2618 |& tee /home/gregg/Desktop/LR_ERRORS_MAR0518.log
+
+
+Testing:
+========
+
+
+ ERROR_MAR0518 load - MAR0518 with errors introduced.
+
+1)  APR2318 (Normal)
+
+    lr-v3.2 -T ERRORS_APR2318 APR2318C APR1618 | & tee /home/gregg/Desktop/LR_ERRORS_APR2318C.log
+
+    cp APR2318/ofls/APR2318C_backstop.tar.gz ERRORS_APR2318/oflsc/.; ls ERRORS_APR2318/oflsc/
+
+    tkdiff ERRORS_APR2318/ofls/ACIS-LoadReview.txt ERRORS_APR2318/ofls/ACIS-LoadReview.txt.ERRORS
+
+    No errors as expected
+
+
+
+2) JAN1918 (TOO)
+
+  lr-v3.2 -T ERRORS_JAN1918 JAN1918B JAN1518 | & tee /home/gregg/Desktop/LR_ERRORS_JAN11918B.log
+
+  cp JAN1918/ofls/JAN1918B_backstop.tar.gz ERRORS_JAN1918/oflsb/.; ls ERRORS_JAN1918/oflsb/
+
+  tkdiff ERRORS_JAN1918/ofls/ACIS-LoadReview.txt ERRORS_JAN1918/ofls/ACIS-LoadReview.txt.ERRORS
+
+  No errors as expected
+
+
+
+
+3) SEP1317 (SCS-107 RTS load)
+
+ lr-v3.2 -T ERRORS_SEP1317 SEP1317B SEP0917 | & tee /home/gregg/Desktop/LR_ERRORS_SEP1317B.log
+
+ cp SEP1317/ofls/SEP1317B_backstop.tar.gz ERRORS_SEP1317/oflsb/.; ls ERRORS_SEP1317/oflsb/
+
+ tkdiff ERRORS_SEP1317/ofls/ACIS-LoadReview.txt ERRORS_SEP1317/ofls/ACIS-LoadReview.txt.ERRORS
+
+
+
+
+ 4) MAR0518 ERROR load
+
+ lr-v3.2 -T ERRORS_MAR0518 MAR0518B FEB2618 | & tee /home/gregg/Desktop/LR_ERRORS_MAR0518B.log
+
+ cp /home/gregg/PYTHON/FEP000-02A/MAR0518B_backstop.tar.gz ERRORS_MAR0518/oflsb/.; ls ERRORS_MAR0518/oflsb
+
+ tkdiff  ERRORS_MAR0518/oflsb/ACIS-LoadReview.txt   ERRORS_MAR0518/oflsb/ACIS-LoadReview.txt.ERRORS
+  
+ All 6 expected errors shown
+
