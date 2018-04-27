@@ -10,7 +10,7 @@
 # This code should fail any particular script and continue on if there 
 # is an issue. 
 #
-#
+# This is version 1.10, which replaces version 1.9
 #--------------------------------------------------------------------
 use POSIX qw(uname);
 use Cwd;
@@ -26,12 +26,11 @@ use Getopt::Long;
 #Check for options: will remove options from argv
 #------------------------------
 $myhost='acis.cfa.harvard.edu';
-
-
-
+$break = 0;
 
 GetOptions('h=s' => \$myhost, #host to run on.
-	   'p=s' => \$path);	# optional path
+	   'p=s' => \$path, # optional path 
+           'break' => \$break);
 #note: add a help option
 my ($OS ,$machine, $rev,$ver, $processor)  = (POSIX::uname());
 
@@ -66,12 +65,16 @@ if ($appx) {  # On backup machine?
     $webroot = "/proj/web-cxc-dmz/htdocs/acis";
 }
 #------------------------------
-#Set the out directories for the webpages
+# Set the out directories for the webpages
 #------------------------------
 $outdir=<${webroot}/PSMC_thermPredic/$load/ofls${ver}/>;
 $dpadir=<${webroot}/DPA_thermPredic/$load/ofls${ver}/>;
 $deadir=<${webroot}/DEA_thermPredic/$load/ofls${ver}/>;
 $fpdir=<${webroot}/FP_thermPredic/$load/ofls${ver}/>;
+$fep1acteldir=<${webroot}/FEP1_ACTEL_thermPredic/$load/ofls${ver}/>;
+$fep1mongdir=<${webroot}/FEP1_MONG_thermPredic/$load/ofls${ver}/>;
+$beppcbdir=<${webroot}/BEP_PCB_thermPredic/$load/ofls${ver}/>;
+
 #----------------------------------
 # Untar the backstop file if needed.
 #---------------------------------
@@ -108,18 +111,31 @@ unless (-f $backstop){
 } #backstop
 
 
+# If an interrupt, we need to supply a flag to the models
+# (except the focal plane model)
+
+if ($break == 1) {
+    $break_str = "--interrupt";
+} else {
+    $break_str = "";
+}
+
 #---------------------------------------------
 #Set up the ska environment to run
 #---------------------------------------------
 $ska=</proj/sot/ska/bin>;
-$model_fp=</data/acis${appx}/LoadReviews/script/fp_temp_predictor>;
 #Commands to execute: (BUT NOT EXECUTED YET)
 # make detector housing heater history file
 $dhhtr_history_str="/data/acis${appx}/LoadReviews/script/make_dhheater_history.csh";
-$psmc_ska_str = "${ska}/psmc_check_xija --outdir=${lr_dir}/out_psmc --oflsdir=${lr_dir} --verbose=0";
-$dpa_ska_str = "${ska}/dpa_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dpa --verbose=0";
-$dea_ska_str = "${ska}/dea_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dea --verbose=0";
-$fp_ska_str = "${ska}/python ${model_fp}/acisfp_check.py --oflsdir=${lr_dir} --outdir=${lr_dir}/out_fptemp --model-spec=${model_fp}/acisfp_spec.json --verbose=0"; 
+$psmc_ska_str = "${ska}/psmc_check --oflsdir=${lr_dir} --out ${lr_dir}/out_psmc --verbose=0 $break_str";
+$dpa_ska_str = "${ska}/dpa_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dpa --verbose=0 $break_str";
+$dea_ska_str = "${ska}/dea_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dea --verbose=0 $break_str";
+$fp_ska_str = "${ska}/acisfp_check --oflsdir=${lr_dir} --outdir=${lr_dir}/out_fptemp --verbose=0 $break_str";
+
+$fep1mong_ska_str = $ENV{"HOME"} . "/.local/bin/fep1_mong_check --oflsdir=${lr_dir} --out ${lr_dir}/out_fep1_mong --verbose=0 $break_str";
+$fep1actel_ska_str = $ENV{"HOME"} . "/.local/bin/fep1_actel_check --oflsdir=${lr_dir} --out ${lr_dir}/out_fep1_actel --verbose=0 $break_str";
+$beppcb_ska_str = $ENV{"HOME"} . "/.local/bin/bep_pcb_check --oflsdir=${lr_dir} --out ${lr_dir}/out_bep_pcb --verbose=0 $break_str";
+
 #------------------------------
 # items to run
 #------------------------------
@@ -127,9 +143,10 @@ $fp_ska_str = "${ska}/python ${model_fp}/acisfp_check.py --oflsdir=${lr_dir} --o
 	      $psmc_ska_str,
 	      $dpa_ska_str,
 	      $dea_ska_str,
-              $fp_ska_str);
-
-
+              $fp_ska_str,
+	      $fep1mong_ska_str,
+	      $fep1actel_ska_str,
+	      $beppcb_ska_str);
 
 # IF we can't execute this on this machine, then run it on acis
 if ($OS !~ /Linux/i ||
@@ -176,10 +193,23 @@ unless ($path){
     unless (-d $fpdir){
         mkpath($fpdir,0777);
     }
+    unless (-d $fep1mongdir){
+        mkpath($fep1mongdir,0777);
+    }
+    unless (-d $fep1acteldir){
+        mkpath($fep1acteldir,0777);
+    }
+    unless (-d $beppcbdir){
+        mkpath($beppcbdir,0777);
+    }
     system("cp -p ${lr_dir}/out_psmc/*.* ${outdir}");   
     system("cp -p ${lr_dir}/out_dpa/*.* ${dpadir}");
     system("cp -p ${lr_dir}/out_dea/*.* ${deadir}");
     system("cp -p ${lr_dir}/out_fptemp/*.* ${fpdir}");
+    system("cp -p ${lr_dir}/out_fep1_mong/*.* ${fep1mongdir}");
+    system("cp -p ${lr_dir}/out_fep1_actel/*.* ${fep1acteldir}");
+    system("cp -p ${lr_dir}/out_bep_pcb/*.* ${beppcbdir}");
+
 }
 chdir $current;
 

@@ -12,13 +12,6 @@
 
 # WORKING AREA: /data/acis/LoadReviews/script/
 #
-#
-# Update: January 31, 2017
-#         Gregg Germain
-#         - Modified program to always attempt to collect Dither
-#           information from the OCAT. 
-#         - Modified program to always print out Dither
-#           information and put it before the "Cycle" printout
 #--------------------------------------------------
 #
 # Produces as output in the directory the script was executed within:
@@ -48,7 +41,17 @@
 #           information from the OCAT. 
 #         - Modified program to always print out Dither
 #           information and put it before the "Cycle" printout
-#         - Always collect Dither info fromthe OCAT
+#         - Always collect Dither info from the OCAT
+#
+# Update: June16, 2017
+#         Gregg Germain
+#         - Modified code to handle the fact that ECS measurement Obsid's 
+#           now start at 38000.
+#         - Variables $min_cti_obsid and $max_special_obsid were created 
+#           tomake any future Obsid limit change easy to implement.
+#         - Modified code to print out a row of "-cti"'s when a Perigee Passage
+#           CTI measurement is completed.
+#         - Added numerous comments
 #--------------------------------------------------------------------
 use DBI;
 use Text::ParseWords;
@@ -71,8 +74,14 @@ $Rec_Event="";			# event information
 $Rec_Eventdata="";		# event data
 $wspow="";			# wspow command, via sacgs
 
+# As of June, 2017 Perigee Passage CTI obsids can be as low as 38000
+$min_cti_obsid = 38000;
+# Special observations such as Long Term CTI measurements, and others,
+# are given Obsid's in the 60,000's. Various tests
+$max_special_obsid = 69999;
 
 $server="ocatsqlsrv"; #default server.
+
 $ctifmtcheck=0;
 $startscitime=0;
 $startsciflag=0;
@@ -117,8 +126,12 @@ $pad2=0;
 $simtrans=0;
 $viddwn_cnt=0;
 $pblock_ef="N";			# pblock eventfilter(for win)
+#
+# For Cycles 1 through 10, eventAmplitdueRange was 15.0
+# From 11 onward the new value was 13.
 $pblock_lea=0.08;			# Pblock lowerEventAmplitude(for win)
 $pblock_ear=13.0;			# pblock eventAmplitdueRange(for win)
+
 $sys_cnt=0;
 $huff_cnt=0;
 $start_sci_cnt=0;
@@ -214,7 +227,6 @@ $first=1;
  $server="ocatsqlsrv";
  GetOptions( 's=s' => \$server); #to be passed to acisparams.pl
 
-
 if(@ARGV != 2){
     die "ERROR! TWO INPUTS REQUIRED!\nUSAGE: $0 {current_week_path/*.backstop} {preceding_week_path/ACIS-History.txt}\n";
 }
@@ -282,7 +294,7 @@ $manfile=`ls ${dir}/mm*.sum 2>/dev/null`;
 # CRM file is backstop/*CRM*
 # NIL file is backstop/*.er
 #--------------------------------------------------------------------
-$CRMfile=`ls ${dir}/*CRM* 2>/dev/null`;
+$CRMfile=`ls ${dir}/DO*CRM_Pad.txt 2>/dev/null`;
 read_CRM_file($CRMfile,\@crm_array);
 $NILfile=`ls ${dir}/*.er 2>/dev/null`;
 read_NIL_file($NILfile,\@nil_array);
@@ -307,14 +319,20 @@ print LR "-- CHANDRA LOAD START --\n\n";
 #$user="browser";
 #$passwd="newuser";
 
-#Connect to the database:
+# Browser replacement TEST OCAT
+#$user="acisops";
+#$passwd="aopspd22";
+
+# Connect to the database: OPERATIONAL
 # NEW OCAT USERNAME database username, password, and server
 $user="acisops";
 $passwd="gpCjops)";
 
 $serverstr="dbi:Sybase:${server}";
+
 #open connection to sql server
 my $dbh = DBI->connect(($serverstr, $user, $passwd)) || die "Unable to connect to database". DBI->errstr;
+
 # use axafocat and clean up
 $dbh->do(q{use axafocat}) || die "Unable to access database axafocat". DBI->errstr;
 
@@ -1420,24 +1438,31 @@ sub obsid_change{
     #------------------------------
     #Check timing issues
     #------------------------------
-    if ($delobs < 100){ #why 100?
+    if ($delobs < 100)
+       { #why 100?
 	printf LR "  ==> ObsID change occurs %3.1f minutes after stop science.\n\n",$delobs
+       }
+
+    if ($delobs < 2.999999999 && $startsciflag == 0)
+        {
+ 	  print LR ">>>ERROR: ObsID change occurs less than 3 minutes after a stop science command.\n\n";
+	  add_error("o. The OBSID change to $obsid that occurs less than 3 mins after a stop science.\n\n");
 	}
-    if ($delobs < 2.999999999 && $startsciflag == 0) {
-	print LR ">>>ERROR: ObsID change occurs less than 3 minutes after a stop science command.\n\n";
-	add_error("o. The OBSID change to $obsid that occurs less than 3 mins after a stop science.\n\n");
-    }
-    if($check_acis_sci == 1 && $obsid !~ /^[5-6][0-9]{4}?$/){
+
+    if($check_acis_sci == 1 && ( !(($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) ) )
+      {
 	#We expect the 60000-50000 series to change often
 	print LR ">>>ERROR: There is not an ACIS start science command between this obsid and the previous obsid.\n\n";
 	add_error("o. There is an ACIS observation that is missing a start science.\n\n");
 	$check_acis_sci = 0;
-    }
-    if(($startsciflag == 1 && $late_change_time > 5.00)
-       && $obsid !~ /^[5-6][0-9]{4}?$/){
-	print LR ">>>ERROR: The OBSID change to $obsid occurs more than 5 mins after a start science.\n\n";
-    add_error("o. The OBSID change to $obsid occurs more than 5 mins after a start science.\n\n");
-    }
+      }
+
+    if(($startsciflag == 1 && $late_change_time > 5.00) &&
+      ( !(($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) ))
+       {
+ 	 print LR ">>>ERROR: The OBSID change to $obsid occurs more than 5 mins after a start science.\n\n";
+         add_error("o. The OBSID change to $obsid occurs more than 5 mins after a start science.\n\n");
+       }
 
   
     #------------------------------
@@ -1457,30 +1482,36 @@ sub obsid_change{
     if($ocatinfo == 0){
 	$loaded_ocat = 1;
     }
-    #Ok if this obsid is NOT a test, then we should
+    #Ok if this obsid is NOT an ECS measurement or a test, then we should
     #set a test flag...
-    if($ocatinfo == 0 and $obsid !~ /^[5-6][0-9]{4}?$/ ){
-	$check_acis_sci = 1; 
-	$simode=$ocat_entries{"SI Mode"};
-	$ocat_simode=$simode;
-    }
-    else{
+    if ($ocatinfo == 0 and (! (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))) )
+       {
+ 	 $check_acis_sci = 1; 
+	 $simode=$ocat_entries{"SI Mode"};
+	 $ocat_simode=$simode;
+       }
+    else
+       {
 	$check_acis_sci = 0;
-    }
+       }
     
     #------------------------------
     # check for NIL
     #------------------------------
     ##  $ocatinfo eq 2 means HRC observation
-    if($ocatinfo == 2 and $obsid !~ /^[5-6][0-9]{4}?$/ ){
-	$ocat_simode=find_NIL_simode($obsid,\@nil_array);	
-	if($ocat_simode =~ /_/){
+    if ($ocatinfo == 2 and (! (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))) )
+       {
+ 	 $ocat_simode=find_NIL_simode($obsid,\@nil_array);	
+	 if ($ocat_simode =~ /_/)
+            {
 	    $nil_flag=1;
 	    print LR " ==> NIL SI_Mode is $ocat_simode\n\n";
-	}
-	else{$nil_flag=0};
-    }  
-    else{$nil_flag=0};
+	    }
+	 else
+            {$nil_flag=0};
+        }  
+    else
+        {$nil_flag=0};
    
     ###Want to grab the window information
     if($ocatinfo == 0 &&
@@ -1548,59 +1579,87 @@ sub process_stop_science{
     $tstop=$dec_day;
     $obsstart=$dec_day;
     $new_start=&manuever_time($tstart,$tstop,\@start_man,\@stop_man);
-    #if the manuver doesn't matter...(ie 6xxxx  or 5xxxx observation)
-    if(($obsid =~ /^[5-6][0-9]{4}?$/) || ($tstart==0)){
-	$exposure=($tstop-$tstart)*86.4;
-	$ratio=-99.00;
-    }
-    else{
+
+    # if the manuver doesn't matter...(ie 6xxxx  or 5xxxx observation)
+    if ( (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) || ($tstart==0) )
+       { # Calculate the exposure time in seconds (86.4ksec in a day)
+	 $exposure=($tstop-$tstart)*86.4;
+	 # Ratio is actual exposure/expected exposure *100
+         # It's the percentage calculated and displayed at the end of the obs
+         # Set it to a nonsense number INDICATES ECS RUN
+	 $ratio=-99.00;
+       }
+    else
+       {
 	#add an if not event histogram
 	$exposure=($tstop-$new_start)*86.4;
 	$expected_expo=$ocat_entries{"Exposure Time"};
-	if($expected_expo == 0.0){
-	    $ratio=100.0;
-	}else{
-	    $ratio=($exposure/$expected_expo)*100.0;
-	}
-    }
+        # Set it to 100% which means legal and acceptable exposure time
+	if ($expected_expo == 0.0)
+           {$ratio=100.0; }
+        else   # ELSE calculate the actual ratio
+           { $ratio=($exposure/$expected_expo)*100.0;}
+       } # END ELSE 
+
     #ADD a CTI CHECK
-    if($cti_flag == 1 && $rad =~ "OORMPEN"){
-	#turned on radmon BEFORE this stop science
-	$cti_flag = 0; 
-	$radstop_diff=($stopscitime-$radmonon)*1440.; #in min
-	    if($radstop_diff >= 3.25) { # 3.25 minutes
-		printf LR "\n>>>ERROR: RADMON occurs %5.2f min BEFORE stop science.\n\n",$radstop_diff;
-		add_error("o. RADMON occured more than 3.25 minutes BEFORE stop science.\n\n");
-	    }
-    } 
+    if ($cti_flag == 1 && $rad =~ "OORMPEN")
+       {
+	 #turned on radmon BEFORE this stop science
+	 $cti_flag = 0; 
+	 $radstop_diff=($stopscitime-$radmonon)*1440.; #in min
+	     if ($radstop_diff >= 3.25)
+                { # 3.25 minutes
+		  printf LR "\n>>>ERROR: RADMON occurs %5.2f min BEFORE stop science.\n\n",$radstop_diff;
+		  add_error("o. RADMON occured more than 3.25 minutes BEFORE stop science.\n\n");
+	        }
+       } # ENDIF ($cti_flag == 1 && $rad =~ "OORMPEN")
     
+    # Hard numbers for $ratio like -99.0 and -100.0 are used to make decisions and avoid
+    # recording errors such as the less than 90% exposure time rule.
+    if ($exposure < 200.0)
+       {
+	 printf LR "  ==> ACIS integration time of %5.2f ks.\n\n",$exposure;
+ 	 if ($ratio ne -99.00)
+            {
+	      printf LR " This is %5.2f\%% of the requested time.\n\n",$ratio;
+	      if ($ratio < 90.00)
+                 {
+		 print LR "\n  ==>ERROR: Scheduled time is less than 90%.\n\n";
+	         }
+	      if ($ratio > 110.00)
+                 {
+	 	 print LR "\n  ==>ERROR: Scheduled time is greater than 110%.\n\n";
+		 }
 
-    if ($exposure < 200.0) {
-	printf LR "  ==> ACIS integration time of %5.2f ks.\n\n",$exposure;
-	if($ratio ne -99.00){
-	    printf LR " This is %5.2f\%% of the requested time.\n\n",$ratio;
-	    if($ratio < 90.00){
-		print LR "\n  ==>ERROR: Scheduled time is less than 90%.\n\n";
-	    }
-	    if($ratio > 110.00){
-		print LR "\n  ==>ERROR: Scheduled time is greater than 110%.\n\n";
-	    }
-	    # Punctuate end of science run.
-	    print LR "-@" x 35 . "\n";
-	    print LR "-@" x 35 . "\n\n\n";
+	    } # ENDIF  ($ratio ne -99.00)
 
-	}
+ 	    # Punctuate end of science run.
+            # If this was a science observation.....
+            if ($obsid < $min_cti_obsid)
+	      {
+	        print LR "-@" x 35 . "\n";
+	        print LR "-@" x 35 . "\n\n\n";
+	      }
+            else  # Just finished a CTI measurement 
+              {
+	       # Punctuate end of CTI run.
+	       print LR "-CTI" x 18 . "\n";
+	       print LR "-CTI" x 18 . "\n\n\n";
+              }
+
         #set up the rad zone triplet check
-	if(($obsid =~ /^[5-6][0-9]{4}?$/) &&
-	   ($rad =~ "OORMPDS")){    #Just finished a CTI measurment 
-	    $triplet_check = -1;  # will record for BOTH ingress and egress
-	}
-    }
-    elsif($triplet_check == -1 && ($obsid =~ /^[5-6][0-9]{4}?$/) &&
-	  ($rad =~ "OORMPDS")){
-	$triplet_check = 1; #see the stop science
-	
-    }
+	if ( (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))  &&
+	   ($rad =~ "OORMPDS"))
+           {    #Just finished a CTI measurment 
+	      $triplet_check = -1;  # will record for BOTH ingress and egress
+	   }
+       } # ENDIF if ($exposure < 200.0)
+
+    elsif ($triplet_check == -1 && (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) &&
+	  ($rad =~ "OORMPDS") )
+          {
+	    $triplet_check = 1; #see the stop science	
+          }
     
     $tstop=0;
     $tstart=0;
@@ -1667,20 +1726,22 @@ sub parameter_check{
     #------------------------------     
     #If not a 60000 OR 5000 obsid, compare the gratings and FP 
     #------------------------------
-    if($obsid !~ /^[5-6][0-9]{4}?$/ &&
+    if ( (! (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) ) &&
        $nil != 1 && 
-       $ocatinfo != 2) {
+       $ocatinfo != 2)
+       {
 	$tmp=compare_states(\%ocat_entries,
 			    $chandra_status{"HETG"},
 			    $chandra_status{"LETG"},
 			    $FP,$sim_z);
 	$flag_setup = $flag_setup | $tmp;
 	#print LR "***DEBUG*** flag_setup=$flag_setup\n";
-	if($tmp){
+	if ($tmp)
+           {
 	    push(@setup_list,$obsid);
 	    $Test_Passed=0;
-	}
-    }
+	   }
+       } #ENDIF  ( (! (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) ) &&
 
     #--------------------------------------------------
     # Report error if not the right parameter block
@@ -1707,45 +1768,56 @@ sub parameter_check{
     # Various Error checks. May be moved
     #----------------------------------------
     #For radzone
-    if ($FP eq "HRC-S") {
-	if ($ctifmtcheck == 1) {
-	    if ($FMT ne "CSELFMT2") {
+    if ($FP eq "HRC-S")
+       {
+	if ($ctifmtcheck == 1)
+           {
+	    if ($FMT ne "CSELFMT2")
+               {
 		print LR ">>>ERROR: WE ARE DOING A CTI MEASUREMENT BUT WE ARE NOT IN FMT 2!\n\n";
 		add_error("o. RadMon was disabled prior to radbelt transit but we were NOT at HRC-S yet.\n\n");  
-	    }
-	}
-    }     
-    if ($FP ne "HRC-S" and $obsid =~ /^[5-6][0-9]{4}?$/ ) {
-	print LR ">>>WARNING: SIM is NOT at HRC-S and OBSID > 50000!\n\n";
-	print LR ">>>-------  CONFIM THAT A SIM TRANSLATION OCCURS PRIOR TO RADBELT TRANSIT!\n\n";
-	if ($FMT ne "CSELFMT2") {
-	    print LR ">>>ERROR: WE ARE DOING A CTI MEASUREMENT BUT WE ARE NOT IN FMT 2!\n\n";
-	    add_error("o. RadMon was disabled prior to radbelt transit but we were NOT at HRC-S yet.\n\n");  
-	}   
+	       }
+	   } # ENDIF ($ctifmtcheck == 1)
+        } # ENDIF   ($FP eq "HRC-S")
+
+         if ($FP ne "HRC-S" and (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) )
+       {
+ 	 print LR ">>>WARNING: SIM is NOT at HRC-S and OBSID > 50000!\n\n";
+	 print LR ">>>-------  CONFIM THAT A SIM TRANSLATION OCCURS PRIOR TO RADBELT TRANSIT!\n\n";
+	 if ($FMT ne "CSELFMT2")
+            {
+	      print LR ">>>ERROR: WE ARE DOING A CTI MEASUREMENT BUT WE ARE NOT IN FMT 2!\n\n";
+	      add_error("o. RadMon was disabled prior to radbelt transit but we were NOT at HRC-S yet.\n\n");  
+	    }   
 	add_error("o. We were about to start a CTI run but we were not at HRC-S yet.\n\n");
-    }
+       } # ENDIF  ($FP ne "HRC-S" and (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) )
+
     #For standard ACIS observations
-    if ($FP eq "ACIS-I" or $FP eq "ACIS-S") {
-	if ($chandra_status{"radmonstatus"} ne "OORMPEN") {
+    if ($FP eq "ACIS-I" or $FP eq "ACIS-S") 
+       {
+	if ($chandra_status{"radmonstatus"} ne "OORMPEN")
+           {
 	    add_error("o. There are ACIS observations for which the RadMon has not been enabled.\n\n");
 	    print LR ">>>ERROR: ACIS IS IN THE FOCAL PLANE BUT RADMON IS NOT ENABLED!\n\n";
-	}
-	if ($FMT ne "CSELFMT2") {
+	   }
+	if ($FMT ne "CSELFMT2")
+           {
 	    print LR ">>>ERROR: ACIS IS IN THE FOCAL PLANE BUT WE ARE NOT IN FMT 2!\n\n";
 	    add_error("o. ACIS was in the focal plane but we were NOT in FMT 2 at the time.\n\n");
-	}
+	   }
 	
-	if ($chandra_status{"DITH"} eq "DISA") {
+	if ($chandra_status{"DITH"} eq "DISA")
+           {
 	    add_error("o. Dither was disabled at the time of a start science.\n\n");
 	    print LR ">>>ERROR: ACIS START SCIENCE ISSUED; ACIS IN FOCAL PLANE, BUT DITHER IS DISABLED\n\n";
-	}
-    }
-    if($obsid !~ /[5-6][0-9][0-9][0-9][0-9]/){
-	$compare=1;
-    }else{
-	$compare=0;
-    }
-} #end function 
+	   }
+       } # ENDIF ($FP eq "ACIS-I" or $FP eq "ACIS-S") 
+
+    if ( (!(($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))) )
+       { $compare=1; }
+    else
+       { $compare=0; }
+} #end sub parameter_check
     
 
 #--------------------------------------------------------------------
@@ -1802,10 +1874,36 @@ sub process_acispkt{
     if ($Rec_Eventdata{TLMSID} eq "WSVIDALLDN") {
 	$viddwn_cnt=$viddwn_cnt+1;
 	$per_vidalldn=$dec_day;
+        # WSVIDALLDN was used in the triplet prior to January 2018.
 	if($triplet_check == 1){
 	    $triplet_check = 2;
 	}
     }
+
+    #----------------------------------------
+    # New power command which leaves three 
+    # FEP boards left up.  This is to prevent
+    # things from getting too warm during Perigee
+    # passages (when in the past 6 were left running).
+    # In addition, it was decided to keep 3 up and not
+    # shut them all down so as to keep the box from getting
+    # too cool.
+    # It was implemented in loads Jan. 2018
+    # 
+    #  The above triplet treatment for WSVIDALLDN
+    #  is left in there for old loads to still work
+    #----------------------------------------
+    if ($Rec_Eventdata{TLMSID} eq "WSPOW0002A") {
+	$viddwn_cnt=$viddwn_cnt+1;
+	$per_vidalldn=$dec_day;
+        # WSVIDALLDN was used in the triplet prior to January 2018.
+	if($triplet_check == 1){
+	    $triplet_check = 2;
+	}
+    }
+
+
+
     #----------------------------------------
     # System dump
     #----------------------------------------
@@ -2246,10 +2344,13 @@ sub confirm_packet_space{
 #Instead of the acisparams.pl code
 #--------------------------------------------------------------------
 sub acisparams{
+
     my($obsid,$outfile)=(@_);
     # return value:0=ACIS 1=failure 2=HRC
+
     # check for obsid, report error in output file if not in ocat
     my ($sth)=$dbh->prepare(qq{select obsid from target where obsid=?}) || die "The error is " . $sth->errstr;
+
     $sth->execute($obsid) || die "Unable to access the obsid".$sth->errstr;
     $res = $sth->fetchrow_array();
     $sth->finish();
@@ -2359,6 +2460,8 @@ Window Filter: $spwin\tStart Row: $winstartrow\tStart Column: $winstartcol
 Height: $height\tWidth: $width
 Lower Energy: $lowerthres\tEnergy Range: $pharange\tSample Rate: $sample
 Dither: $dither_flag
+\tY Amp: $y_amp deg\tY Freq: $y_freq deg/sec\tY Phase: $y_phase
+\tZ Amp: $z_amp deg\tZ Freq: $z_freq deg/sec\tZ Phase: $z_phase
 Cycle: $ao_str\tObj_Flag: $obj_flag
 EOP
 print LR <<EOF;
@@ -2632,7 +2735,7 @@ sub read_ocat_win{
 sub compare_pblock{
 #DON'T DO IF RADMON IS DISABLED...THESE ARE DIAGNOSTIC MEASUREMENTS
     if($$stat{"radmonstatus"} eq "OORMPEN" and   #Radmon enabled
-       $$stat{"OBSID"} !~ /^[5-6][0-9]{4}?$/ and #obsid not 5xxxx-6xxxx
+      (! (($$stat{"OBSID"} >= $min_cti_obsid) && ($$stat{"OBSID"} <= $max_special_obsid)) ) and #obsid not 38xxx-6xxxx
        $nil_flag != 1 and                        #not NIL 
        $ocatinfo != 2 ){                         #not HRC in OCAT
 	convert_params(\%pblock_entries,$si_prefix);

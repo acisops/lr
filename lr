@@ -22,9 +22,23 @@ use Plucknames;
 #to see updates, please go the CVS version
 #last update: 08 OCT 2009
 #
-# Update: January 12, 2017
+#
+# Update: ??? Some time in 2016
+#         Royce Beuhler
+#         Mods to allow the code to run LR-BAK
+#
+# Update: September 15 2016
 #         Gregg Germain
-#         Fixed the reporting of the ACIS tables
+#         1) Modify LR code to use the new CTI-report format converter
+#       
+#         First step was to do a diff between the version of lr obtained from the
+#         GIT repo and the one in /data/acis/LoadReviews/script/lr-v1.61 (the latest)
+#                   /data/acis/LoadReviews/script/lr -> lr-v1.61
+#
+# Update: Jan 13, 2017
+#         Gregg Germain
+#         1) Fixed ACIS table reporting such that it now reports .DAT
+#            as well as .CFG
 #
 # Update: February 21, 2017
 #         Gregg Germain
@@ -32,10 +46,45 @@ use Plucknames;
 #         which contains ONLY the user-supplied continuity 
 #         file name (e.g. FEB0517) and a carriage return
 #
+# Update: April 14, 2017
+#         Gregg Germain
+#         Added echos for all user inputs that didn't have them
+#         Also added lines to ACIS-Continuity.txt:
+#              - Continuity load (already in the file)
+#              - <type of load>  <interrupt time>
+#         Type of load can be "Normal", "TOO", "SCS107"
+#
+# Update: July 18, 2017
+#         Gregg Germain
+#         MERGER of Production LR (lr_v1.63) with MIRROR LR
+#         Copied Production  LR (lr_v1.63) to MERGER lr_v1.64
+#
+#         From Production -> Mirror
+#              Continuity Tracking - ACIS-Continuity.txt
+#
+#         From MIRROR -> PRODUCTION LR
+#        
+# Update: Aug 9, 2017
+#         Gregg Germain
+#         Capture the command line and print it so that it
+#         appears on screen as well as in the log file.
+#           Does not capture the Tee-off to the log file
+#      
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
 ###########################################################  
+#
+# Capture the command line an dprint it out so that there's
+# a record of what the user typed in:
+my $commandline = $0 . " " . (join " ", @ARGV);
+print "\nCommand Line: $commandline \n\n";
+
+#
+# Some inits for the ACIS-Continuity file
+my $load_type = "Normal";
+my $interrupt_time = "";
+
 #Check for options: will remove options from argv
 $server="ocatsqlsrv";
 $hostname="acis.cfa.harvard.edu";   #for PSMC
@@ -74,32 +123,39 @@ else{
 $lr_dir = <${base_dir}/LoadReviews>;
 $lr_bak_dir = </data/acis-bak/LoadReviews>;
 $script_store_dir = <${base_dir}/LoadReviews/script>;
+
+# PRODUCTION
 $backstop = <${base_dir}/LoadReviews/script/acis-backstop.pl>;
 
 #------------------------------
-#Get the directory to use for the C++ code
+# Get the directory to use for the C++ code
 #------------------------------
 my ($uname_s, $uname_r)  = (POSIX::uname())[0,2];
 
 #Set up the Linux executable paths
-if (($uname_s eq "Linux")) {
+if (($uname_s eq "Linux"))
+ {
     $cc_directory=<${base_dir}/LoadReviews/Linux/bin>;
     $tar=</bin/tar>;
     $gzip=</bin/gzip>;
     $sftp=</usr/bin/sftp>;
     $ftp=</usr/bin/ftp>;
     $gunzip=</bin/gunzip>;
-} else {
+ }
+else
+ {
     die("$0 is only supported on Linux: This version $uname_r\n");
-}
-
-
+ }
 
 ###FIND THIS AND MOVE IT TO LOADREVIEWS
 $cur_load_dir=<${base_dir}/LoadReviews/>; #needed for ACE Update
 
 #directory generation and tar file copying
+#
+# REVIEW load
 $cur_load=@ARGV[0];
+
+# Continuity load
 $prev_load=@ARGV[1];
 
 $load_dir="";
@@ -115,9 +171,16 @@ find_names($cur_load,$prev_load,$test_dir);
 #------------------------------
 #Set the directories & files
 #------------------------------
+# ---- OFLS_DIR is where the load files eventually go. -------------  OFLS dir
+#     e.g. /data/acis/Loadreviews/2016/SEP2416/oflsa
 $ofls_dir="${lr_dir}/20${cur_year}/$load_dir/ofls${load_version}";
+
+#     e.g. /data/acis/Loadreviews/2016/SEP2416/        ------------- load dir
 $cur_load_dir="${lr_dir}/20${cur_year}/$load_dir/";
+
+#     e.g. /data/acis/Loadreviews/2016/SEP0616         --------- Prev Load dir
 $prev_load_dir="${lr_dir}/20${prev_year}/$prev_dir/ofls";
+
 $back_ofls_dir="${lr_bak_dir}/20${cur_year}/$load_dir/ofls${load_version}";
 $back_dir="${lr_bak_dir}/20${cur_year}/$load_dir/";
 $web_dir = $ENV{"WEB_ACIS"};
@@ -178,7 +241,7 @@ else{
     die "The directory $ofls_dir already exists. Code exiting\n";
 }
 
-#only do the backup if this is not a test
+# Only do the backup if this is not a test
 # and we're not already on the backup system
 if( (! $test_dir) &&
     ($base_dir eq "/data/acis")){
@@ -193,58 +256,66 @@ if( (! $test_dir) &&
 #------------------------------------------------------
 # Transfer file from Lucky after making the directories
 #------------------------------------------------------
+
+# CD to /data/acis/LoadReviews/<YEAR>/LOAD/ofls<a,b,c etc> -------  IN OFLS DIR
 chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
-if ($skiplucky) {
+
+if ($skiplucky)
+ {
     print "In another window, please copy desired backstop tarball\n";
     print "into load directory $ofls_dir\n";
     print "DO NOT unzip the tarball.\n";
     print "\n\nfile copied, ready to continue?(Y/N)\: ";
     $user=<STDIN>;
-   unless ($user =~/y/ || $user =~/Y/) {
+   unless ($user =~/y/ || $user =~/Y/)
+     {
        die "No backstop.tar.gz file available, exiting.\n";
-   }
-} else {  # using sftp lucky
+     }
+ } # ENDIF if ($skiplucky)
+else
+ {  # using sftp lucky                               -------------- GET TARBALL
     print "Copy zipped tarball file from lucky\n";
     print "get /home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz \n";
 #----------------------------------------
-#fork a process to sftp to lucky
+# Fork a process to sftp to lucky
 #----------------------------------------
     print "\n\nSFTP to lucky: Please enter username to connect: ";
     $user=<STDIN>;
     chop($user);
     my $pid = fork();
-    if (not defined $pid) {
+    if (not defined $pid)
+      {
 	print "ERROR>>>resources not avilable. Cannot connect to Lucky.\n";
-    } 
-    elsif ($pid == 0) {
+      } 
+    elsif ($pid == 0)
+      {
 	exec("${sftp} ${user}\@lucky.harvard.edu");
 	exit(0);
-    } else {
+      }
+    else
+      {
 	waitpid($pid,0);
-    }
-}
-
-# Now write out the previous load argument from the command line
-# Create file ACIS-Continuity.txt
-open(CONTFILE, ">$ofls_dir/ACIS-Continuity.txt");
-    print CONTFILE $prev_load, "\n";
-
-# Close the continuity file
-close(CONTFILE);
+      }
+ } # END ELSE if ($skiplucky)
 
 #------------------------------------------------
-#Unzip the file an extract the items we need.
+# Unzip the file an extract the items we need.
 #------------------------------------------------
+# You are in the OFLS directory                      ----------  IN OFLS DIR
 @zip = Plucknames->findNames($ofls_dir, "backstop.tar.gz");
 $zip = $zip[0];
 print "unzipping: $zip ...\n";
+
+# GUNZIP the tarball ------------------------------------------- GUNZIP
 `${gunzip} $zip`;
-#get tar file
+
+# Get tar file
 $file = (Plucknames->findNames(".", "backstop.tar"))[0];
 
 #backstop extraction and acis script
 @tarTOC = Archive::Tar->list_archive($file, 0);
 @bck = Plucknames->tarNames(\@tarTOC, "backstop"); 
+
 foreach $b (@bck){
     @field = split(/\s+/, $b);
     $bfile=pop(@field);
@@ -267,6 +338,71 @@ if ($backfile eq ""){
 if($vfile eq ""){
     warn "Warning: No VR backstop file.\n";   
 }
+
+print "\n    You are in directory: ", `pwd`;
+
+# Run the CTI_report to CTI_REP Pad Time file converter.
+# This file is used in comparing backstop pad time against cti_rep pad time
+
+# Create the CTI report file exists flag. It starts out 
+# "No". It will either be changed to "Yes" if the file 
+# turns out to exist in the ...mps/er dirctory, or it will stay "No"
+my $cti_rep_file_exist = "No";
+
+@cti_rep_file_list = Plucknames->tarNames(\@tarTOC, "CTI"); 
+
+# Check to see if the cti_rep_file_list is empty
+# If it isn't empty we use the CTI_report file supplied in the tarball
+# If it's empty we tell the use and exit the program
+
+if (scalar @cti_rep_file_list != 0)
+  { # The list is not empty so we have a CTI_report file
+    # set the exists flag to "Yes"
+    $cti_rep_file_exist = "Yes";
+
+        
+    # Grab the first entry in the list
+    @field2 = split(/\s+/, $cti_rep_file_list[0]);
+    $cti_rep_file=pop(@field2);
+    chomp ($cti_rep_file);
+        
+    print "\n    CTI REP FILE IS: ", $cti_rep_file;
+               
+    @field3 = split(/\//, $cti_rep_file);
+    $cti_rep_file_name=pop(@field3);
+    chomp ($cti_rep_file_name); # file name only
+        
+    print "\n     cti_rep_file_name File: $cti_rep_file_name\n";
+
+  }
+else # List is empty inform the user. Give the user the chance to specify one
+ {
+   # The list IS empty so we don't have a CTI_report file
+   # set the exists flag to "No". It was initialized to No
+   # but do it anyway.
+   $cti_rep_file_exist = "No";
+
+   # Tell the user there is no CTI report file in this backstop tarball
+   print "\nERROR: can't extract CTI REPORT file.";
+
+   # Allow the user to specify one if they want; ask the user
+   print "\n    Do you want to specify your own CTI_report file? (1=Yes, 2=No)\n";
+   $cti_in=<STDIN>;
+   chomp($cti_in);
+
+   # If the user typed a 1, get the file
+   if ($cti_in eq 1)
+     {
+      print "Please specify the CRM input filename with no directory paths\n\t (and be sure to copy it into the load directory):\n";
+      $ocrm_file = <STDIN>;
+      chomp($ocrm_file);
+     }
+   else
+     {
+      die "\nERROR: No CTI REPORT file exists in the tarball and the user did not wish to copy one in.\n EXITING PROGRAM";
+     }
+ } # END ELSE  List is empty inform the user and exit the program
+
 
 #file used in determining bad pitch angle observations
 @mm_sum = Plucknames->tarNames(\@tarTOC, "sum", "mps", "mm");
@@ -292,36 +428,6 @@ if ($msfile eq ""){
 $ms_name=pop(@field5);
 chomp($ms_name);
 
-#file used in comparing backstop pad time against crm pad time
-@crm_file = Plucknames->tarNames(\@tarTOC, "CRM"); 
-@crm_field = split(/\s+/, $crm_file[0]);
-$crm=pop(@crm_field);
-chomp($crm);
-if ($crm eq ""){
-    $crm_flag = 1;
-    print "\nERROR: can't extract *_CRM.txt file.\n";
-    print "Do you want to specify your own CRM file? (1=Yes, 2=No)\n Choose \"2\" to use previous version of CRM file:\n\t $old_crm\n";
-    $crm_in=<STDIN>;
-    chomp($crm_in);
-
-    if ($crm_in eq 1){
-	print "Please specify the CRM input filename with no directory paths\n\t (and be sure to copy it into the load directory):\n";
-	$ocrm_file = <STDIN>;
-	chomp($ocrm_file);
-    }
-    elsif ($crm_in eq 2 &&
-	   $old_crm =~ /^x/){
-	print "Using previous CRM file from interrupted load: $old_crm\n";
-	`cp $old_crm ${ofls_dir}`;
-    }
-    elsif ($crm_in != 1 || $r != 2){
-	die "please enter only 1 or 2\n";
-    }
-}#end crm
-
-@crm_field2 = split(/\//, $crm);
-$crm_name=pop(@crm_field2);
-chomp($crm_name);
 
 #Get NIL er file
 @nil_file = Plucknames->tarNames(\@tarTOC, "mps", "er", "C${load_name}"); 
@@ -349,15 +455,45 @@ chomp($mnvr_field2[1]);
 
 #Get the name of where we are running
 $localdir = getcwd();
-`$tar -xvf $file $backfile $mmfile $msfile $crm $nil $mnvr $vfile`;
+
+print "\nUNTARRING the backstop file";
+# UNTAR THE BACKSTOP TAR FILE --------------------------------------- TAR -XVF
+`$tar -xvf $file $backfile $mmfile $msfile $nil $mnvr $vfile  $cti_rep_file`;
 
 #----------------------------------------
-#Run ONLY if the -b flag is set
+#  LR BREAK PROCESSING - Run ONLY if the -b flag is set
 #----------------------------------------
-if ($break == 1){
-    lr_break();
+if ($break == 1)
+  {
+    $load_type,$interrupt_time =  lr_break();
     $hist=$edit_hist;
-}
+  }
+
+# ------------------  CONTINUITY TRACKING -----------------------------
+# You now know everything you need to know in order to write
+# out the ACIS-Continuity.txt file
+
+# Open the ACIS-Continuity.txt file
+open(CONTFILE, ">$ofls_dir/ACIS-Continuity.txt");
+
+# Now that you know the location of the previous load, write that full
+# directory path to the ACIS-Continuity.txt file
+print CONTFILE $prev_load_dir, "\n";
+
+# Write out the type of load: Normal, TOO, SCS107  
+if ($break == 1)
+  {
+    print CONTFILE $load_type, " ", $interrupt_time, "\n";
+  }
+else
+  {
+    print CONTFILE $load_type, "\n";
+  }  
+
+# Close the continuity file
+close(CONTFILE);
+
+
 
 
 #--------------------------------------------------------------------
@@ -382,16 +518,42 @@ print "\tManuever File Used: $mnvr\n";
 #move files to the right locations.
 rename("$mmfile","./$mm_name");
 rename("$msfile","./$ms_name");
-rename("$crm","./$crm_name");
 
-if(-e "$nil"){
+# If we found a CTI report file then copy it over into the
+# operational ofls directory.  
+if ($cti_rep_file_exist eq "Yes")
+  {
+   print "\n Copying over the CTI Report file";
+   rename("$cti_rep_file","./$cti_rep_file_name");
+  }
+else
+  {
+      print "\nNo CTI Report file was found - I sure hope you copied one in";
+  }
+
+
+# Now that you've copied over the CTI_report file into the ofls
+# directory, run the converter on it.  Remember, if you got here it's 
+# because either the tarball had a CTI_report file in it or the user
+# copied one in.
+print "\nRunning the converter to go from CTI to CRM";
+print "\nThe Converter command I'm running is: ";
+print "\n    python $script_store_dir/Convert_CTI_to_CRM.py $ofls_dir\n";
+`python $script_store_dir/Convert_CTI_to_CRM.py $ofls_dir`;
+
+if(-e "$nil")
+  {
     rename("$nil","$nil_name");
-}
-if(-e "./er"){
+  }
+if(-e "./er")
+  {
     system("mv er/* .");
     rmdir("er");
-}
+  }
+
+# Remove the extra directories you created with the tar command
 rmtree("./mps");
+
 #------------------------------
 #Informational 
 #------------------------------
@@ -401,21 +563,27 @@ rmtree("./mps");
 print "\tRunning Health and Safety Script...\n\n";
 system("${script_store_dir}/LRHS $localdir/${backfile} ${hist} > ${ofls_dir}/LRHS.output "); 
 print "\tRunning ACIS Load Review Script...\n\n"; 
+
 #RUN ACIS BACKSTOP
 $backstop_str = "$backstop -s ${server} ${localdir}/${backfile} ${hist}"; 
-print "\n$backstop_str...\n";
+print "\nRunning $backstop_str...\n";
 system("$backstop_str");
-#print "Back from acis-backstop.pl\n";
+print "\nACIS-backstop completed.";
+
 #------------------------------
-#Set up soft links
+# Set up soft links
 #------------------------------
 chdir("$cur_load_dir") || die "cannot change to ${cur_load_dir}\n";
 
-if(-e "./ofls"){
+if(-e "./ofls")
+  {
     unlink("./ofls");
-}
+  }
+
+# Point ofls to /data/acis/Loadreviews/2017/THE_LOAD/ofls<a,b,c...> 
 symlink( "${ofls_dir}", "./ofls");
 
+# CD to the OFLS dir
 chdir("${ofls_dir}") || die "Cannot change to {$ofls_dir}";
 
 #determine and display version of ACIS tables used:
@@ -448,7 +616,8 @@ close(OUT);
 close(DAT);      
 
 #------------------------------
-#check for bad sun angle observations: changed to take previous directory string
+# Check for bad sun angle observations: changed to take
+# previous directory string
 #------------------------------
 print "Running saa_checker.pl...$script_dir/saa_checker.pl ${prev_load_dir}\n";
 system ("$script_dir/saa_checker.pl ${prev_load_dir}");
@@ -506,10 +675,18 @@ if ($appx) {
     $fps_cmd = "$fps_cmd -c $ao_str";
     system($fps_cmd);
     
+    # This is so we can tell the thermal models if
+    # this is an interrupt load
+    if ($break == 1) {
+	$break_str = "-b"
+    } else {
+	$break_str = ""
+    }
+ 
     if($test_dir){
-	system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir");
+	system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str");
     }else{
-	system ("$script_dir/run_models.pl $cur_load -h $hostname");
+	system ("$script_dir/run_models.pl $cur_load -h $hostname $break_str");
     }
     #update the webpage
     if( ! $test_dir){
@@ -578,8 +755,10 @@ system("$script_dir/backstop_comp.sh");
 #--------------------------------------------------------------------
 print "\nACIS TABLES USED IN THIS LOAD:\n$cfg_file\n$dat_file\n";
 
+# CD to /data/acis<-bak>/LoadReviews.
 chdir("$lr_dir");
-#do NOT use this directory for ACE if there is test directory
+
+# Do NOT use this directory for ACE if there is test directory
 unless($test_dir){
     open(OUT2, ">current_load.txt");
     print OUT2 "$ace_helper\n";
@@ -604,6 +783,7 @@ symlink( "${back_ofls_dir}", "${back_dir}/ofls");
 
 print "\nScript done.\n";
 
+# DONE with MAIN
 exit(0);
 
 #--------------------------------------------------------------------
@@ -685,81 +865,176 @@ sub find_names{
     return (0);
 }
 #--------------------------------------------------------------------
-#lr_break: subroutine to collect the correct information
+#     lr_break: subroutine to collect the correct information
 #--------------------------------------------------------------------
-sub lr_break(){
-    #copy history file from interrupted load to current dir if "A" version
-    if (${load_version} eq "a" ) {
-    `cp $hist ACIS-History_edit.txt`;
-    $edit_hist = <$localdir/ACIS-History_edit.txt>;
-    chomp ($edit_hist);
-} #otherwise, use the already hand-edited history file (except if replan and approved load are same)
+sub lr_break()
+{
+    # Inits
+    # 
+    # If you are in BREAK, then it's either a TOO or an SCS-107 Default to TOO
+    # Unless the user indicates this is an SCS-107 the type will default to TOO
+    $load_type = "TOO";
 
-elsif (${load_version} ne "a") {
-    print "\nWas this load already approved once, and the replan has the same name?\n\t (1=no, 2=yes)\n\tex: NOV1102 was already approved last week, but the replan is also\n\t called NOV1102.\n";
-    $ques = <STDIN>;
-    chomp($ques);
-    #Check for same interrupt time
-    if($ques == 1){
+    # Initialize these user inputs to a meaningless number
+    # User inpute are either 1 (NO) or 2 (YES)
+    $ans107 = 0;
+    $approved_once_answer = 0;
+    $interrupt_same_answer = 0;
+    $interrupt_time = "---";       # Default to no interrupt time string
+
+    # If an "A" load, copy history file from interrupted load to current dir
+    if (${load_version} eq "a" )
+      {
+       `cp $hist ACIS-History_edit.txt`;
+       $edit_hist = <$localdir/ACIS-History_edit.txt>;
+       chomp ($edit_hist);
+      }
+
+    elsif (${load_version} ne "a")
+      {
+        # Otherwise, use the already hand-edited history file
+        # (except if replan and approved load are same)
+        print "\nWas this load already approved once, and the replan has the same name?\n\t (1=no, 2=yes)\n\tex: NOV1102 was already approved last week, but the replan is also\n\t called NOV1102.\n";
+        $approved_once_answer = <STDIN>;
+        chomp($approved_once_answer);
+
+        # print the response to the question out for the log file
+        print "\nResponse: $approved_once_answer\n";
+
+    #  ANSWER = NO - Check for same interrupt time
+    if($approved_once_answer == 1)
+      {
 	print "\n If not the A load, is the interrupt time the same as the A load?\n\t(1=no, 2=yes)\n";
-	$inter = <STDIN>;
-	chomp($inter);
-    }
-    if ($ques eq 1 && $inter eq 2){
+	$interrupt_same_answer = <STDIN>;
+	chomp($interrupt_same_answer);
+
+        # print the response to the question: is interrupt time the same?
+        print "\nResponse: $interrupt_same_answer\n";
+
+       }# END IF ($approved_once_answer == 1)
+
+    # If the load isn't the same name as an already approved load AND
+    #    It has the SAMe interrupt time as the A load
+    if ($approved_once_answer eq 1 && $interrupt_same_answer eq 2)
+       {
 	$q="1";
-    }
-    else{
+       }
+    else
+       # Else either it WAS approved or INTERRUPT TIME DIFFERENT
+       {
 	$q="2";
-    }
+       }
 
-
-    if ($q eq "1"){
+    if ($q eq "1")
+      {
+        # Copy the A load ACIS-History_edit.txt to the present dir
 	`cp ${cur_load_dir}/oflsa/ACIS-History_edit.txt $localdir/.`;
+        # Change the protections on the ACIS-History file
 	$edit_hist = <$localdir/ACIS-History_edit.txt>;    
 	`chmod g+w $edit_hist`;
-        #copy over the perigee file from the A load
+        # Copy over the perigee file from the A load
 	`cp ${cur_load_dir}/oflsa/ACIS-Perigee_edit.txt $localdir/.`;
+        # .....and change the protections on that file.
 	$edit_perigee = <$localdir/ACIS-Perigee_edit.txt>;    
 	`chmod g+w $edit_perigee`;
-    }
-    elsif ($q eq "2"){
+      }
+    elsif ($q eq "2")
+      {
 	`cp $hist ACIS-History_edit.txt`;
 	$edit_hist = <$localdir/ACIS-History_edit.txt>;
 	chomp ($edit_hist);
 	`chmod g+w $edit_hist`;
-    }
-    else {die "please enter only 1 or 2\n";}
+      }
+   else 
+      {die "please enter only 1 or 2\n";}
 
-} #end else if not A version
+    } #end else if not A version  elsif (${load_version} ne "a") 
 
-#only display history editing instructions for "A" version of load 
-#(or if replan has same name as approved load)
-if (${load_version} eq "a" || $q eq "2" || $test_dir){
+# Only display history editing instructions for "A" version of load 
+# (or if replan has same name as approved load)
+# If this is the A load, OR
+#    either it's not the same name as an approved load or the iterrupt time is different, OR
+#    a test directory exists
+#RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+#if (${load_version} eq "a" || $q eq "2" || $test_dir)
+
+if (${load_version} eq "a" || $q eq "2")
+  {
     $display_flag = 1;
     print "\nIMPORTANT!Please answer these questions:\n";
-    $ans=0;
+    $ans107=0;
     print "\tHas the Spacecraft autonomously put HRC-S in the focal plane?\n\t(1=no 2=yes)\n";
-    $ans=<STDIN>;
-    chop($ans);
+    $ans107=<STDIN>;
+    chop($ans107);
+
+    # Print the response to the question:  autonomously put 
+    # HRC-S in the focal plane?
+    print "\nResponse: $ans107\n";
+
+    # Capture the interrupt time
     print "\tPlease enter the interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
-    $int = <STDIN>;
-    chop($int);
+    $interrupt_time = <STDIN>;
+    chop($interrupt_time);
+
+    # Print the interrupt time in format YYYY:DOY:HH:MM:SS.SS
+    print "\nResponse: $interrupt_time\n";
+    # With an extra carriage return at the end of the prints
+    # to make them stand out
+    print "\n";
+
+    unless($ans107 eq "2")
+      {
+        # Pass the interrupt time to edit_history.pl so that it's incorporated
+        # into the history file
+	$edit_call="$script_store_dir/edit_history.pl ${ofls_dir} ${prev_load_dir} $interrupt_time";
+      }
+    else
+      {
+        $edit_call="$script_store_dir/edit_history.pl ${ofls_dir} ${prev_load_dir} $interrupt_time -h ";
+      } 
     
-    unless($ans eq "2"){
-	$edit_call="$script_store_dir/edit_history.pl ${ofls_dir} ${prev_load_dir} $int";
-    }
-    else{
-        $edit_call="$script_store_dir/edit_history.pl ${ofls_dir} ${prev_load_dir} $int -h ";
-    } 
-    
+    # Execute the History File edit
     print STDERR "$edit_call\n";  # Debug
     system($edit_call);
     `chmod g+w $edit_hist`;
-}
-elsif (${load_version} ne "a" && $q eq "1"){
+
+    # If the User says this was the result of an SCS-107, set the load type
+    # 
+    if ($ans107 eq 2)
+      { # The load type is SCS-107
+        $load_type = "SCS-107";
+        # The interrupt time was specified by the user, in the code above.
+      } # END if ($ans107 eq 2)
+
+  } # END IF if (${load_version} eq "a" || $q eq "2" || $test_dir)
+
+elsif (${load_version} ne "a" && $q eq "1")
+  {
     print "\n\tThe edited history file and the edited perigee file were copied from the oflsa\n\tdirectory for this load to the current directory.\n\n";
-}
-}
+  }
+
+  # Under all circumstances, we need to extract the
+  # Interrupt time from the Edited history file
+  # Open the file
+  open(HIST_EDIT_FILE, "ACIS-History_edit.txt");
+  # Read the line
+  $line1 = <HIST_EDIT_FILE>;
+  # Extract the interrupt time; it is delimited by a space
+  $where=index($line1,' ');
+
+print "\nFirst line is: $line1 \n";
+
+  $interrupt_time = substr($line1, 0, $where);
+
+print "\nThe extracted time stamp is: *$interrupt_time*\n";
+  # Done with the file. Close it.
+  close(HIST_EDIT_FILE);
+
+
+# Return the load type and the interrupt time
+return($load_type, $interrupt_time);
+
+} # END SUB LR_BREAK
 
 sub logprint {
     my ($a_string) = @_;

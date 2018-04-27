@@ -593,8 +593,6 @@ if ($choice eq "stop")
 	    print "\n\nWARNING!!!!!!  You have entered a bogus value for one or more of the Quaternion values.\nThese values will be entered in the Non-Load Event Tracking file as is.\n\nHOWEVER, you MUST edit the file:\n\n/data/acis/LoadReviews/NonLoadTrackedEvents.txt\n\n... and insert the Correct Values BEFORE you attempt to run a thermal model.\n";
 	}
 
-  
-
 
         # Now record the Maneuver in the NLET file
         # You have to make another call to RecordNonLoadEvent.py in order to record
