@@ -70,6 +70,11 @@ use Plucknames;
 #         appears on screen as well as in the log file.
 #           Does not capture the Tee-off to the log file
 #      
+#
+# Update: April 25, 2018
+#         Gregg Germain
+#         Added Check_Power_Cmds.py to the stream of LR checks.
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -257,6 +262,7 @@ if( (! $test_dir) &&
 # Transfer file from Lucky after making the directories
 #------------------------------------------------------
 
+# CD to the newly-created ofls<x> directory.
 # CD to /data/acis/LoadReviews/<YEAR>/LOAD/ofls<a,b,c etc> -------  IN OFLS DIR
 chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 
@@ -780,6 +786,20 @@ if(-e "${back_dir}/ofls"){
 }
 symlink( "${back_ofls_dir}", "${back_dir}/ofls");
 
+# Go back to the OFLS<x> directory and run Check_Power_Cmds.py
+#     The reason I'm bouncing back and forth from $lr_dir to $ofls_dir
+#     and then back to $lr_dir is that I want the new program (Check_Power_Cmds) to
+#     be done when all the old LR functionality is complete.
+chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
+
+print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
+
+# Now execute Check_Power_Cmds.py
+system("/proj/sot/ska/bin/python /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
+
+# Done with Check_Power_Cmds.py so go back to $lr_dir
+# which is  /data/acis<-bak>/LoadReviews.
+chdir("$lr_dir");
 
 print "\nScript done.\n";
 
