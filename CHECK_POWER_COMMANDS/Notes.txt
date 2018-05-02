@@ -192,6 +192,8 @@ Response: 2
  tkdiff ERRORS_SEP1317/oflsa/ACIS-LoadReview.txt ERRORS_SEP1317/oflsa/ACIS-LoadReview.txt.ERRORS
  tkdiff SEP1317/oflsa/ACIS-LoadReview.txt ERRORS_SEP1317/oflsa/ACIS-LoadReview.txt.ERRORS
 
+   No errors expected.
+
  lr-v3.2 -T ERRORS_SEP1317 -break SEP1317B SEP0917 | & tee /home/gregg/Desktop/LR_ERRORS_SEP1317B.log
  cp SEP1317/ofls/SEP1317B_backstop.tar.gz ERRORS_SEP1317/oflsb/.; ls ERRORS_SEP1317/oflsb/
 
@@ -222,6 +224,7 @@ Response: 2
  tkdiff  MAR1117/oflsa/ACIS-LoadReview.txt   ERRORS_MAR1117/oflsa/ACIS-LoadReview.txt.ERRORS
 
 
+ 4 Errors found.
 
 
 
