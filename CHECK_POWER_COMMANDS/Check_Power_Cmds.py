@@ -60,7 +60,7 @@ pp = pprint.PrettyPrinter(indent=4)
 system_state = System_State_Class.System_State_Object()
 
 # Create an instance of the Backstop_File_class
-bfc = Backstop_File_Class.Backstop_File_Object()
+bfc = Backstop_File_Class.BackstopFileObject()
 
 # Capture the important commands from the Backstop file
 # First find the backstop file:

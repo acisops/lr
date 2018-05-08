@@ -194,7 +194,7 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
     
 
     # Return the state and the rules fired list
-    return ( rules_fired, violations_list)
+    return rules_fired, violations_list
 
 
 
@@ -258,4 +258,4 @@ def ORB_CMD_SW_rule_set(cmd_entry, present_state, violations_list):
  
 
     # Return the system_state and the rules fired list
-    return ( rules_fired)
+    return rules_fired

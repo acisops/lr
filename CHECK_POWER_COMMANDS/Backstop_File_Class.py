@@ -12,7 +12,7 @@ import numpy as np
 
 from Chandra.Time import DateTime
 
-class Backstop_File_Object:
+class BackstopFileObject:
     """
     Class defined to read a specified backstop file for processing,
     maintain the data of the previous ACISPKT command that was processed,
@@ -91,8 +91,9 @@ class Backstop_File_Object:
                                                    cmd) ],
                                                dtype = self.ACISPKT_dtype) ]
         
-            # Next check if the line is one of the perigee Passage indicators
-            if [True for pp_ind in pp_indicators if (pp_ind in eachline)]:
+            # Next check if the line is one of the Perigee Passage indicators
+            # NOTE: there will either be zero or one Perigee Passage Indicator in the line
+            if any(pp_ind in eachline for pp_ind in pp_indicators):
                 # You have stumbled upon a perigee passage indicator
                 # Save it in the output file
                 outfile.write(eachline)
