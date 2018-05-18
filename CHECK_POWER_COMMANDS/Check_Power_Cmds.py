@@ -98,7 +98,7 @@ while present_cmd['cmd_type'] != 'ACISPKT':
     # Fire off the ORB/CMD rules REMEMBER - rules can have an impact on State.
     rules_fired = rules.ORB_CMD_SW_rule_set(present_cmd, system_state.state, violations_list)
     # If any rules fired append them to the rules_fired list
-    if rules_fired:
+    if len(rules_fired) > 0:
         all_rules_fired.append(list(rules_fired))
 
     # Keep  running these rules until the system state doesn't change
@@ -108,7 +108,7 @@ while present_cmd['cmd_type'] != 'ACISPKT':
         # Fire off the ORB/CMD rules
         rules_fired = rules.ORB_CMD_SW_rule_set(present_cmd, system_state.state, violations_list)
         # If any rules fired append them to the rules_filred list
-        if rules_fired:
+        if len(rules_fired) > 0:
             all_rules_fired.append(list(rules_fired))
 
     # You will be looking at the next row
@@ -153,7 +153,7 @@ for eachpacket in system_packets[array_row_number+1:]:
                                                                bfc,
                                                                violations_list)
         # Append all the rules that may have fired
-        if new_rules_fired:
+        if len(new_rules_fired) > 0:
             all_rules_fired.append(list(new_rules_fired))
 
         # Keep on running the ACISPKT rules until the state does not change
@@ -167,7 +167,7 @@ for eachpacket in system_packets[array_row_number+1:]:
                                                                    bfc,
                                                                    violations_list)
             # Append all the rules that may have fired
-            if new_rules_fired:
+            if len(new_rules_fired) > 0:
                 all_rules_fired.append(list(new_rules_fired))
 
         # Store the command you are assessing as the previous command
@@ -177,7 +177,7 @@ for eachpacket in system_packets[array_row_number+1:]:
         # Else it's not an acis packet so run the CMD/ORB rule set
         rules_fired = rules.ORB_CMD_SW_rule_set(eachpacket, system_state.state, violations_list)
         # If any rules fired, append them to the list
-        if rules_fired:
+        if len(rules_fired) > 0:
             all_rules_fired.append(list(rules_fired))
 
         # Keep running until the system state doesn't change
@@ -187,7 +187,7 @@ for eachpacket in system_packets[array_row_number+1:]:
             # Fire off the ORB/CMD rules
             rules_fired = rules.ORB_CMD_SW_rule_set(present_cmd, system_state.state, violations_list)
             # If any rules fired append them to the rules_filred list
-            if rules_fired:
+            if len(rules_fired) > 0:
                 all_rules_fired.append(list(rules_fired))
 
 
