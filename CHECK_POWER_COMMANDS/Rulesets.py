@@ -1,10 +1,10 @@
 ################################################################################
 #
-#    
+#  Rulesets.py - sets of rules used to check power commands in weekly loads.
 #
 ################################################################################
 import pprint
-
+from Chandra.Time import DateTime
 
 #-------------------------------------------------------------------------------
 #
@@ -18,7 +18,7 @@ import pprint
 #            List of rules fired
 #
 #-------------------------------------------------------------------------------
-def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
+def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
     """
     You come here if the command you are presently processing is an ACISPKT command.
 
@@ -30,7 +30,9 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
     System_State_Class.previous_ACISPKT. That way you'll be able to calculate the time
     differential between two, consecutive ACISPKT commands.
 
-    
+    However the first ACISPKT command you see cannot have a "previous" 
+    ACISPKT command. So Check_Power_Cmds creates a bogus ACISPKT command and sets
+    "previous" to that one.
     """
     pp = pprint.PrettyPrinter(indent=4)
 
@@ -47,6 +49,29 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
                   'vio_time': 0,
                   'vio_rule': ''}
 
+    # Init an empty violations list
+    violations_list = []
+
+    # RULE 0 - STOP SCIENCE -And science run status is unknown
+    if (cmd_entry['packet_or_cmd'] == stop_science_packet) and \
+       (system_state.state['science_run_exec'] == 'unk'):
+        # THEN - MAYBE this is one of the two stop sciences at the start of a RTS load
+        # Disable the science run
+        system_state.state['science_run_exec'] = 'unk'
+        system_state.state['science_run_stop_time'] = cmd_entry['event_time']
+        system_state.state['science_run_stop_date'] = cmd_entry['event_date']
+        # Clear the indicators for the WSPOW00000
+        system_state.state['post_sci_run_power_down'] = False
+        system_state.state['post_sci_run_power_down_date'] = 'unk'
+        system_state.state['post_sci_run_power_down_time'] = 0
+        # Clear the indicators for the WSPOW0002A you ought to run if you are
+        # down for more than an hour.
+        system_state.state['three_FEPs_up'] = False
+        system_state.state['three_FEPs_up_date'] = 'unk'
+        system_state.state['three_FEPs_up_time'] = 0
+        # Record that this Rule fired.
+        rules_fired.append('ACISPKT Rule 0 - First Stop_science at load start '+system_state.state['science_run_start_date'])
+
     # RULE 1 - START SCIENCE - Mark the start of a science run
     if (cmd_entry['packet_or_cmd'] in start_science_packets) and \
        (system_state.state['science_run_exec'] != 'Started'):
@@ -59,9 +84,9 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         system_state.state['post_sci_run_power_down'] = False
         system_state.state['post_sci_run_power_down_date'] = 'unk'
         system_state.state['post_sci_run_power_down_time'] = 0
-        rules_fired.append('ACISPKT Rule 1 - Start_science')
+        rules_fired.append('ACISPKT Rule 1 - Start_science '+system_state.state['science_run_start_date'])
 
-    # RULE 2 - STOP SCIENCE - Mark the end of the science run
+    # RULE 2 - STOP SCIENCE - And you KNOW a science run was begun - Mark the end of the science run
     if (cmd_entry['packet_or_cmd'] == stop_science_packet) and \
        (system_state.state['science_run_exec'] == 'Started'):
         # THEN - this is the first stop science after the start science
@@ -79,7 +104,7 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         system_state.state['three_FEPs_up_date'] = 'unk'
         system_state.state['three_FEPs_up_time'] = 0
         # Record that this Rule fired.
-        rules_fired.append('ACISPKT Rule 2 - First Stop_science')
+        rules_fired.append('ACISPKT Rule 2 - First Stop_science: '+system_state.state['science_run_stop_date'])
 
     # Ok now it's time to start checking things out. 
 
@@ -92,11 +117,10 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         # Append the vioolation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
-        violation['vio_rule'] = 'ACISPKT Rule #1 - ERROR Less than 4 second delay between consecutive ACISPKT commands'
-        violations_list.append(violation )
+        violation['vio_rule'] = 'ACISPKT Rule #3 - ERROR Less than 4 second delay between consecutive ACISPKT commands'
+        violations_list.append(violation)
         # Record which rule fired
-        rules_fired.append(ACISPKT_state['date_cmd']+' ACISPKT Rule #1 - The 4 second rule: '+str(cmd_entry['event_time'] - ACISPKT_state['time_cmd']))
-
+        rules_fired.append('ACISPKT Rule 3 - 4 second delay '+ACISPKT_state['date_cmd']+' ACISPKT Rule #1 - The 4 second rule: '+str(cmd_entry['event_time'] - ACISPKT_state['time_cmd']))
 
 
     # Rule 4 - FAILED 3 minute Rule First WSPOW00000 (or 02A)after the stop science
@@ -114,10 +138,12 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
         violation['vio_rule'] = 'ACISPKT Rule #4 - ERROR LESS THAN 3 min delay between first AA00 and WSPOW'
-        violations_list.append(violation )
+
+        violations_list.append(violation) 
+
         # Record which rule fired
         rules_fired.append('ACISPKT Rule #4 - ERROR LESS THAN 3 min delay between first AA00 and WSPOW')
-        
+     
     # Rule 5 - SUCCEED 3 minute Rule First WSPOW00000 (or 02A)after the stop science
     if (system_state.state['science_run_exec'] == 'Stopped') and \
        (system_state.state['post_sci_run_power_down'] == False) and \
@@ -128,8 +154,9 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         system_state.state['post_sci_run_power_down_date'] = cmd_entry['event_date']
         system_state.state['post_sci_run_power_down_time'] = cmd_entry['event_time']
         # Record which rule fired
-        rules_fired.append('ACISPKT Rule 5 - Verified 3 min delay between AA00 and WSPOW')
-        
+        rules_fired.append('ACISPKT Rule 5 - Verified 3 min delay between AA00 and WSPOW. PKT or CMD: '+cmd_entry['packet_or_cmd']+' power_down_date is: '+cmd_entry['event_date']+ ' Delta T is: '+ str(cmd_entry['event_time'] - system_state.state['science_run_stop_time'])+ ' seconds. 180 seconds required')
+ 
+
     # RULE 6 - Check if there was at least 24 seconds between WSPOW00000 and any other ACIS command
     # 
     if (bfc.previous_ACISPKT_cmd['packet_or_cmd'] == 'WSPOW00000') and \
@@ -137,10 +164,10 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         # THEN Record the violation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
-        violation['vio_rule'] = 'ACISPKT Rule #2 - ERROR  Less than 24 seconds between WSPOW0 and next ACISPKT'
-        violations_list.append(violation )
+        violation['vio_rule'] = 'ACISPKT Rule #6 - ERROR  Less than 24 seconds between WSPOW0 and next ACISPKT'
+        violations_list.append(violation)
         # Record which rule fired
-        rules_fired.append('ACISPKT Rule #2 - ERROR Less than 24 seconds between WSPOW0 and next ACISPKT')
+        rules_fired.append('ACISPKT Rule #6 - ERROR Less than 24 seconds between WSPOW0 and next ACISPKT')
 
 
 
@@ -151,10 +178,11 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         # THEN Record the violation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
-        violation['vio_rule'] = 'ACISPKT Rule #5 -  ERROR 18 sec required between WSVIDALLDN and the next ACIS Command.'
-        violations_list.append(violation )
+        violation['vio_rule'] = 'ACISPKT Rule #7 -  ERROR 18 sec required between WSVIDALLDN and the next ACIS Command.'
+        # Append this violation to the list of all violations this pass
+        violations_list.append(violation)
         # Record which rule fired
-        rules_fired.append('ACISPKT Rule #5 - ERROR required between WSVIDALLDN and the next ACIS Command.')
+        rules_fired.append('ACISPKT Rule #7 - ERROR required between WSVIDALLDN and the next ACIS Command.')
 
 
     # RULE 8 - If there was at least 63 seconds between WSPOW-type POWER UP commands
@@ -166,10 +194,11 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         # THEN Record the violation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
-        violation['vio_rule'] = 'ACISPKT Rule #3 - ERROR Less than 63 seconds between WSPOW power-up and next ACIS command'
-        violations_list.append(violation )
+        violation['vio_rule'] = 'ACISPKT Rule #8 - ERROR Less than 63 seconds between WSPOW power-up and next ACIS command'
+        violations_list.append(violation)
+
         # Record which rule fired
-        rules_fired.append('ACISPKT Rule #3 - ERROR Less than 63 seconds between WSPOW power-up and next ACIS command')
+        rules_fired.append('ACISPKT Rule #8 - ERROR Less than 63 seconds between WSPOW power-up and next ACIS command')
 
 
     # RULE 9 - Check to see if a WSPOW0002A was issued one hour after the WSPOW00000 that was
@@ -186,15 +215,33 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
         # THEN Record the violation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
-        violation['vio_rule'] = 'ACISPKT Rule #6 - ERROR ALL FEPS off and it is  1 hour past WSPOW00000 time'
-        violations_list.append(violation )
-        # Record which rule fired
-        rules_fired.append('ACISPKT Rule #6 - ERROR 3 FEPS off and it is  1 hour past WSPOW00000 time')
+        violation['vio_rule'] = 'ACISPKT Rule #9 - ERROR: ALL FEPS still off and it is 1 hour past WSPOW00000 time.'
 
-    
+        violations_list.append(violation)
+
+        # Record which rule fired
+        rules_fired.append('ACISPKT Rule #9 - ERROR 3 FEPS off and it is  1 hour past WSPOW00000 time\n Post sci run power down date: '+ DateTime(system_state.state['post_sci_run_power_down_time']).date)
+
+    # RULE 10 - Check to see if this is an WSPOW0002A command
+    # IF   If You've stopped the science run, and
+    #         You've shut all FEPS off, and 
+    #        This command is a WSPOW0002A
+
+    if (system_state.state['science_run_exec'] == 'Stopped') and \
+       (system_state.state['post_sci_run_power_down'] == True) and \
+       (cmd_entry['packet_or_cmd'] == 'WSPOW0002A'):
+       # Then you have a WSPOW0002A and you should record the event
+        # Record the fact that you actually did power down.
+        system_state.state['three_FEPs_up'] = True
+        system_state.state['three_FEPs_up_date'] = cmd_entry['event_date']
+        system_state.state['three_FEPs_up_time'] = cmd_entry['event_time']
+
+        # Record which rule fired
+        rules_fired.append('ACISPKT Rule #10 -WSPOW0002A executed at: '+ cmd_entry['event_date'])
+
 
     # Return the state and the rules fired list
-    return rules_fired, violations_list
+    return ( system_state, rules_fired, violations_list)
 
 
 
@@ -210,7 +257,7 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc, violations_list):
 #            List of rules fired
 #
 #-------------------------------------------------------------------------------
-def ORB_CMD_SW_rule_set(cmd_entry, present_state, violations_list):
+def ORB_CMD_SW_rule_set(cmd_entry, last_state, present_state, bfc):
     """
     There are several commands of interest in the backstop file which are not
     ACISPKT commands. ORBPOINT commands are one set - they tell you if you
@@ -220,8 +267,12 @@ def ORB_CMD_SW_rule_set(cmd_entry, present_state, violations_list):
     OORMPEN - which also indicate whether or not you are within the RAD Zone.
 
     These rules are used to process these commands and set the relevant 
-    system state parameters. No comparison is done with the previous
-    command.
+    system state parameters.
+
+    No comparison is done with the previous command. 
+
+    No violation searches.
+
     """
     # Create some handy lists
     inbound = [ 'OORMPDS', 'EEF1000']
@@ -230,32 +281,39 @@ def ORB_CMD_SW_rule_set(cmd_entry, present_state, violations_list):
     # Set the Rules fired list to EMPTY
     rules_fired = []
 
+    # Init an empty violations list
+    violations_list = []
+
     # Might as well record the times no matter what the command type is
-    present_state['date_cmd'] = cmd_entry['event_date']
-    present_state['time_cmd'] = cmd_entry['event_time']
+    present_state.state['date_cmd'] = cmd_entry['event_date']
+    present_state.state['time_cmd'] = cmd_entry['event_time']
 
     # Rule 1 - Check to see if this entry tells you that
     # you are in the inbound portion of the perigee passage
     if cmd_entry['packet_or_cmd'] in inbound:
         # You are in the inbound portion of the perigee passage - 
         # the part prior to Perigee.  Record that system_state
-        present_state['perigee_passage'] = 'inbound'
-        rules_fired.append('ORB/CMD Rule 1 - INBOUND OORMPDS EEF1000')
+        present_state.state['perigee_passage'] = 'inbound'
+        rules_fired.append('ORB/CMD Rule 1 - INBOUND OORMPDS or EEF1000'+ cmd_entry['event_date'])
 
+    # Rule 2 - Check to see if this entry tells you that
+    # you are in the inbound portion of the perigee passage
     if cmd_entry['packet_or_cmd'] in outbound:
         # You are in the outbound portion of the perigee passage - 
         # the part after Perigee.  Record that system_state
-        present_state['science_run_exec'] = False
-        present_state['perigee_passage'] = 'outbound'
+        present_state.state['science_run_exec'] = False
+        present_state.state['perigee_passage'] = 'outbound'
         rules_fired.append('ORB/CMD Rule 2 - OUTBOUND ')
   
+    # Rule 3 - If this command is a RADMON ENABLE then
+    # you are EXITING the perigee passage
     if cmd_entry['packet_or_cmd'] == 'OORMPEN':
         # You are done with the perigee passage - 
         # Record that system_state
-        present_state['science_run_exec'] = False
-        present_state['perigee_passage'] = False
+        present_state.state['science_run_exec'] = False
+        present_state.state['perigee_passage'] = False
         rules_fired.append('ORB/CMD_SW Rule 3 - Exiting Perigee Passage')
  
 
     # Return the system_state and the rules fired list
-    return rules_fired
+    return (  present_state, rules_fired, violations_list)
