@@ -91,6 +91,7 @@ my $load_type = "Normal";
 my $interrupt_time = "";
 
 #Check for options: will remove options from argv
+$nlet_file = "/data/acis/LoadReviews/NonLoadTrackedEvents.txt";
 $server="ocatsqlsrv";
 $hostname="acis.cfa.harvard.edu";   #for PSMC
 $skiplucky = 0;
@@ -101,9 +102,13 @@ GetOptions('break' => \$break, #run lr_break options,
 	   'n=s' => \$hostname, #to be passed to run_PSMC.pl
 	   'nolucky' => \$skiplucky, # acquire backstop manually
 	   'clean' => \$easy_clean,
-	   't=s' => \$test_dir); #test directory name
+	   't=s' => \$test_dir,      # Test dirctory
+           'nlet_file=s' => \$nlet_file); #NLET file name
 $argc = @ARGV;
-$argc >= 2  or die "ERROR! AT LEAST TWO INPUTS REQUIRED!\nUSAGE: lr {present load} {preceeding week} [-s alternate database server] [-n alternate PSMC code node] [-t test directory name] [-b or --break use for a replan or interrupt]\n";
+$argc >= 2  or die "ERROR! AT LEAST TWO INPUTS REQUIRED!\nUSAGE: lr {present load} {preceeding week} [-s alternate database server] [-n alternate PSMC code node] [-t test directory name] [-nlet_file alternative NLET file LR should use] [-b or --break use for a replan or interrupt]\n";
+
+# Record the NLET file being used in the log
+print "\n LR I HAVE NLET FILE: : $nlet_file\n";
 
 #----------------------------------------
 # Prepare for i/o control from python subprocess
@@ -689,11 +694,18 @@ if ($appx) {
 	$break_str = ""
     }
  
-    if($test_dir){
-	system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str");
-    }else{
-	system ("$script_dir/run_models.pl $cur_load -h $hostname $break_str");
-    }
+    # If the -T switch was used, pass the test directory path to run_models
+    # using the -p switch.  Otherwise, run_models will formulate a path to
+    # the "for score" ofls directory.
+    if($test_dir)
+        {
+	  system("$script_dir/run_models_acis.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
+        }
+    else
+        {
+	  system("$script_dir/run_models_acis.pl $cur_load -h $hostname $break_str -nlet_file $nlet_file");
+        }
+
     #update the webpage
     if( ! $test_dir){
 	system("$script_dir/mk_thermal_html.pl $cur_load");
