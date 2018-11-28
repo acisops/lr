@@ -12,7 +12,75 @@ import System_State_Class
 import Backstop_File_Class
 
 # Bring in rule set which handles ACISPKT commands
-import Rulesets as rules
+#import Rulesets as rules
+import Rulesets
+
+
+#-------------------------------------------------------------------------------
+#  Function: run_one_command - Run one command though the specified  rule set
+#                              until the system state does not change
+#
+#       Inputs:         cmd - the backstop command to be processed
+#              system_state - the present state of the system (class)
+#                   ruleset - the rule set functionto be used
+#
+#      Outputs: Final State
+#               violations list
+
+#-------------------------------------------------------------------------------
+def run_one_command(cmd, system_state, bfc, rule_set):
+
+    pp = pprint.PrettyPrinter(indent=4)
+
+
+    # Init the empty list of rules fired in this call
+    all_rules_fired = []
+
+    # Init an empty violations list
+    violations_list = []
+
+    # Record the date of this command in system_state.state
+    system_state.state['date_cmd'] = cmd['event_date']
+    system_state.state['time_cmd'] = cmd['event_time']
+
+    # Save the present system state in last state.
+    last_state = dict(system_state.state)
+
+    # Now run the rule set once and then check to see if the state changed.
+    # REMEMBER - rules can have an impact on State.
+    system_state, new_rules_fired, vio_list = rule_set(cmd,
+                                                       last_state,
+                                                       system_state,
+                                                       bfc)
+    # Append all the rules that may have fired
+    if new_rules_fired:
+         all_rules_fired += new_rules_fired
+       
+    # Append any violations that were dete4cted to the master list
+    if vio_list:
+        violations_list.append(vio_list)
+
+    # Keep on running the ACISPKT rules until the state does not change
+    while last_state != system_state.state:
+        # Set the last state to the present state
+        last_state = dict(system_state.state)
+        # Run the ACISPKT ruleset again
+        system_state, new_rules_fired, vio_list = rule_set(eachpacket,
+                                                           last_state,
+                                                           system_state,
+                                                           bfc)
+    # Append all the rules that may have fired
+    if new_rules_fired:
+         all_rules_fired += new_rules_fired
+       
+    # Append any violations that were dete4cted to the master list
+    if vio_list:
+        violations_list.append(vio_list)
+              
+    # Return the important values
+    return (system_state, all_rules_fired, violations_list)
+    
+
 
 # =======================  MAIN ==========================================
 #      Processing the command array
@@ -53,6 +121,10 @@ Check Power Commands - Check the sequence of power commands and report any
     If a violation of these rules is detected, the number of the rule 
     in the above list is included in  the violation message.
 
+    Last state is used to determine if it's fruitless to keep running a
+    rule set. Set it equal to the presetn state and then run some rules. 
+    Then you check to see if the state changed. If it did, keep running the rules.
+    If it did not, then stop.
 """
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -60,64 +132,59 @@ pp = pprint.PrettyPrinter(indent=4)
 system_state = System_State_Class.System_State_Object()
 
 # Create an instance of the Backstop_File_class
-bfc = Backstop_File_Class.BackstopFileObject()
+bfc = Backstop_File_Class.Backstop_File_Object()
 
 # Capture the important commands from the Backstop file
 # First find the backstop file:
 backstop_file = glob.glob('CR*.backstop')[0]
 
 # The packets that we care about are stripped out here
-system_packets = bfc.strip_out_ACISPKTs(backstop_file)
+system_packets = bfc.strip_out_pertinent_packets(backstop_file)
 
-# Now that you have the array of ACIS Packets, and Perigee Passage indicators
-# start working your way through the array. Note the time difference 
-# between any adjacent ACISPKT type entries. Update the State when you 
-# have sufficient information to do so.
-#
+
 # Create an empty list for rules firing history
 all_rules_fired = []
 
 # List of all violations found.  If populated, this is a list of dictionaries
+all_violations = []
 violations_list = []
 
-# Grab the first item in the array
-present_cmd = system_packets[0]
 # Which is, of course, at row zero
 array_row_number = 0
 
-# Now what you do is process each entry until you hit your
+# Grab the first item in the array
+present_cmd = system_packets[array_row_number]
+
+# Now  process each entry until you hit your
 # first ACISPKT.  Then you process that first one.  This will set up
-# the system state for processing the next ACISPKT you see
+# the system state for processing the next ACISPKT that you encounter
 while present_cmd['cmd_type'] != 'ACISPKT':
-    # Record the date of this command in system_state.state
-    system_state.state['date_cmd'] = present_cmd['event_date']
-    system_state.state['time_cmd'] = present_cmd['event_time']
 
-    # Save the present system state in another variable
-    last_state = dict(system_state.state)
-    # Fire off the ORB/CMD rules REMEMBER - rules can have an impact on State.
-    rules_fired = rules.ORB_CMD_SW_rule_set(present_cmd, system_state.state, violations_list)
-    # If any rules fired append them to the rules_fired list
-    if len(rules_fired) > 0:
-        all_rules_fired.append(list(rules_fired))
+    # Run the ORB rule son the present state
+    system_state, new_rules_fired, violations_list = run_one_command(present_cmd,
+                                                                     system_state,
+                                                                     bfc,
+                                                                     Rulesets.ORB_CMD_SW_rule_set)
+  
+    # Append all the rules that may have fired to the master rule list
+    if new_rules_fired:
+        all_rules_fired.append(list(new_rules_fired))
+ 
+    # Append any violations you found to the master violations list
+    if violations_list:
+        all_violations.append(violations_list[0])
 
-    # Keep  running these rules until the system state doesn't change
-    while last_state != system_state.state:
-        # Save the present system state in another variable
-        last_state = dict(system_state.state)
-        # Fire off the ORB/CMD rules
-        rules_fired = rules.ORB_CMD_SW_rule_set(present_cmd, system_state.state, violations_list)
-        # If any rules fired append them to the rules_filred list
-        if len(rules_fired) > 0:
-            all_rules_fired.append(list(rules_fired))
-
+    # You want to increment the system_packets index so that you can look
+    # at the next command.
     # You will be looking at the next row
     array_row_number += 1
+
+    # Now look at the next command in the backstop file.
     present_cmd = system_packets[array_row_number]
 
-# So you've captured the information from the first ACISPKT so now
-# you have something against which to compare the times of the next
-# ACISPKT that you see.  
+
+# Ok so this next command you are looking at is an ACISPKT command.
+# The first one you've ever seen. and you have not processed it yet.
 #
 # Save it so that any number of commands that are NOT ACISPKT commands
 # that lie between this command and the next ACISPKT command do not
@@ -126,71 +193,48 @@ while present_cmd['cmd_type'] != 'ACISPKT':
 # ACISPKT command
 # OORMPEN
 # ACISPKT command
-bfc.write_previous_ACISPKT_cmd(present_cmd)
-# Record the date of this command in system_state.state
-system_state.state['date_cmd'] = present_cmd['event_date']
-system_state.state['time_cmd'] = present_cmd['event_time']
 
-# And since this is going to be "previous" then set last_state 
-last_state = dict(system_state.state)
+# Create a bogus first ACISPKT command so that the REAL first
+# ACISPKT command rules can modify the state but not test any
+# back to back ACISPKT command rules.
+bfc.write_bogus_previous_ACISPKT_cmd(present_cmd)
 
-#
-# Continue processing set the present packet to the NEXT one
+
+# Start processing all the rest of the commands
+# The first one will be an ACISPKT command because the loop
+# above set that up.
 # for eachpacket in system_packets[array_row_number+1:125]:
-for eachpacket in system_packets[array_row_number+1:]:
-    rules_fired = []
-    # Record the date of this command in system_state.state
-    system_state.state['date_cmd'] = eachpacket['event_date']
-    system_state.state['time_cmd'] = eachpacket['event_time']
+for eachpacket in system_packets[array_row_number:]:
+    new_rules_fired = []
 
+    # If this command is an ACISPKT command, run those rules
     if eachpacket['cmd_type'] == 'ACISPKT':
-        # Save the present system state in another variable
-        last_state = dict(system_state.state)
-        # Run the ACISPKT ruleset once
-        new_rules_fired, violations_list = rules.ACISPKT_rules(eachpacket,
-                                                               last_state,
-                                                               system_state,
-                                                               bfc,
-                                                               violations_list)
-        # Append all the rules that may have fired
-        if len(new_rules_fired) > 0:
-            all_rules_fired.append(list(new_rules_fired))
-
-        # Keep on running the ACISPKT rules until the state does not change
-        while last_state != system_state.state:
-            # Set the last state to the present state
-            last_state = dict(system_state.state)
-            # Run the ACISPKT ruleset again
-            new_rules_fired, violations_list = rules.ACISPKT_rules(eachpacket,
-                                                                   last_state,
-                                                                   system_state,
-                                                                   bfc,
-                                                                   violations_list)
-            # Append all the rules that may have fired
-            if len(new_rules_fired) > 0:
-                all_rules_fired.append(list(new_rules_fired))
-
+  
+        system_state, new_rules_fired, violations_list = run_one_command(eachpacket,
+                                                                         system_state,
+                                                                         bfc,
+                                                                         Rulesets.ACISPKT_rules)
+    
+    
         # Store the command you are assessing as the previous command
         bfc.write_previous_ACISPKT_cmd(eachpacket)
-                
-    else:
-        # Else it's not an acis packet so run the CMD/ORB rule set
-        rules_fired = rules.ORB_CMD_SW_rule_set(eachpacket, system_state.state, violations_list)
-        # If any rules fired, append them to the list
-        if len(rules_fired) > 0:
-            all_rules_fired.append(list(rules_fired))
+                    
+    else: 
+        # Else it's not an ACISPKT so run the CMD/ORB rule set
+        system_state, new_rules_fired, violations_list = run_one_command(eachpacket,
+                                                                         system_state,
+                                                                         bfc,
+                                                                         Rulesets.ORB_CMD_SW_rule_set)
+  
 
-        # Keep running until the system state doesn't change
-        while last_state != system_state.state:
-            # Save the present system state in another variable
-            last_state = dict(system_state.state)
-            # Fire off the ORB/CMD rules
-            rules_fired = rules.ORB_CMD_SW_rule_set(present_cmd, system_state.state, violations_list)
-            # If any rules fired append them to the rules_filred list
-            if len(rules_fired) > 0:
-                all_rules_fired.append(list(rules_fired))
 
+    # Append all the rules that may have fired
+    if new_rules_fired:
+        all_rules_fired.append(list(new_rules_fired))
+ 
+    # Append any violations you found to the master violations list
+    if violations_list:
+        all_violations += violations_list[0]
 
 # Write out the error
-bfc.insert_errors('ACIS-LoadReview.txt', violations_list)
-
+bfc.insert_errors('ACIS-LoadReview.txt', all_violations)

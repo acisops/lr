@@ -12,7 +12,7 @@ import numpy as np
 
 from Chandra.Time import DateTime
 
-class BackstopFileObject:
+class Backstop_File_Object:
     """
     Class defined to read a specified backstop file for processing,
     maintain the data of the previous ACISPKT command that was processed,
@@ -47,9 +47,10 @@ class BackstopFileObject:
     #---------------------------------------------------------------------------
     #  Method:  strip_out_ACISPKTS - Read the input backstop file and strip
     #                                out packets useful to the power command
-    #                                checker.
+    #                                checker. These would be ACISPKTS and some
+    #                                ORBPOINTS
     #---------------------------------------------------------------------------
-    def strip_out_ACISPKTs(self, backstop_file):
+    def strip_out_pertinent_packets(self, backstop_file):
         """
         Opens the specified backstop file, reads in 
         every line, strips out all ACISPKT lines plus
@@ -91,9 +92,8 @@ class BackstopFileObject:
                                                    cmd) ],
                                                dtype = self.ACISPKT_dtype) ]
         
-            # Next check if the line is one of the Perigee Passage indicators
-            # NOTE: there will either be zero or one Perigee Passage Indicator in the line
-            if any(pp_ind in eachline for pp_ind in pp_indicators):
+            # Next check if the line is one of the perigee Passage indicators
+            if [True for pp_ind in pp_indicators if (pp_ind in eachline)]:
                 # You have stumbled upon a perigee passage indicator
                 # Save it in the output file
                 outfile.write(eachline)
@@ -138,6 +138,30 @@ class BackstopFileObject:
         in self.previous_ACISPKT_cmd
         """
         self.previous_ACISPKT_cmd = system_packet_line
+    
+    #---------------------------------------------------------------------------
+    #
+    # Method: write_bogus previous_ACISPKT_cmd - Given one line out of 
+    #                                            system_packets, record the values
+    #                                            in self.previous_ACISPKT_cmd
+    #
+    #---------------------------------------------------------------------------
+    def write_bogus_previous_ACISPKT_cmd(self, system_packet_line):
+        """
+        You want to create a bogus previous ACISPKT for the time when 
+        you are processing the first acis packet that you saw in the backstop file.
+        This will allow the system state to be updated with the info from the first
+        packet without any violation rules firing.
+        """
+        # First init the prev packet command with the date and time of the first packet info.....
+        self.previous_ACISPKT_cmd['event_date'] = system_packet_line['event_date']
+        self.previous_ACISPKT_cmd['event_time'] = system_packet_line['event_time']
+
+        # ...BUT you want to set both the cmd_type and the packet_or_cmd to None
+        self.previous_ACISPKT_cmd['cmd_type'] = None
+        self.previous_ACISPKT_cmd['packet_or_cmd'] = None
+
+
 
     #---------------------------------------------------------------------------
     #
@@ -219,7 +243,7 @@ class BackstopFileObject:
             # At long last you now know where to insert the violation text
             # It's AFTER insert_loc
             ALR_lines.insert(insert_loc, '\n')
-            ALR_lines.insert(insert_loc, 'ACISPKT POWER COMMAND ERROR:\n')
+            ALR_lines.insert(insert_loc, 'ACISPKT AND/OR POWER COMMAND ERROR:\n')
             ALR_lines.insert(insert_loc+1, each_violation['vio_date']+' '+each_violation['vio_rule']+'\n')
 #            ALR_lines.insert(insert_loc+2, '\n')
 
