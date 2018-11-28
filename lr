@@ -76,7 +76,7 @@ use Plucknames;
 #         Added Check_Power_Cmds.py to the stream of LR checks.
 #
 # Repo Update: November 28, 2018
-#              Merged with Master to align the repo with production
+#              Merged v3.2 with Master to align the repo with production
 #
 # Repo Update: November 28, 2018
 #              V3.3
