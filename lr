@@ -75,11 +75,15 @@ use Plucknames;
 #         Gregg Germain
 #         Added Check_Power_Cmds.py to the stream of LR checks.
 #
-# Update: November 20, 2018
-#         V3.3
-#         Gregg Germain
-#         - Set up autoflush so that the LR stdoutput to the
-#           screen looks right
+# Repo Update: November 28, 2018
+#              Merged with Master to align the repo with production
+#
+# Repo Update: November 28, 2018
+#              V3.3
+#              Merged with Master to align the repo with production
+#              - Set up sdtout buffer autoflush and eliminated 
+#                process fork so that the LR stdoutput to the
+#                screen looks right
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
