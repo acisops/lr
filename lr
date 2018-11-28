@@ -80,7 +80,6 @@ use Plucknames;
 #
 # Repo Update: November 28, 2018
 #              V3.3
-#              Merged with Master to align the repo with production
 #              - Set up sdtout buffer autoflush and eliminated 
 #                process fork so that the LR stdoutput to the
 #                screen looks right
