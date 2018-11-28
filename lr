@@ -75,6 +75,9 @@ use Plucknames;
 #         Gregg Germain
 #         Added Check_Power_Cmds.py to the stream of LR checks.
 #
+# Repo Update: November 28, 2018
+#              Merged with Master to align the repo with production
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
