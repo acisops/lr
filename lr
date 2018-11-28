@@ -75,14 +75,20 @@ use Plucknames;
 #         Gregg Germain
 #         Added Check_Power_Cmds.py to the stream of LR checks.
 #
-# Repo Update: November 28, 2018
-#              Merged with Master to align the repo with production
+# Update: November 20, 2018
+#         V3.3
+#         Gregg Germain
+#         - Set up autoflush so that the LR stdoutput to the
+#           screen looks right
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
 ###########################################################  
 #
+# Set up autoflush
+$| = 1;
+
 # Capture the command line an dprint it out so that there's
 # a record of what the user typed in:
 my $commandline = $0 . " " . (join " ", @ARGV);
@@ -296,21 +302,13 @@ else
     print "\n\nSFTP to lucky: Please enter username to connect: ";
     $user=<STDIN>;
     chop($user);
-    my $pid = fork();
-    if (not defined $pid)
-      {
-	print "ERROR>>>resources not avilable. Cannot connect to Lucky.\n";
-      } 
-    elsif ($pid == 0)
-      {
-	exec("${sftp} ${user}\@lucky.harvard.edu");
-	exit(0);
-      }
-    else
-      {
-	waitpid($pid,0);
-      }
- } # END ELSE if ($skiplucky)
+
+    print "\n Ok Off to transfer the backstop file as soon as I get your password - be back in a second.....\n";
+    system("${sftp} ${user}\@lucky.harvard.edu:/home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz");
+    print "\nOk Transfer of the backstop file is complete....\n";
+
+
+} # END ELSE if ($skiplucky)
 
 #------------------------------------------------
 # Unzip the file an extract the items we need.
@@ -788,7 +786,10 @@ unless($test_dir){
 
 #delete backstop file and re-gzip the tar file to save space
 unlink("{$ofls_dir}/$backfile");
+
 `$gzip -c ${ofls_dir}/$file > ${ofls_dir}/$zip`;
+
+
 unlink("${ofls_dir}/$file");
 
 #copy current load version to backup directory
