@@ -76,13 +76,25 @@ use Plucknames;
 #         Added Check_Power_Cmds.py to the stream of LR checks.
 #
 # Repo Update: November 28, 2018
-#              Merged with Master to align the repo with production
+#              Merged v3.2 with Master to align the repo with production
+#
+# Repo Update: November 28, 2018
+#              V3.3
+#              - Set up sdtout buffer autoflush
+#              - Eliminated process fork so that the LR 
+#                stdoutput to the screen looks right
+#              - Collected status from the system/sftp call
+#                and arranged a clean exit in case lucky
+#                is not accessible.
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
 ###########################################################  
 #
+# Set up autoflush
+$| = 1;
+
 # Capture the command line an dprint it out so that there's
 # a record of what the user typed in:
 my $commandline = $0 . " " . (join " ", @ARGV);
@@ -296,20 +308,26 @@ else
     print "\n\nSFTP to lucky: Please enter username to connect: ";
     $user=<STDIN>;
     chop($user);
-    my $pid = fork();
-    if (not defined $pid)
+
+    print "\n Ok Off to transfer the backstop file as soon as I get your password - be back in a second.....\n";
+    $my_sftp_status = system("${sftp} ${user}\@lucky.harvard.edu:/home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz");
+
+    # if the status is non-zero, end it all right here.
+    # The status values returned are:
+    #  0 = success (system success not Perl success)
+    #  65280 = bad username and/or bad password 
+    #          or if if lucky is unavailable
+    if ($my_sftp_status != 0)
       {
-	print "ERROR>>>resources not avilable. Cannot connect to Lucky.\n";
-      } 
-    elsif ($pid == 0)
-      {
-	exec("${sftp} ${user}\@lucky.harvard.edu");
-	exit(0);
+       die "Cannot connect to lucky for some reason. Status = $my_sftp_status";
       }
-    else
+    else # Otherwise assume the backstop file was collected and proceed
+         # If the backstop file was NOT collected, lr will fail downstream
+         # from here. However if lucky is alive, you get the file.
       {
-	waitpid($pid,0);
+       print "\nOk attempted transfer of the backstop file is complete....\n";
       }
+
  } # END ELSE if ($skiplucky)
 
 #------------------------------------------------
@@ -788,7 +806,10 @@ unless($test_dir){
 
 #delete backstop file and re-gzip the tar file to save space
 unlink("{$ofls_dir}/$backfile");
+
 `$gzip -c ${ofls_dir}/$file > ${ofls_dir}/$zip`;
+
+
 unlink("${ofls_dir}/$file");
 
 #copy current load version to backup directory
