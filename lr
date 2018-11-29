@@ -87,6 +87,7 @@ use Plucknames;
 #                and arranged a clean exit in case lucky
 #                is not accessible.
 #
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
