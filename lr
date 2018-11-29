@@ -80,9 +80,12 @@ use Plucknames;
 #
 # Repo Update: November 28, 2018
 #              V3.3
-#              - Set up sdtout buffer autoflush and eliminated 
-#                process fork so that the LR stdoutput to the
-#                screen looks right
+#              - Set up sdtout buffer autoflush
+#              - Eliminated process fork so that the LR 
+#                stdoutput to the screen looks right
+#              - Collected status from the system/sftp call
+#                and arranged a clean exit in case lucky
+#                is not accessible.
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
@@ -307,11 +310,25 @@ else
     chop($user);
 
     print "\n Ok Off to transfer the backstop file as soon as I get your password - be back in a second.....\n";
-    system("${sftp} ${user}\@lucky.harvard.edu:/home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz");
-    print "\nOk Transfer of the backstop file is complete....\n";
+    $my_sftp_status = system("${sftp} ${user}\@lucky.harvard.edu:/home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz");
 
+    # if the status is non-zero, end it all right here.
+    # The status values returned are:
+    #  0 = success (system success not Perl success)
+    #  65280 = bad username and/or bad password 
+    #          or if if lucky is unavailable
+    if ($my_sftp_status != 0)
+      {
+       die "Cannot connect to lucky for some reason. Status = $my_sftp_status";
+      }
+    else # Otherwise assume the backstop file was collected and proceed
+         # If the backstop file was NOT collected, lr will fail downstream
+         # from here. However if lucky is alive, you get the file.
+      {
+       print "\nOk attempted transfer of the backstop file is complete....\n";
+      }
 
-} # END ELSE if ($skiplucky)
+ } # END ELSE if ($skiplucky)
 
 #------------------------------------------------
 # Unzip the file an extract the items we need.
