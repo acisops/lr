@@ -720,11 +720,11 @@ if ($appx) {
     # the "for score" ofls directory.
     if($test_dir)
         {
-	  system("$script_dir/run_models_acis.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
+	  system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
         }
     else
         {
-	  system("$script_dir/run_models_acis.pl $cur_load -h $hostname $break_str -nlet_file $nlet_file");
+	  system("$script_dir/run_models.pl $cur_load -h $hostname $break_str -nlet_file $nlet_file");
         }
 
     #update the webpage
