@@ -1,3 +1,26 @@
+################################################################################
+#
+#  Check_Power_Cmds - Check the power command spacing in the load to see if the
+#                     rules ahve been adhered to. Any errors are inserted into a
+#                     new ACIS-LoadReviews.dat file.
+#
+#                     For the time being, this new file is kept separate from
+#                     ACIS-LoadREviews.dat file and is called:
+#                            ACIS-LoadReview.dat.ERROR
+#
+#  Update: June 26, 2019
+#          VERSION: 1.3
+#          Gregg Germain
+#          Fix the Rule #9 error in the DEC2418 load.
+#             - The error is due to the fact that you really have to first
+#               alter the state of the system when you process a command
+#               before you check for timing errors.
+#                  Files changed: Check_Power_Cmds.py
+#                                 Rulesets.py
+#                                 System_State_Class.py
+#
+################################################################################
+
 import pprint
 import re
 import glob
@@ -6,7 +29,6 @@ from Chandra.Time import DateTime
 
 # bring in the system state class
 import System_State_Class
-#execfile('System_State_Class.py')
 
 # Bring in the Backstop File Class
 import Backstop_File_Class
@@ -48,6 +70,7 @@ def run_one_command(cmd, system_state, bfc, rule_set):
 
     # Now run the rule set once and then check to see if the state changed.
     # REMEMBER - rules can have an impact on State.
+
     system_state, new_rules_fired, vio_list = rule_set(cmd,
                                                        last_state,
                                                        system_state,
@@ -65,7 +88,7 @@ def run_one_command(cmd, system_state, bfc, rule_set):
         # Set the last state to the present state
         last_state = dict(system_state.state)
         # Run the ACISPKT ruleset again
-        system_state, new_rules_fired, vio_list = rule_set(eachpacket,
+        system_state, new_rules_fired, vio_list = rule_set(cmd,
                                                            last_state,
                                                            system_state,
                                                            bfc)
@@ -73,7 +96,7 @@ def run_one_command(cmd, system_state, bfc, rule_set):
     if new_rules_fired:
          all_rules_fired += new_rules_fired
        
-    # Append any violations that were dete4cted to the master list
+    # Append any violations, that were detected, to the master list
     if vio_list:
         violations_list.append(vio_list)
               
@@ -138,7 +161,8 @@ bfc = Backstop_File_Class.Backstop_File_Object()
 # First find the backstop file:
 backstop_file = glob.glob('CR*.backstop')[0]
 
-# The packets that we care about are stripped out here
+# The packets that we care about are stripped out of the backstop file
+# here.  These are the entities that will be analyzed
 system_packets = bfc.strip_out_pertinent_packets(backstop_file)
 
 
@@ -184,7 +208,7 @@ while present_cmd['cmd_type'] != 'ACISPKT':
 
 
 # Ok so this next command you are looking at is an ACISPKT command.
-# The first one you've ever seen. and you have not processed it yet.
+# The first one you've ever seen. And you have not processed it yet.
 #
 # Save it so that any number of commands that are NOT ACISPKT commands
 # that lie between this command and the next ACISPKT command do not
@@ -209,7 +233,15 @@ for eachpacket in system_packets[array_row_number:]:
 
     # If this command is an ACISPKT command, run those rules
     if eachpacket['cmd_type'] == 'ACISPKT':
-  
+
+        # June 2019 change - first run the state rules...
+        system_state, new_rules_fired, violations_list = run_one_command(eachpacket,
+                                                                         system_state,
+                                                                         bfc,
+                                                                         Rulesets.ACISPKT_State_rules)
+   
+        # ...now run the timing check rules.
+
         system_state, new_rules_fired, violations_list = run_one_command(eachpacket,
                                                                          system_state,
                                                                          bfc,

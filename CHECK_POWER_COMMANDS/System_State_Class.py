@@ -7,7 +7,18 @@
 #                       complete, and whether or not we have somce upon a
 #                       power command was once the science run is complete.
 #
-################################################################################
+#
+#  Update: June 26, 2019
+#          VERSION: 1.3
+#          Gregg Germain
+#          Fix the Rule #9 error in the DEC2418 load.
+#             - The error is due to the fact that you really have to first
+#               alter the state of the system when you process a command
+#               before you check for timing errors.
+#                  Files changed: Check_Power_Cmds.py
+#                                 Rulesets.py
+#                                 System_State_Class.py
+#################################################################################
 
 class System_State_Object:
     """
@@ -43,8 +54,12 @@ class System_State_Object:
                       # issued an hour ago and no science run is active
                       'three_FEPs_up': False,
                       'three_FEPs_up_date': 'unk',
-                      'three_FEPs_up_time': 0
-                      
+                      'three_FEPs_up_time': 0,
+                      # Some FEPS could be up so make a note of that
+                      'some_FEPs_up': False,
+                      'some_FEPs_up_date': 'unk',
+                      'some_FEPs_up_time': 0,
+                       
 }
 
  

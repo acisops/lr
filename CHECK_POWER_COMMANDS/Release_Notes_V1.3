@@ -1,0 +1,69 @@
+Change Description
+==================
+
+The ACIS Ops Check_Power_Cmds.py checks the timing between ACISPKT
+commands in the backstop file being reviewed. The rule which checks to
+see if more than an hour has gone by after all FEPS have been turned
+off, and any other FEPS turned on was firing erroneously. The rule
+still correctly flagged timing errors when they did occur.  But it
+also erroneously flagged an error.  This fix solves that
+
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/12/files
+
+	modified:   Check_Power_Cmds.py
+	modified:   Rulesets.py
+	modified:   System_State_Class.py
+ 	 created:   Release_Notes_V1.3
+
+
+
+Testing:
+======== 
+
+ Tests were run on 8 loads with a version of the ACIS Ops LR software
+ modified to execute the modified Check_Power_Cmds program:
+
+      1) APR0819T Test Load                       Erroneous error flaged - fixed
+      2) JAN1918A/B (TOO)                         No errors in load - none flagged
+      3) SEP1317A/B (SCS-107 RTS load)            3 errors expected and detected
+      4) MAR1117A   (STOP)                        4 Errors expected and detected
+      5) APR0918A   (Normal)                      No errors in load - none flagged
+      6) DEC2418A/B (Normal)                      Erroneous error flagged - fixed
+      7) JUN1019A   (Normal)                      Erroneous error flagged - fixed
+      8) ERROR_MAR0518 load                       All errors detected
+           - Modified MAR0518 with all possible errors introduced
+
+
+ The 8th load is a copy of the MAR0518 Normal load whose backstop file
+ was modified to generate all possible timing errors. The tar file
+ was copied, untarred, the backstop file modified, and the tarball
+ re-created with the new backstop file.
+
+ Resultant Load Review output using Check_Power_commands was compared
+ against the original load review output.
+
+  All tests PASSED.
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+

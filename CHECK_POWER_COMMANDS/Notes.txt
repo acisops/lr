@@ -1,4 +1,4 @@
-     The Rules:
+   The Rules:
 
     1)  4 seconds (at least) between ANY two ACIS Commands
           
@@ -23,7 +23,7 @@
        command,, issue a WSPOW0002A
 
 
- Errors introduced into the GG_MAR0518 Backstop file:
+ Errors introduced into the MAR0518 Backstop file:
  =====================================================
 
 
@@ -127,134 +127,4 @@ To test:
 rm -Rf /data/acis/LoadReviews/2018/ERRORS_MAR0518
 
 /data/acis/LoadReviews/script/lr-v3.2 -T ERRORS_MAR0518B MAR0518B FEB2618 |& tee /home/gregg/Desktop/LR_ERRORS_MAR0518.log
-
-
-Testing:
-========
-
-
- ERROR_MAR0518 load - MAR0518 with errors introduced.
-
-1)  APR2318 (Normal)
---------------------
-
-    lr-v3.2 -T ERRORS_APR2318 APR2318C APR1618 | & tee /home/gregg/Desktop/LR_ERRORS_APR2318C.log
-
-    cp APR2318/ofls/APR2318C_backstop.tar.gz ERRORS_APR2318/oflsc/.; ls ERRORS_APR2318/oflsc/
-
-    tkdiff ERRORS_APR2318/ofls/ACIS-LoadReview.txt ERRORS_APR2318/ofls/ACIS-LoadReview.txt.ERRORS
-    tkdiff APR2318/ofls/ACIS-LoadReview.txt ERRORS_APR2318/ofls/ACIS-LoadReview.txt.ERRORS
-
-    No errors as expected
-
-
-
-2) JAN1918 (TOO)
---------------------
-
-  lr-v3.2 -T ERRORS_JAN1918 -break  JAN1918A JAN1518 | & tee /home/gregg/Desktop/LR_ERRORS_JAN11918A.log
-  cp JAN1918/oflsa/JAN1918A_backstop.tar.gz ERRORS_JAN1918/oflsa/.; ls ERRORS_JAN1918/oflsa/
-
-  Response: 1
-  Response: 2018:019:06:45:44.64
-
-  tkdiff ERRORS_JAN1918/ofls/ACIS-LoadReview.txt ERRORS_JAN1918/ofls/ACIS-LoadReview.txt.ERRORS
-  tkdiff JAN1918/ofls/ACIS-LoadReview.txt ERRORS_JAN1918/ofls/ACIS-LoadReview.txt.ERRORS
-
-  No errors as expected
-
-
-
-
-  lr-v3.2 -T ERRORS_JAN1918 -break  JAN1918B JAN1518 | & tee /home/gregg/Desktop/LR_ERRORS_JAN11918B.log
-  cp JAN1918/ofls/JAN1918B_backstop.tar.gz ERRORS_JAN1918/oflsb/.; ls ERRORS_JAN1918/oflsb/
-Response: 1
-Response: 2
-
-  tkdiff ERRORS_JAN1918/ofls/ACIS-LoadReview.txt ERRORS_JAN1918/ofls/ACIS-LoadReview.txt.ERRORS
-  tkdiff JAN1918/ofls/ACIS-LoadReview.txt ERRORS_JAN1918/ofls/ACIS-LoadReview.txt.ERRORS
-
-  No errors as expected
-
-
-
-
-3) SEP1317 (SCS-107 RTS load)
------------------------------
-
- lr-v3.2 -T ERRORS_SEP1317 -break SEP1317A SEP0917 | & tee /home/gregg/Desktop/LR_ERRORS_SEP1317A.log
-
- cp SEP1317/oflsa/SEP1317A_backstop.tar.gz ERRORS_SEP1317/oflsa/. ; ls ERRORS_SEP1317/oflsa/
-
-   2
-   2017:256:20:00:00.00
-
- tkdiff ERRORS_SEP1317/oflsa/ACIS-LoadReview.txt ERRORS_SEP1317/oflsa/ACIS-LoadReview.txt.ERRORS
- tkdiff SEP1317/oflsa/ACIS-LoadReview.txt ERRORS_SEP1317/oflsa/ACIS-LoadReview.txt.ERRORS
-
-   No errors expected.
-
- lr-v3.2 -T ERRORS_SEP1317 -break SEP1317B SEP0917 | & tee /home/gregg/Desktop/LR_ERRORS_SEP1317B.log
- cp SEP1317/ofls/SEP1317B_backstop.tar.gz ERRORS_SEP1317/oflsb/.; ls ERRORS_SEP1317/oflsb/
-
-   1
-   2
-
-
- tkdiff ERRORS_SEP1317/oflsb/ACIS-LoadReview.txt ERRORS_SEP1317/oflsb/ACIS-LoadReview.txt.ERRORS
- tkdiff SEP1317/oflsb/ACIS-LoadReview.txt ERRORS_SEP1317/oflsb/ACIS-LoadReview.txt.ERRORS
-
- Errors where expected and ignored.
-
-
-
-
- 4) MAR1117 (STOP)
---------------------
-
-  lr-v3.2 -T ERRORS_MAR1117 -break MAR1117A MAR0817 | & tee /home/gregg/Desktop/LR_ERRORS_MAR1117A.log
-
-  cp MAR1117/ofls/MAR1117A_backstop.tar.gz ERRORS_MAR1117/oflsa/. ; ls ERRORS_MAR1117/oflsa
-  cp MAR1117/oflsa/DO17037_CRM_Pad.txt ERRORS_MAR1117/oflsa/. ; ls ERRORS_MAR1117/oflsa
-
-  1
-  2017:068:17:00:42.000
-
- tkdiff  ERRORS_MAR1117/oflsa/ACIS-LoadReview.txt   ERRORS_MAR1117/oflsa/ACIS-LoadReview.txt.ERRORS
- tkdiff  MAR1117/oflsa/ACIS-LoadReview.txt   ERRORS_MAR1117/oflsa/ACIS-LoadReview.txt.ERRORS
-
-
- 4 Errors found.
-
-
-
- 5) APR0918A (Normal)
---------------------
-
- lr-v3.2 -T ERRORS_APR0918 APR0918A APR0218  | & tee /home/gregg/Desktop/LR_ERRORS_APR0918A.log
-
- cp APR0918/ofls/APR0918A_backstop.tar.gz ERRORS_APR0918/oflsa/.; ls ERRORS_APR0918/oflsa/
-
- tkdiff  ERRORS_APR0918/ofls/ACIS-LoadReview.txt   ERRORS_APR0918/ofls/ACIS-LoadReview.txt.ERRORS
- tkdiff  APR0918/ofls/ACIS-LoadReview.txt   ERRORS_APR0918/ofls/ACIS-LoadReview.txt.ERRORS
-  
-   No Errors as expected.
-
-
-
-
-
- 6) MAR0518 (Normal) ERROR load
---------------------------------
-
- lr-v3.2 -T ERRORS_MAR0518 MAR0518B FEB2618 | & tee /home/gregg/Desktop/LR_ERRORS_MAR0518B.log
-
- cp /home/gregg/PYTHON/FEP000-02A/MAR0518B_backstop.tar.gz ERRORS_MAR0518/oflsb/.; ls ERRORS_MAR0518/oflsb
-
- tkdiff  ERRORS_MAR0518/oflsb/ACIS-LoadReview.txt   ERRORS_MAR0518/oflsb/ACIS-LoadReview.txt.ERRORS
-
-  
- All 6 expected errors shown
-
-
 
