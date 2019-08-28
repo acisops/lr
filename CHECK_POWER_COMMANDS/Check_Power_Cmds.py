@@ -20,8 +20,6 @@
 #                                 System_State_Class.py
 #
 ################################################################################
-
-import pprint
 import re
 import glob
 
@@ -34,9 +32,7 @@ import System_State_Class
 import Backstop_File_Class
 
 # Bring in rule set which handles ACISPKT commands
-#import Rulesets as rules
 import Rulesets
-
 
 #-------------------------------------------------------------------------------
 #  Function: run_one_command - Run one command though the specified  rule set
@@ -51,9 +47,6 @@ import Rulesets
 
 #-------------------------------------------------------------------------------
 def run_one_command(cmd, system_state, bfc, rule_set):
-
-    pp = pprint.PrettyPrinter(indent=4)
-
 
     # Init the empty list of rules fired in this call
     all_rules_fired = []
@@ -149,9 +142,8 @@ Check Power Commands - Check the sequence of power commands and report any
     Then you check to see if the state changed. If it did, keep running the rules.
     If it did not, then stop.
 """
-pp = pprint.PrettyPrinter(indent=4)
-
 # Now create an instance of the the System State Class.
+#system_state = System_State_Class.System_State_Object()
 system_state = System_State_Class.System_State_Object()
 
 # Create an instance of the Backstop_File_class
@@ -164,7 +156,6 @@ backstop_file = glob.glob('CR*.backstop')[0]
 # The packets that we care about are stripped out of the backstop file
 # here.  These are the entities that will be analyzed
 system_packets = bfc.strip_out_pertinent_packets(backstop_file)
-
 
 # Create an empty list for rules firing history
 all_rules_fired = []
@@ -184,7 +175,7 @@ present_cmd = system_packets[array_row_number]
 # the system state for processing the next ACISPKT that you encounter
 while present_cmd['cmd_type'] != 'ACISPKT':
 
-    # Run the ORB rule son the present state
+    # Run the ORB rules on the present state
     system_state, new_rules_fired, violations_list = run_one_command(present_cmd,
                                                                      system_state,
                                                                      bfc,
@@ -223,7 +214,6 @@ while present_cmd['cmd_type'] != 'ACISPKT':
 # back to back ACISPKT command rules.
 bfc.write_bogus_previous_ACISPKT_cmd(present_cmd)
 
-
 # Start processing all the rest of the commands
 # The first one will be an ACISPKT command because the loop
 # above set that up.
@@ -246,8 +236,7 @@ for eachpacket in system_packets[array_row_number:]:
                                                                          system_state,
                                                                          bfc,
                                                                          Rulesets.ACISPKT_rules)
-    
-    
+
         # Store the command you are assessing as the previous command
         bfc.write_previous_ACISPKT_cmd(eachpacket)
                     

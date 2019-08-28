@@ -1,0 +1,98 @@
+Change Description
+==================
+
+The ACIS Ops Check_Power_Cmds.py checks the timing between ACISPKT
+commands in the backstop file being reviewed. After a several week
+soak period since the V1.3 release, a comparison was made of the
+two lr output files:
+
+    ACIS-LoadReview.txt 
+    ACIS-LoadReview.txt.ERRORS (contains any timing errors)
+
+...for every load executed this year.  The only differences between the files
+were any valid errors found by CHeck_Power_Commands, and the invalid errors
+flagged prior to the last release (V1.3).
+
+So the power command check code was modified to copy
+ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt so that we have only
+one file to check during load reviews.
+
+As part of this change, the Check Power Commands code was upgraded to
+Python3.  This necessitated changes to accomodate differences between
+Python 3 and Python 2 and a small change to lr which calls the check
+power command code.
+
+There were also minor changes such as comment typo correction.
+
+
+
+
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/12/files
+
+
+	modified:   Backstop_File_Class.py
+	modified:   Check_Power_Cmds.py
+	modified:   Rulesets.py
+	modified:   System_State_Class.py
+	modified:   VERSION
+	modified:   ../VERSION
+	modified:   ../lr
+
+ 	 created:   Release_Notes_V1.4
+
+
+
+Testing:
+======== 
+
+ Tests were run on 12 loads with a version of the ACIS Ops LR software
+ modified to execute the modified Check_Power_Cmds program:
+
+      1) APR0819T Test Load                       Erroneous error flaged - fixed
+      2) JAN1918A/B (TOO)                         No errors in load - none flagged
+      3) SEP1317A/B (SCS-107 RTS load)            3 errors expected and detected
+      4) MAR1117A   (STOP)                        4 Errors expected and detected
+      5) APR0918A   (Normal)                      No errors in load - none flagged
+      6) DEC2418A/B (Normal)                      Erroneous error flagged - fixed
+      7) JUN1019A   (Normal)                      Erroneous error flagged - fixed
+      8) ERROR_MAR0518 load                       All errors detected
+           - Modified MAR0518 with all possible errors introduced
+      9) AUG0519    (Normal)  
+     10) AUG1219    (Normal)  
+     11) AUG1919    (Normal)  
+     12) AUG2619    (Normal)  
+
+
+ The 8th load is a copy of the MAR0518 Normal load whose backstop file
+ was modified to generate all possible timing errors. The tar file
+ was copied, untarred, the backstop file modified, and the tarball
+ re-created with the new backstop file.
+
+ Resultant Load Review output using Check_Power_commands was compared
+ against the original load review output.
+
+  All tests PASSED.
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+

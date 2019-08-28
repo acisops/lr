@@ -7,9 +7,8 @@
 #
 ################################################################################
 import numpy as np
-import pprint
-import os
 import re
+import subprocess
 
 from Chandra.Time import DateTime
 
@@ -28,9 +27,8 @@ class Backstop_File_Object:
     def __init__(self, ):
         self.backstop_file_name =  ''
         self.error_list = []
-        self.system_packets = None
         # Dtype definition for the ACISPKT lines in the Backstop file
-        self.ACISPKT_dtype = [('event_date', '|S20'), ('event_time', '<i8'), ('cmd_type', '|S20'),('packet_or_cmd', '|S80')]
+        self.ACISPKT_dtype = [('event_date', 'U20'), ('event_time', '<i8'), ('cmd_type', 'U20'),('packet_or_cmd', 'U80')]
         # Create the empty array using the self.ACISPKT_dtype
         self.system_packets = np.array( [], dtype = self.ACISPKT_dtype)
         # Previous ACISPKT command used for timing calcs
@@ -59,7 +57,6 @@ class Backstop_File_Object:
         and writes the collection of stripped-out lines
         to a file names <backstop_file.ACISPKTs
         """
-
         # These are the perigee passage indicators we want to recognize
         pp_indicators = ['OORMPDS', 'EEF1000', 'EPERIGEE', 'XEF1000', 'OORMPEN']
         
@@ -71,6 +68,7 @@ class Backstop_File_Object:
         
         # Open the load review text file
         infile = open(backstop_file, 'r')
+
         # Read in each line. If the line contains 'ACISPKT" then
         # write it to the output file
         for eachline in infile:
@@ -92,7 +90,7 @@ class Backstop_File_Object:
                                                    'ACISPKT',
                                                    cmd) ],
                                                dtype = self.ACISPKT_dtype) ]
-        
+
             # Next check if the line is one of the perigee Passage indicators
             if [True for pp_ind in pp_indicators if (pp_ind in eachline)]:
                 # You have stumbled upon a perigee passage indicator
@@ -101,14 +99,18 @@ class Backstop_File_Object:
                 # Now extract the date and TLMSID values
                 # Start by splitting the line on vertical bars
                 split_line = eachline.split('|')
+
                 # Extract and clean up the date entry - remove any spaces
                 packet_time = split_line[0].strip()
+
                 cmd = split_line[3].split(',')[0].split()[-1]
+
                 cmd_type = split_line[2].strip()
+
                 # Load up an array line.  You need only grab
                 # the date, time, insert the word ACISPKT, and the mnemonic
                 self.system_packets = np.r_[self.system_packets,
-                                     np.array( [ ( split_line[0],
+                                     np.array( [ ( packet_time,
                                                    DateTime(packet_time).secs,
                                                    cmd_type,
                                                    cmd) ],
@@ -222,7 +224,8 @@ class Backstop_File_Object:
         # Get the indices of all those lines which begin with a DOY time stamp
         # This is the position of the stamped line in the ALR file.
         time_stamped_line_indices = [index for index,eachline in enumerate(ALR_lines) if time_stamp.match(eachline)]
-        
+
+
         # Next, get a list of the times in seconds for those lines which have a 
         # DOY time in them.  This is a one for one pairing of time_stamped_line_indices
         event_times = [DateTime(ALR_lines[eachindex].split()[0]).secs  for eachindex in time_stamped_line_indices]
@@ -235,7 +238,7 @@ class Backstop_File_Object:
         for each_violation in violations_list:
             # Find all the times in the event_times list that are LESS THAN OR
             # EQUAL TO the violation time in question
-            leq_times = [index for index,etime in enumerate(event_times) if int(etime) <= each_violation['vio_time']]
+            leq_times = [index for index, etime in enumerate(event_times) if int(etime) <= each_violation['vio_time']]
             # Now the last value in the leq_times list is the index into
             # time_stamped_line_indices where you will obtain the location
             # in the ALR list of where you want to indert the violation text
@@ -245,7 +248,7 @@ class Backstop_File_Object:
             # It's AFTER insert_loc
             ALR_lines.insert(insert_loc, '\n')
             ALR_lines.insert(insert_loc, 'ACISPKT AND/OR POWER COMMAND ERROR:\n')
-            ALR_lines.insert(insert_loc+1, each_violation['vio_date']+' '+each_violation['vio_rule']+'\n')
+            ALR_lines.insert(insert_loc+1, str(each_violation['vio_date'])+' '+str(each_violation['vio_rule'])+'\n')
 
             # Since you've added lines, you have to re-calculate the indices of all those 
             # lines which begin with a DOY time stamp again.
@@ -259,4 +262,8 @@ class Backstop_File_Object:
         outfile.close()
 
         # OK now copy the ACIS-LoadReview.txt.ERRORS file into ACIS-LoadReview.txt
-        os.system('mv ACIS-LoadReview.txt.ERRORS ACIS-LoadReview.txt')
+        try:
+            print('GIT    Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
+            mv_status = subprocess.run(['mv', 'ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt'])
+        except:
+            print('The move command failed. Examine the ofls directory and look for the .ERRORS file.')
