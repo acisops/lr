@@ -263,7 +263,7 @@ class Backstop_File_Object:
 
         # OK now copy the ACIS-LoadReview.txt.ERRORS file into ACIS-LoadReview.txt
         try:
-            print('GIT    Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
+            print('Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
             mv_status = subprocess.run(['mv', 'ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt'])
         except:
             print('The move command failed. Examine the ofls directory and look for the .ERRORS file.')
