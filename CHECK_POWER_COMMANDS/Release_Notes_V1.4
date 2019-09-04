@@ -1,28 +1,29 @@
 Change Description
 ==================
 
-The ACIS Ops Check_Power_Cmds.py checks the timing between ACISPKT
-commands in the backstop file being reviewed. After a several week
+The ACIS Ops Check_Power_Cmds.py checks the timing of ACISPKT
+commands in the backstop file being reviewed. The results were written
+to a copy of the standard ACIS Load Review output file
+(ACIS-LoadReview.txt) called ACIS-LoadReview.txt.ERRORS.  After a several week
 soak period since the V1.3 release, a comparison was made of the
 two lr output files:
 
     ACIS-LoadReview.txt 
     ACIS-LoadReview.txt.ERRORS (contains any timing errors)
 
-...for every load executed this year.  The only differences between the files
-were any valid errors found by CHeck_Power_Commands, and the invalid errors
-flagged prior to the last release (V1.3).
+...for every load executed this year.  The only important differences between 
+the files were the invalid errors flagged by the release (V1.3). 
 
-So the power command check code was modified to copy
+Therefore, the power command check code was modified to copy
 ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt so that we have only
 one file to check during load reviews.
 
 As part of this change, the Check Power Commands code was upgraded to
-Python3.  This necessitated changes to accomodate differences between
+Python 3.  This necessitated changes to accomodate differences between
 Python 3 and Python 2 and a small change to lr which calls the check
 power command code.
 
-There were also minor changes such as comment typo correction.
+There were also minor changes such as comment typo corrections.
 
 
 
