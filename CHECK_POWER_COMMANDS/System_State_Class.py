@@ -29,7 +29,7 @@ class System_State_Object:
     complete, and whether or not we have come upon a
     power command  once the science run is complete.
 
-    The only method is print_system_state whcih is used for debugging.
+    The only method is print_system_state which is used for debugging.
     """
     def __init__(self, ):
 
@@ -70,12 +70,12 @@ class System_State_Object:
     #
     #---------------------------------------------------------------------------
     def print_system_state(self,):
-        print '\n System State values as of now: '
-        print '    date_cmd: ',self.date_cmd
-        print '    time_cmd: ', self.time_cmd
-        print '    science_run_exec: ', self.science_run_exec
-        print '    science_run_stop_time: ', self.science_run_stop_time
-        print '    science_run_stop_date: ', self.science_run_stop_date
-        print '    perigee_passage: ', self.perigee_passage
-        print '    post_sci_run_power_down: ', self.post_sci_run_power_down
+        print('\n System State values as of now: ')
+        print('    date_cmd: ',self.date_cmd)
+        print('    time_cmd: ', self.time_cmd)
+        print('    science_run_exec: ', self.science_run_exec)
+        print('    science_run_stop_time: ', self.science_run_stop_time)
+        print('    science_run_stop_date: ', self.science_run_stop_date)
+        print('    perigee_passage: ', self.perigee_passage)
+        print('    post_sci_run_power_down: ', self.post_sci_run_power_down)
 
