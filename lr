@@ -92,6 +92,11 @@ use Plucknames;
 #         - Updated path used to access the latest ska 
 #           python directory (added .../flight/...)
 #
+# Update: November 30, 2018
+#         V3.5
+#         - Remove earth in the field of view code
+#           (checked in other load review processes)
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -738,25 +743,6 @@ if ($appx) {
     }
 }
 print "Done with thermal codes...\n\n";
-
-#--------------------------------------------------------------------
-#run code to find earth-acis-angles
-#--------------------------------------------------------------------
-#run the earth-acis-fov code
-$fov_cmd = "$cc_directory/earth-acis-FOV ${localdir}/${mnvr} -o ${localdir}/${load_dir}_angles.txt";
-if ($appx) {
-    print "FOV code skipped when not on HEAD LAN\n";
-} else {
-    print "Executing the earth-acis-FOV code with\n$fov_cmd\n";
-    system($fov_cmd);
-    print "Done with Earth-acis-FOV code...Plotting FOV angles\n";
-    if($test_dir){
-	system("$script_dir/plot_FOV_data.pl ${load_dir} -t $ofls_dir");
-    }
-    else{
-	system("$script_dir/plot_FOV_data.pl ${load_dir}");
-    }
-}
 
 #----------------------------------------------------
 # Create web version of lr text, and copy to web area.
