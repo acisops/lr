@@ -87,6 +87,11 @@ use Plucknames;
 #                and arranged a clean exit in case lucky
 #                is not accessible.
 #
+# Update: November 29, 2018
+#         V3.4
+#         - Updated path used to access the latest ska 
+#           python directory (added .../flight/...)
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -832,7 +837,6 @@ print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
 
 # Now execute Check_Power_Cmds.py
 system("/proj/sot/ska3/flight/bin/python /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
-
 
 # Done with Check_Power_Cmds.py so go back to $lr_dir
 # which is  /data/acis<-bak>/LoadReviews.
