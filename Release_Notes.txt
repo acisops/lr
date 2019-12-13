@@ -23,9 +23,6 @@ show_web_lr.pl
 	    $the_line . "</strong></errline>";
       }
 
-VERSION
-
-
 
 Testing:
 ======== 
