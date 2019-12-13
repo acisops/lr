@@ -1,0 +1,58 @@
+
+Change Description
+==================
+
+The  ACIS Ops Load Review software (lr), executed earth in the field of view code whose output is no longer used. The information is created by other processes within ACIS Load Review. Therefore this code was removed from lr.
+
+In addition, lr creates an HTML version of the lr output file: ACIS-LoadReview.txt.  This allows viewing annotated output on the web in conjunction with the use of a .css file.  The code that created that HTML was excuted prior to the Check Power Command code.  Hence while any power command error subsequently appeared in ACIS-LoadReview.txt, it didn't appear in the web version of the file.  The code which creates the HTML version was moved to a point after the power command checking. The program which annotates the HTML as it's being written was modified to annotate Power Command errors.
+
+
+Files Changed:
+============== 
+
+lr
+
+show_web_lr.pl
+   - Code added:
+   
+    # If the line contains "Rule"
+    # this is a Check Power Command error.
+    if ($the_line =~ /Rule/)
+      {
+	$the_line = "<errline><strong>" . 
+	    $the_line . "</strong></errline>";
+      }
+
+VERSION
+
+
+
+Testing:
+======== 
+
+The removal of the earth in the field of view code was tested on loads for the last month.
+
+The html file creation change was tested on these loads:
+
+DEC2418B (load with power command errors)
+
+DEC0219
+DEC0919
+DEC1619
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy after the first segment of this load being reviewed begins execution.
+

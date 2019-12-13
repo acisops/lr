@@ -80,12 +80,32 @@ use Plucknames;
 #
 # Repo Update: November 28, 2018
 #              V3.3
+#              GIT - 662c0f7
 #              - Set up sdtout buffer autoflush
 #              - Eliminated process fork so that the LR 
 #                stdoutput to the screen looks right
 #              - Collected status from the system/sftp call
 #                and arranged a clean exit in case lucky
 #                is not accessible.
+#
+# Update: December 20, 2018
+#         V3.4
+#         GIT - e22ed76
+#         - Changed run_models_acis.pl to run_models.pl
+#
+# Update: August 28, 2019
+#         V3.5
+#         GIT - 2aaad37
+#         - copy ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt so 
+#           that we have only one file to check during load reviews.
+#         - pointed to ska3/flight instead of ska/bin for ska Python 3
+#
+# Update: December 11, 2019
+#         V3.6
+#         - Moved the code which generates the HTML version
+#           of ACIS-LoadReview.txt, to after the Check power
+#           commands code.
+#         - Removed the earth-acis-fov code
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
@@ -735,55 +755,6 @@ if ($appx) {
 print "Done with thermal codes...\n\n";
 
 #--------------------------------------------------------------------
-#run code to find earth-acis-angles
-#--------------------------------------------------------------------
-#run the earth-acis-fov code
-$fov_cmd = "$cc_directory/earth-acis-FOV ${localdir}/${mnvr} -o ${localdir}/${load_dir}_angles.txt";
-if ($appx) {
-    print "FOV code skipped when not on HEAD LAN\n";
-} else {
-    print "Executing the earth-acis-FOV code with\n$fov_cmd\n";
-    system($fov_cmd);
-    print "Done with Earth-acis-FOV code...Plotting FOV angles\n";
-    if($test_dir){
-	system("$script_dir/plot_FOV_data.pl ${load_dir} -t $ofls_dir");
-    }
-    else{
-	system("$script_dir/plot_FOV_data.pl ${load_dir}");
-    }
-}
-
-#----------------------------------------------------
-# Create web version of lr text, and copy to web area.
-#----------------------------------------------------
-$swl_source = "${ofls_dir}/ACIS-LoadReview.txt";
-$html_str = "${load_dir}\u${load_version}_lr.html";
-$web_target_dir = "${web_lr_dir}/20${cur_year}";
-if (! -d "$web_target_dir") {
-    system ("mkdir ${web_target_dir}");
-    system("cp ${web_lr_dir}/lr_web.css ${web_target_dir}");
-    if ($appx ne "")
-      { # Not running as lr_bak?
-	system ('ssh acisdude\@colossus-v\: "mkdir ${web_bak}/lr_dir/20${cur_year}"');
-	system ("scp ${web_lr_dir}/lr_web.css acisdude\@colossus-v:${web_bak}/lr_dir/20${cur_year}");
-       }
-}
-print "system: show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
-    . "-o ${ofls_dir}/${html_str}\n";
-system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
-       . "-o ${ofls_dir}/${html_str}");
-
-if (! $test_dir) { # A real run?
-    print "system: cp ${ofls_dir}/${html_str} ${web_target_dir}\n";
-    system("cp ${ofls_dir}/${html_str} ${web_target_dir}");
-    # Update web page table of load review texts
-    system("mk_lrtext_html.pl ${load_dir}\u${load_version}");
-}
-if ($appx eq "") { # Not running as lr_bak?
-    # Copy updated table to backup machine
-    system("scp ${web_lr_dir}/lrtexts.html acisdude\@colossus-v:${web_bak}/lr_dir");
-}
-#--------------------------------------------------------------------
 #run code to compare the backstop files
 #--------------------------------------------------------------------
 print "Executing the backstop_compare code\n";
@@ -833,10 +804,55 @@ print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
 # Now execute Check_Power_Cmds.py
 system("/proj/sot/ska3/flight/bin/python /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
 
-
 # Done with Check_Power_Cmds.py so go back to $lr_dir
 # which is  /data/acis<-bak>/LoadReviews.
 chdir("$lr_dir");
+
+
+# Moved the Web Text code here
+
+#----------------------------------------------------
+# Create web version of lr text, and copy to web area.
+#----------------------------------------------------
+$swl_source = "${ofls_dir}/ACIS-LoadReview.txt";
+$html_str = "${load_dir}\u${load_version}_lr.html";
+$web_target_dir = "${web_lr_dir}/20${cur_year}";
+if (! -d "$web_target_dir") {
+    system ("mkdir ${web_target_dir}");
+    system("cp ${web_lr_dir}/lr_web.css ${web_target_dir}");
+    if ($appx ne "")
+      { # Not running as lr_bak?
+	system ('ssh acisdude\@colossus-v\: "mkdir ${web_bak}/lr_dir/20${cur_year}"');
+	system ("scp ${web_lr_dir}/lr_web.css acisdude\@colossus-v:${web_bak}/lr_dir/20${cur_year}");
+       }
+}
+print "system: show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
+    . "-o ${ofls_dir}/${html_str}\n";
+system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
+       . "-o ${ofls_dir}/${html_str}");
+
+# Now we always copy the file into the web directory. This way
+# even if you are running in -TEST mode, you can look at the
+# annotated web version if you use file:///
+print " Copying ACIS-LoadReview.txt into the web directory:\n";
+print "system: cp ${ofls_dir}/${html_str} ${web_target_dir}\n";
+system("cp ${ofls_dir}/${html_str} ${web_target_dir}");
+
+# But if this is being run in test mode, we still do not update
+# the web page itself.
+if (! $test_dir)
+   { # A real run?
+     # Update web page table of load review texts
+     system("mk_lrtext_html.pl ${load_dir}\u${load_version}");
+   }  # ENDIF (! $test_dir)
+
+if ($appx eq "")
+    { # Not running as lr_bak?
+      # Copy updated table to backup machine
+      system("scp ${web_lr_dir}/lrtexts.html acisdude\@colossus-v:${web_bak}/lr_dir");
+    } # ENDIF ($appx eq "")
+
+
 
 print "\nScript done.\n";
 
