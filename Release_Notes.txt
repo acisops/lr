@@ -10,7 +10,10 @@ In addition, lr creates an HTML version of the lr output file: ACIS-LoadReview.t
 Files Changed:
 ============== 
 
-lr
+lr 
+
+https://github.com/acisops/lr/pull/23
+
 
 show_web_lr.pl
    - Code added:
