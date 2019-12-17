@@ -10,7 +10,7 @@ code was removed from lr.
 In addition, lr creates an HTML version of the lr output file:
 ACIS-LoadReview.txt.  This allows viewing annotated output on the web
 in conjunction with the use of a .css file.  The code that created
-that HTML was excuted prior to the Check Power Command code.  Hence
+that HTML was executed prior to the Check Power Command code.  Hence
 while any power command error subsequently appeared in
 ACIS-LoadReview.txt, it didn't appear in the web version of the file.
 The code which creates the HTML version was moved to a point after the
