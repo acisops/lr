@@ -59,7 +59,7 @@ Files Changed:
 
 The changes can be seen here:
 
-https://github.com/acisops/lr/
+https://github.com/acisops/lr/pull/25
 
 
 
