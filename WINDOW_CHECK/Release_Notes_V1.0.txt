@@ -1,0 +1,99 @@
+Change Description
+==================
+
+When SI mode CC_00170 was built to observer specifications, the window
+configuration was in error. Specifically, 3 out of 4 chips in the SI
+mode had window specifications which prevented any event from getting
+through:
+
+  windows[0] = {
+    ccdId                    = 5
+    ccdColumn                = 0
+    width                    = 1023
+    sampleCycle              = 0
+    lowerEventAmplitude      = 1645
+    eventAmplitudeRange      = 1305
+  }
+  windows[1] = {
+    ccdId                    = 6
+    ccdColumn                = 0
+    width                    = 1023
+    sampleCycle              = 0
+    lowerEventAmplitude      = 1664
+    eventAmplitudeRange      = 1287
+  }
+  windows[2] = {
+    ccdId                    = 7
+    ccdColumn                = 0
+    width                    = 767
+    sampleCycle              = 0
+    lowerEventAmplitude      = 52
+    eventAmplitudeRange      = 2897
+  }
+  windows[3] = {
+    ccdId                    = 8
+    ccdColumn                = 0
+    width                    = 1023
+    sampleCycle              = 0
+    lowerEventAmplitude      = 1664
+    eventAmplitudeRange      = 1287
+  }
+
+Window_Check.py scans all the SI modes used within a weekly
+load; identifies whether or not any SI mode contains windows, and if
+so, checks the windows for incorrect configuration:
+
+If there is one window for a chip, the program checks to be sure the
+configuration does not prevent all events from getting through (e.g. see Windows[3]
+above).
+
+Sometimes more than one window can be applied to a single chip within
+an SI mode.  In that case all but the last window is checked to be
+sure the configuration does not prevent any event from getting through.
+
+
+
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/
+
+
+
+Testing:
+======== 
+
+The change was tested on the following loads:
+
+FEB1819 - CC_00170B Faulty windows
+        - Also a B load after approval
+
+AUG1015 - TN_00C5AB Two windows on CCD: 3	
+        - TN_006EAB Two windows on CCD: 7 
+
+FEB0320
+FEB1020
+FEB1720
+
+  All tests PASSED.
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+

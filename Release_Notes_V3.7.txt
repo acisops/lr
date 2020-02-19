@@ -1,0 +1,56 @@
+Change Description
+==================
+
+The ACIS Ops Load Review software (lr) was modified to execute the 
+Window Check program. This program checks the configuration of any
+SI modes that have window specifications.
+
+The program is run at the end of the load Review process.
+
+
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/....................
+
+
+
+
+Testing:
+======== 
+
+The change was tested on the following loads:
+
+FEB1819 - CC_00170B Faulty windows
+        - Also a B load after approval
+
+AUG1015 - TN_00C5AB Two windows on CCD: 3	
+        - TN_006EAB Two windows on CCD: 7 
+
+FEB0320
+FEB1020
+FEB1720
+
+  All tests PASSED.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+
