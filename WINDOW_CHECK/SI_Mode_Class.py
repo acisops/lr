@@ -4,6 +4,10 @@
 #                 an SI mode and store it in a useful data structure
 #
 ################################################################################
+import numpy as np
+import os 
+import subprocess
+
 class SI_Mode_Info:
 
     def __init__(self,):
@@ -147,7 +151,7 @@ class SI_Mode_Info:
             # You are sitting on the LHSIDE = { line
             if '{' in mode_lines[line_num]: 
                 # You found the start of a block....process that block
-                line_num, new_key, block_dict = si_mode_info.Create_Block_Dict(mode_lines, line_num)
+                line_num, new_key, block_dict = self.Create_Block_Dict(mode_lines, line_num)
     
                 # Update the dictionary with what was returned from Process_Blocks
                 self.si_mode_dict.update({new_key: block_dict})
@@ -196,7 +200,7 @@ class SI_Mode_Info:
 
         # Collect all blocks of type load<TE/CC>Block. Realistically there
         # will be only 1 paramter block per SI mode.....
-        self.parameter_block_list = si_mode_info.collect_blocks(self.si_mode_dict, self.block_root)
+        self.parameter_block_list = self.collect_blocks(self.si_mode_dict, self.block_root)
     
         # ....so alert the user if there is more than one
         if len(self.parameter_block_list) > 1:
@@ -342,14 +346,14 @@ class SI_Mode_Info:
                     # pull the dictionary block out of the list
                     check_window = ccd_window_list[0]
                     # Now test for full wipeout
-                    ccd_error = si_mode_info.Wipeout_check(check_window, 1)
+                    ccd_error = self.Wipeout_check(check_window, 1)
                     # If there is an error - append it to the list for this si_mode
                     if ccd_error:
                         ccd_error_list.append(ccd_error)
                
                     # If no errors check for partial blanking 
                     if ccd_error == []:
-                        ccd_warning = si_mode_info.Partial_wipeout_check(check_window, 1)
+                        ccd_warning = self.Partial_wipeout_check(check_window, 1)
                         # if there is a warning append it to the warning list
                         if ccd_warning:
                             ccd_warning_list.append(ccd_warning)
@@ -357,7 +361,7 @@ class SI_Mode_Info:
                 else:  # If there is more than one window for this chip
                     # Check all but the last window
                     for eachwindow in ccd_window_list[:-1]:
-                        ccd_error = si_mode_info.Wipeout_check(eachwindow, 1)
+                        ccd_error = self.Wipeout_check(eachwindow, 1)
                         if ccd_error:
                             ccd_error_list.append(ccd_error)
                

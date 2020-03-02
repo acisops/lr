@@ -6,7 +6,9 @@ import re
 import subprocess
 import sys
 
-exec(open('/data/acis/LoadReviews/script/WINDOW_CHECK/SI_Mode_Class.py').read())
+import SI_Mode_Class
+
+#exec(open('/data/acis/LoadReviews/script/WINDOW_CHECK/SI_Mode_Class.py').read())
 
 """
    Window_Check.py - Check any windows in each SI mode for the following faults:
@@ -74,7 +76,7 @@ DOY_full_3f = re.compile('\d\d\d\d:\d\d\d:\d\d:\d\d:\d\d.\d\d\d$')
 #
 #-------------------------------------------------------------------------------
 # Create an instance of the SI_Mode_Class
-si_mode_info = SI_Mode_Info()
+si_mode_info = SI_Mode_Class.SI_Mode_Info()
 
 #==================================================
 # This is the ACIS-LoadReview.txt file
