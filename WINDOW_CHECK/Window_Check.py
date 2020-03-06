@@ -8,8 +8,6 @@ import sys
 
 import SI_Mode_Class
 
-#exec(open('/data/acis/LoadReviews/script/WINDOW_CHECK/SI_Mode_Class.py').read())
-
 """
    Window_Check.py - Check any windows in each SI mode for the following faults:
  
@@ -61,10 +59,6 @@ import SI_Mode_Class
          are immediately written out.
 
 """
-
-#<si_mode>.dat directory
-si_mode_dat_dir = '/home/gregg/SI_MODES'
-
 # Inits
 error_list = []
 # regex for time stamps in ACIS-LoadReview.txt files

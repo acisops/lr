@@ -367,7 +367,7 @@ class SI_Mode_Info:
                
                         # If no errors check for partial blanking 
                         if ccd_error == []:
-                            ccd_warning = si_mode_info.Partial_wipeout_check(eachwindow, 1)
+                            ccd_warning = self.Partial_wipeout_check(eachwindow, 1)
                             if ccd_warning:
                                 ccd_warning_list.append(ccd_warning)
 
@@ -482,14 +482,14 @@ class SI_Mode_Info:
                     # pull the dictionary block out of the list
                     check_window = ccd_window_list[0]
                     # Now test for full wipeout
-                    ccd_error = si_mode_info.Wipeout_check(check_window, 2)
+                    ccd_error = self.Wipeout_check(check_window, 2)
                     # If there is an error - append it to the list for this si_mode
                     if ccd_error:
                         ccd_error_list.append(ccd_error)
                
                     # If no errors check for partial blanking 
                     if ccd_error == []:
-                        ccd_warning = si_mode_info.Partial_wipeout_check(check_window, 2)
+                        ccd_warning = self.Partial_wipeout_check(check_window, 2)
                         # if there is a warning append it to the warning list
                         if ccd_warning:
                             ccd_warning_list.append(ccd_warning)
@@ -497,13 +497,13 @@ class SI_Mode_Info:
                 else:  # If there is more than one window for this chip
                     # Check all but the last window
                     for eachwindow in ccd_window_list[:-1]:
-                        ccd_error = si_mode_info.Wipeout_check(eachwindow, 2)
+                        ccd_error = self.Wipeout_check(eachwindow, 2)
                         if ccd_error:
                             ccd_error_list.append(ccd_error)
                
                         # If no errors check for partial blanking 
                         if ccd_error == []:
-                            ccd_warning = si_mode_info.Partial_wipeout_check(eachwindow, 2)
+                            ccd_warning = self.Partial_wipeout_check(eachwindow, 2)
                             if ccd_warning:
                                 ccd_warning_list.append(ccd_warning)
 
@@ -545,7 +545,7 @@ class SI_Mode_Info:
     #   RunRat - run ratcfg to get the ascii text for an SI mode
     #
     #---------------------------------------------------------------------------
-    def RunRat(self, si_mode, dest_path = '/home/gregg/SI_MODES/MODES-DAT/'):
+    def RunRat(self, si_mode, dest_path = '/data/acis/LoadReviews/script/WINDOW_CHECK/LCMDs'):
         # build the fixed part of the ratcfg command which never changes
         cmd_start = '/data/acis/sacgs/bin/ratcfg -d /data/acis/sacgs/odb/current.dat -c /data/acis/sacgs/odb/current.cfg  '
 
