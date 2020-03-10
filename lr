@@ -804,7 +804,11 @@ print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
 # Now execute Check_Power_Cmds.py
 system("/proj/sot/ska3/flight/bin/python /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
 
-# Done with Check_Power_Cmds.py so go back to $lr_dir
+print "\nEXECUTING THE WINDOW CHECK PROGRAM.\n";
+# Now execute the Window Check program
+system('python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
+
+# Done with Check_Power_Cmds.py and Window_Check.py, so go back to $lr_dir
 # which is  /data/acis<-bak>/LoadReviews.
 chdir("$lr_dir");
 
