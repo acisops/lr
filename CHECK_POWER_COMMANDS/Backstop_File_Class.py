@@ -266,4 +266,4 @@ class Backstop_File_Object:
             print('Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
             mv_status = subprocess.run(['mv', 'ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt'])
         except:
-            print('The move command failed. Examine the ofls directory and look for the .ERRORS file.')
+            print('The move command failed. Examine the ofls directory and look for the .ERRORS file.', mv_status)
