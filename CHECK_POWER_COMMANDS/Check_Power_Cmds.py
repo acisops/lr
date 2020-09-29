@@ -131,9 +131,6 @@ Check Power Commands - Check the sequence of power commands and report any
      There seems to be 18 seconds between WSVIDALLDN's and the next
      power up command when you are re-using an SI mode.
 
-    6)  If WSPOW00000 issued and an hour goes by without any power
-       command,, issue a WSPOW0002A
-
     If a violation of these rules is detected, the number of the rule 
     in the above list is included in  the violation message.
 
