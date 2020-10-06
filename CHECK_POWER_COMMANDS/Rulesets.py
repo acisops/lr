@@ -31,6 +31,13 @@ from Chandra.Time import DateTime
 #                                 Rulesets.py
 #                                 System_State_Class.py
 #
+# Update: September 24, 2020
+#         VERSION 1.5
+#         Gregg Germain
+#         Alter the rules to account for the MATLAB change regarding the 1 
+#         hour WSPOW0/WSPOW02A handling. Now, power commands are issued to
+#         keep the temperature above -10 degrees. So the 1 hour rule is gone.
+
 #-------------------------------------------------------------------------------
 def ACISPKT_State_rules(cmd_entry, ACISPKT_state, system_state, bfc):
     """
@@ -266,7 +273,7 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
         # Append this violation to the list of all violations this pass
         violations_list.append(violation)
         # Record which rule fired
-        rules_fired.append('ACISPKT Rule #4 - ERROR required between WSVIDALLDN and the next ACIS Command.')
+        rules_fired.append('ACISPKT Rule #4 - ERROR 18 sec required between WSVIDALLDN and the next ACIS Command.')
 
 
     # RULE 5 - If there was at least 63 seconds between WSPOW-type POWER UP commands
@@ -283,27 +290,6 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
         # Record which rule fired
         rules_fired.append('ACISPKT Rule #5 - ERROR Less than 63 seconds between WSPOW power-up and next ACIS command')
-
-
-    # RULE 6 - Check to see if a WSPOW0002A was issued one hour after the WSPOW00000 that was
-    #          executed at the end of the inbound CTI run
-    # IF   If You've stopped the science run, and
-    #         You've shut all FEPS off, and 
-    #         You have not issued a WSPOW0002A
-    #         More than 1 hour has passed, and
-    if (system_state.state['science_run_exec'] == 'Stopped') and \
-       (system_state.state['post_sci_run_power_down'] == True) and \
-       (system_state.state['three_FEPs_up'] == False) and \
-       (system_state.state['some_FEPs_up'] == False) and \
-       (cmd_entry['event_time'] - system_state.state['post_sci_run_power_down_time']) > 3600.0:
-        # THEN Record the violation
-        violation['vio_date'] =  ACISPKT_state['date_cmd']
-        violation['vio_time'] =  ACISPKT_state['time_cmd']
-        violation['vio_rule'] = 'ACISPKT Rule #6 - ERROR: ALL FEPS still off and it is 1 hour past WSPOW00000 time.'
-        violations_list.append(violation)
-
-        # Record which rule fired
-        rules_fired.append('ACISPKT Rule #6 - ERROR 3 FEPS off and it is  1 hour past WSPOW00000 time\n Post sci run power down date: '+ DateTime(system_state.state['post_sci_run_power_down_time']).date)
 
     # Return the state and the rules fired list
     return ( system_state, rules_fired, violations_list)
@@ -382,3 +368,5 @@ def ORB_CMD_SW_rule_set(cmd_entry, last_state, present_state, bfc):
 
     # Return the system_state and the rules fired list
     return (  present_state, rules_fired, violations_list)
+
+

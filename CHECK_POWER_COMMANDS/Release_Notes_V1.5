@@ -1,0 +1,94 @@
+Change Description
+==================
+
+The ACIS Ops Check_Power_Cmds.py program checks the timing of ACIS
+power commands in the review backstop file. 
+
+ACIS Ops used to require that if a WSPOW00000 command was issued, 
+and no other power command followed within one hour, then a WSPOW0002A 
+shall be issued no later than 1 hour after the WSPOW00000. This is 
+to keep the msid 1DPAMZT from cooling below 12 degrees C
+
+The ACIS Ops Check_Power_Cmds.py program had a rule that checked to 
+see if the time gap between a WSPOW00000 and the next power command
+was greater than an hour and if so, issued a message in the ACIS load 
+review output file.
+
+Recently, FOTMP changed their algorithm to tracking the temperatures 
+during a load and only issued the WSPOW0002A if the model showed 1DPAMZT 
+cooling below 12 degrees C.
+
+Therefore the rule was eliminated from the Check Power Commands code.
+
+
+
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/26
+
+The important change occurred in Rulesets.py. There was also a minor 
+change to an informational entry in the rules-fired list. 
+VERSION file was updated to 1.5
+
+BackstopFile_Class.py contains a more informative print statement.
+
+	modified:   Backstop_File_Class.py
+	modified:   Rulesets.py
+	modified:   VERSION
+
+
+ 	 created:   Release_Notes_V1.5
+
+
+
+Testing:
+======== 
+
+ Tests were run on 13 load weeks with a version of the ACIS Ops LR software
+ modified to execute the modified Check_Power_Cmds program:
+
+      1) APR0819T Test Load   Hand edited to generate all possible errors; all errors detected
+      2) MAR1117A             4 Errors expected; 4 detected
+      3) SEP1317A             No errors expected; none detected
+      4) SEP1317B             3 errors expected; 3 detected
+      5) JAN1918A             No errors in load - none flagged
+      6) MAR0518A             No errors in load - none flagged     
+      7) MAR0518B             No errors in load - none flagged     
+      8) APR0918A             No errors in load - none flagged
+      9) DEC2418A             2 expected; 2 flagged
+     10) DEC2418B             3 examples of the WSPOW0-WSPOW02A errors no longer flagged.
+                                  - Due to this s/w modification.
+     11) JUN1019A             No errors in load - none flagged                
+     12) SEP2120A             No errors in load - none flagged 
+
+ The APR0819T load is a copy of the APR0819 Normal load whose backstop file
+ was hand modified to generate all possible timing errors. The tar file
+ was copied, untarred, the backstop file modified, and the tarball
+ re-created with the new backstop file.
+
+ Resultant Load Review output using Check_Power_commands was compared
+ against the original load review output.
+
+  All tests PASSED.
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+
