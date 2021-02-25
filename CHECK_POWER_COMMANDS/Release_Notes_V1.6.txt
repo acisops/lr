@@ -21,7 +21,7 @@ Files Changed:
 
 The changes can be seen here:
 
-https://github.com/acisops/lr/pull/
+https://github.com/acisops/lr/pull/27
 
 The important change occurred in Rulesets.py. There was also a minor 
 change to an informational entry in the rules-fired list. 

@@ -19,7 +19,7 @@ Files Changed:
 
 The changes can be seen here:
 
-https://github.com/acisops/lr/pull/
+https://github.com/acisops/lr/pull/27
 
 
 Testing:
