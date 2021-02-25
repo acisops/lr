@@ -15,6 +15,8 @@ but was throwing errors that ought not be thrown. This was fixed.
 
 Also, the code was adjusted so that it can be invoked via python3.
 
+Deprecated Chandra.Time was removed.
+
 
 Files Changed:
 ============== 
