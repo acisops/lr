@@ -2,10 +2,10 @@ Change Description
 ==================
 
 The ACIS Ops Load Review software (lr) was modified to issue the command
-line which executes teh Check_Power_Cmds.py program using Python3.
+line which executes the Check_Power_Cmds.py program using Python3.
 
 Also, as a convenience to ACIS Ops, Every time lr is run on a weekly load
-(e.g. _) it will save the production NonLoadTrackedEvents.txt file
+(e.g. FEB2221A) it will save the production NonLoadTrackedEvents.txt file
 to a "dated" version (e.g. FEB2221A_NonLoadTrackedEvents.txt) in the directory:  
 
 /data/acis/LoadReviews/TEST_NLET_FILES
