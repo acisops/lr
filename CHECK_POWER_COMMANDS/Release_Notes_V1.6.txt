@@ -6,7 +6,7 @@ power commands in the review backstop file.
 
 The ACIS Ops Check_Power_Cmds.py program has a rule that checks to 
 see if the time gap between an ACIS WSPOWXXXXX command  and the next 
-ACIS command was at least 63 seconds. If less than 63 seconds 
+ACIS command is at least 63 seconds. If less than 63 seconds 
 a message is written to the load review output file.
 
 The rule was erroneously firing on time deltas just under 62.99999
