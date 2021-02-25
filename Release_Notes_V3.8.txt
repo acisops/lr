@@ -10,7 +10,7 @@ to a "dated" version (e.g. FEB2221A_NonLoadTrackedEvents.txt) in the directory:
 
 /data/acis/LoadReviews/TEST_NLET_FILES
 
-This facilitaes testing old load weeks using the NonLoadTrackedEvents.txt that
+This facilitates testing old load weeks using the NonLoadTrackedEvents.txt that
 was existent at the time the load was reviewed for production.
 
 
