@@ -16,7 +16,6 @@ but was throwing errors that ought not be thrown. This was fixed.
 Also, the code was adjusted so that it can be invoked via python3.
 Deprecated Chandra.Time was removed.
 
-
 Files Changed:
 ============== 
 
@@ -24,18 +23,11 @@ The changes can be seen here:
 
 https://github.com/acisops/lr/pull/27
 
-The important change occurred in Rulesets.py. There was also a minor 
-change to an informational entry in the rules-fired list. 
-VERSION file was updated to 1.5
-
-BackstopFile_Class.py contains a more informative print statement.
-
 	Modified:   Check_Power_Cmds.py
                     Backstop_File_Class.py
 	            Rulesets.py
                     System_State_Class.py
 	            VERSION
-
 
  	 Created:   Release_Notes_V1.6
 
