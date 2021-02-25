@@ -14,7 +14,6 @@ seconds (e.g. 6.999...). The rule would not miss any real errors,
 but was throwing errors that ought not be thrown. This was fixed.
 
 Also, the code was adjusted so that it can be invoked via python3.
-
 Deprecated Chandra.Time was removed.
 
 
