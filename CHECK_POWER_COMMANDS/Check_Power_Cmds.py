@@ -19,11 +19,14 @@
 #                                 Rulesets.py
 #                                 System_State_Class.py
 #
+# Update: February 22, 2021
+#         Gregg Germain
+#         - Part of the Feb 22 update to fix the 63 second erroneous violations
+#         - Removed importation of Chandra.Time
+#         - Eliminated commented-out line
 ################################################################################
-import re
+#import re
 import glob
-
-from Chandra.Time import DateTime
 
 # bring in the system state class
 import System_State_Class
@@ -140,7 +143,6 @@ Check Power Commands - Check the sequence of power commands and report any
     If it did not, then stop.
 """
 # Now create an instance of the the System State Class.
-#system_state = System_State_Class.System_State_Object()
 system_state = System_State_Class.System_State_Object()
 
 # Create an instance of the Backstop_File_class

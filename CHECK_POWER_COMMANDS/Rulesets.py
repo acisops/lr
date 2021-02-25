@@ -3,7 +3,6 @@
 #  Rulesets.py - sets of rules used to check power commands in weekly loads.
 #
 ################################################################################
-from Chandra.Time import DateTime
 
 #-------------------------------------------------------------------------------
 #
@@ -37,7 +36,12 @@ from Chandra.Time import DateTime
 #         Alter the rules to account for the MATLAB change regarding the 1 
 #         hour WSPOW0/WSPOW02A handling. Now, power commands are issued to
 #         keep the temperature above -10 degrees. So the 1 hour rule is gone.
-
+#
+# Update: February 22, 2021
+#         Gregg Germain
+#         - Fixed incorrect firing of Rule #5 
+#         - Removed importation of Chandra.Time
+#
 #-------------------------------------------------------------------------------
 def ACISPKT_State_rules(cmd_entry, ACISPKT_state, system_state, bfc):
     """
@@ -201,9 +205,9 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
     # rule 0 - Do you at least have the 4 second delay between any two
     #          consecutive ACIPKT commands.
-    if (cmd_entry['cmd_type'] == 'ACISPKT') and \
-       (bfc.previous_ACISPKT_cmd['cmd_type'] == 'ACISPKT') and \
-       cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time'] < 4.0:
+    if cmd_entry['cmd_type'] == 'ACISPKT' and \
+       bfc.previous_ACISPKT_cmd['cmd_type'] == 'ACISPKT' and \
+       round(cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time'], 0) < 4.0:
         # Less than 4 seconds between consecutive ACISPKTS
         # Append the vioolation
         violation['vio_date'] =  ACISPKT_state['date_cmd']
@@ -215,10 +219,10 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
 
     # Rule 1 - FAILED 3 minute Rule First WSPOW00000 (or 02A)after the stop science
-    if (system_state.state['science_run_exec'] == 'Stopped') and \
-       (system_state.state['post_sci_run_power_down'] == False) and \
-       (cmd_entry['packet_or_cmd'] in cooling_power_commands) and \
-       ((cmd_entry['event_time'] - system_state.state['science_run_stop_time']) < 180.0):
+    if system_state.state['science_run_exec'] == 'Stopped' and \
+       system_state.state['post_sci_run_power_down'] == False and \
+       cmd_entry['packet_or_cmd'] in cooling_power_commands and \
+       round(cmd_entry['event_time'] - system_state.state['science_run_stop_time'],0) < 180.0:
 
         # Then this is the first WSPOW0 after the first stop sci
         # and there wasn't a 3 minutes delay
@@ -250,8 +254,8 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
     # RULE 3 - Check if there was at least 24 seconds between WSPOW00000 and any other ACIS command
     # 
-    if (bfc.previous_ACISPKT_cmd['packet_or_cmd'] == 'WSPOW00000') and \
-       ((cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time']) < 24.0):
+    if bfc.previous_ACISPKT_cmd['packet_or_cmd'] == 'WSPOW00000' and \
+       round(cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time'],0) < 24.0:
         # THEN Record the violation
         violation['vio_date'] =  str(ACISPKT_state['date_cmd'])
         violation['vio_time'] =  ACISPKT_state['time_cmd']
@@ -264,8 +268,8 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
     # RULE 4 - WSVIDALLDN rule - has to be at least 18 seconds between WSVIDALLDN and any other ACIS command
     # 
-    if (bfc.previous_ACISPKT_cmd['packet_or_cmd'] == 'WSVIDALLDN') and \
-       ((cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time']) < 18.0):
+    if bfc.previous_ACISPKT_cmd['packet_or_cmd'] == 'WSVIDALLDN' and \
+       round(cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time'], 0) < 18.0:
         # THEN Record the violation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
@@ -278,10 +282,10 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
     # RULE 5 - If there was at least 63 seconds between WSPOW-type POWER UP commands
     # 
-    if (bfc.previous_ACISPKT_cmd['packet_or_cmd'][:5] == 'WSPOW') and \
-       (bfc.previous_ACISPKT_cmd['packet_or_cmd'] != 'WSPOW00000') and \
-       (cmd_entry['cmd_type'] == 'ACISPKT') and \
-       ((cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time']) < 63.0):
+    if bfc.previous_ACISPKT_cmd['packet_or_cmd'][:5] == 'WSPOW' and \
+       bfc.previous_ACISPKT_cmd['packet_or_cmd'] != 'WSPOW00000' and \
+       cmd_entry['cmd_type'] == 'ACISPKT' and \
+       round((cmd_entry['event_time'] - bfc.previous_ACISPKT_cmd['event_time']),0) < 63.0:
         # THEN Record the violation
         violation['vio_date'] = ACISPKT_state['date_cmd']
         violation['vio_time'] =  ACISPKT_state['time_cmd']
@@ -290,6 +294,7 @@ def ACISPKT_rules(cmd_entry, ACISPKT_state, system_state, bfc):
 
         # Record which rule fired
         rules_fired.append('ACISPKT Rule #5 - ERROR Less than 63 seconds between WSPOW power-up and next ACIS command')
+
 
     # Return the state and the rules fired list
     return ( system_state, rules_fired, violations_list)

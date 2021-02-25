@@ -18,6 +18,12 @@
 #                  Files changed: Check_Power_Cmds.py
 #                                 Rulesets.py
 #                                 System_State_Class.py
+#
+# Update: February 22, 2021
+#         Gregg Germain
+#         - Part of the FEB 22, 2021 fix for the erroneous 63 second violations
+#         - Cleanup of minor close brace indentation
+#
 #################################################################################
 
 class System_State_Object:
@@ -59,8 +65,7 @@ class System_State_Object:
                       'some_FEPs_up': False,
                       'some_FEPs_up_date': 'unk',
                       'some_FEPs_up_time': 0,
-                       
-}
+                     } # End of state Dictionary definition
 
  
     #---------------------------------------------------------------------------
