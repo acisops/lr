@@ -10,7 +10,7 @@ ACIS command is at least 63 seconds. If less than 63 seconds
 a message is written to the load review output file.
 
 The rule was erroneously firing on time deltas just under 63
-seconds (e.g. 6.999...). The rule would not miss any real errors, 
+seconds (e.g. 62.999...). The rule would not miss any real errors, 
 but was throwing errors that ought not be thrown. This was fixed.
 
 Also, the code was adjusted so that it can be invoked via python3.
