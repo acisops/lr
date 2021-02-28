@@ -11,6 +11,7 @@
 #
 ################################################################################
 from astropy.time import Time, TimeCxcSec
+from astropy.utils import iers
 import re
 import shutil
 import numpy as np
@@ -39,15 +40,6 @@ class Backstop_File_Object:
         self.system_packets = np.array([], dtype = self.ACISPKT_dtype)
         # Previous ACISPKT command used for timing calcs
         self.previous_ACISPKT_cmd = np.array([], dtype = self.ACISPKT_dtype)
-
-        # Define regular expressions to be used in backstop file line searches
-        self.time_stamp = re.compile('\d\d\d\d:\d\d\d:\d\d:\d\d:\d\d.\d\d\d')
-        self.stop_sci = re.compile('AA00000000')
-        self.radmon_dis = re.compile('OORMPDS')
-        self.eef = re.compile(' EEF1000')
-        self.wspow_000 = re.compile('WSPOW00000')
-        self.wspow_02A = re.compile('WSPOW0002A')
-        self.ACISPKT = re.compile('ACISPKT')
 
     #---------------------------------------------------------------------------
     #  Method:  strip_out_ACISPKTS - Read the input backstop file and strip

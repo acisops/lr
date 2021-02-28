@@ -22,7 +22,7 @@
 # Update: February 22, 2021
 #         Gregg Germain
 #         - Part of the Feb 22 update to fix the 63 second erroneous violations
-#         - Removed importation of Chandra.Time
+#         - Removed deprecated Chandra.Time
 #         - Eliminated commented-out line
 ################################################################################
 #import re
@@ -112,6 +112,16 @@ Check Power Commands - Check the sequence of power commands and report any
                        Also, make sure that if you are finished with the
                        inbound ECS run and you have executed the WSPOW00000,
                        that the WSPOW0002A command was issued one hour later.
+ 
+    Usage: The tool requires that:
+
+            1) You have already run That portion of lr which creates the 
+               ACIS-LoadReview.txt file, and
+
+            2) You are cd'd into the OFLS directory that you want to check.
+
+python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py
+
 
      The Rules:
 

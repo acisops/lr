@@ -148,7 +148,7 @@ GetOptions('break' => \$break, #run lr_break options,
 	   'n=s' => \$hostname, #to be passed to run_PSMC.pl
 	   'nolucky' => \$skiplucky, # acquire backstop manually
 	   'clean' => \$easy_clean,
-	   't=s' => \$test_dir,      # Test dirctory
+	   't=s' => \$test_dir,      # Test directory
            'nlet_file=s' => \$nlet_file); #NLET file name
 $argc = @ARGV;
 $argc >= 2  or die "ERROR! AT LEAST TWO INPUTS REQUIRED!\nUSAGE: lr {present load} {preceeding week} [-s alternate database server] [-n alternate PSMC code node] [-t test directory name] [-nlet_file alternative NLET file LR should use] [-b or --break use for a replan or interrupt]\n";
@@ -529,7 +529,7 @@ if ($mnvr eq ""){
 @mnvr_field2 = split(/\//, $mnvr);
 chomp($mnvr_field2[1]);
 
-#Get the name of where we are running
+#Get the name of ofls directory where we are running
 $localdir = getcwd();
 
 print "\nUNTARRING the backstop file";
@@ -764,10 +764,7 @@ if ($appx) {
     # the "for score" ofls directory.
     if($test_dir)
         {
-#zzzzzz  TEMPORARY
-          print "\n TESTING - NO NEED TO RUN MODELS\n";
-
-#	  system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
+	  system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
         }
     else
         {
