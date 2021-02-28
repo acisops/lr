@@ -25,7 +25,6 @@
 #         - Removed deprecated Chandra.Time
 #         - Eliminated commented-out line
 ################################################################################
-#import re
 import glob
 
 # bring in the system state class
