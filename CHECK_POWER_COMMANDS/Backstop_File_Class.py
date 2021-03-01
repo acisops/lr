@@ -28,7 +28,7 @@ class Backstop_File_Object:
               insert_errors
 
     """
-    def __init__(self, ):
+    def __init__(self, test_flag):
         self.backstop_file_name = ''
         self.error_list = []
         # Dtype definition for the ACISPKT lines in the Backstop file
@@ -40,6 +40,9 @@ class Backstop_File_Object:
         self.system_packets = np.array([], dtype = self.ACISPKT_dtype)
         # Previous ACISPKT command used for timing calcs
         self.previous_ACISPKT_cmd = np.array([], dtype = self.ACISPKT_dtype)
+
+        # Capture the test flag passed to this object
+        self.test_flag = test_flag
 
     #---------------------------------------------------------------------------
     #  Method:  strip_out_ACISPKTS - Read the input backstop file and strip
@@ -254,13 +257,19 @@ class Backstop_File_Object:
         outfile.writelines(ALR_lines)
         outfile.close()
 
-        # OK now copy the ACIS-LoadReview.txt.ERRORS file into ACIS-LoadReview.txt
-        try:
-            print('Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
-            shutil.move('ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt')
-        except OSError as err:
-            print(err)
-            print('Examine the ofls directory and look for the .ERRORS file.')
+        # If the test flag was False, then copy the .ERRORS file to ACIS-LoadReview.txt
+        # If it was True then we leave the original ACIS-LoadReview.txt
+        # OK now copy the ACIS-LoadReview.txt.ERRORS file into ACIS- intact and keep
+        # The .ERRORS file for comparison
+        if not self.test_flag:
+            try:
+                print('Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
+                shutil.move('ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt')
+            except OSError as err:
+                print(err)
+                print('Examine the ofls directory and look for the .ERRORS file.')
+            else:
+                print('Copy was successful')
         else:
-            print('Copy was successful')
+            print('\nTEST MODE - Leaving the .ERRORS file for Comparison')
 
