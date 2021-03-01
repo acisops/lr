@@ -10,7 +10,7 @@
 #         - Fixed the erroneous firing of Rule #5 - the 63 second timing error
 #
 ################################################################################
-from astropy.time import Time, TimeCxcSec
+from astropy.time import Time
 from astropy.utils import iers
 import re
 import shutil
