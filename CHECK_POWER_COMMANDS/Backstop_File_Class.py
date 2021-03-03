@@ -257,13 +257,12 @@ class Backstop_File_Object:
         outfile.writelines(ALR_lines)
         outfile.close()
 
-        # If the test flag was False, then copy the .ERRORS file to ACIS-LoadReview.txt
-        # If it was True then we leave the original ACIS-LoadReview.txt
-        # OK now copy the ACIS-LoadReview.txt.ERRORS file into ACIS- intact and keep
-        # The .ERRORS file for comparison
+        # If the test flag was False, then move the .ERRORS file to ACIS-LoadReview.txt
+        # If it was True then we leave the original ACIS-LoadReview.txt and the
+        # ACIS-LoadReview.txt.ERRORS files intact for comparison.
         if not self.test_flag:
             try:
-                print('Copying ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
+                print('Moving ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
                 shutil.move('ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt')
             except OSError as err:
                 print(err)
@@ -271,5 +270,5 @@ class Backstop_File_Object:
             else:
                 print('Copy was successful')
         else:
-            print('\nTEST MODE - Leaving the .ERRORS file for Comparison')
+            print('\nTEST MODE - Leaving the ACIS-LoadReview.txt and ACIS-LoadReview.txt.ERRORS files intact for comparison')
 
