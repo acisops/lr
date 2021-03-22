@@ -19,11 +19,15 @@
 #                                 Rulesets.py
 #                                 System_State_Class.py
 #
+# Update: February 22, 2021
+#         Gregg Germain
+#         - Part of the Feb 22 update to fix the 63 second erroneous violations
+#         - Removed deprecated Chandra.Time
+#         - Eliminated commented-out line
 ################################################################################
-import re
-import glob
+import argparse
 
-from Chandra.Time import DateTime
+import glob
 
 # bring in the system state class
 import System_State_Class
@@ -109,6 +113,19 @@ Check Power Commands - Check the sequence of power commands and report any
                        Also, make sure that if you are finished with the
                        inbound ECS run and you have executed the WSPOW00000,
                        that the WSPOW0002A command was issued one hour later.
+ 
+    Usage: The tool requires that:
+
+            1) You have already run That portion of lr which creates the 
+               ACIS-LoadReview.txt file, and
+
+            2) You are cd'd into the OFLS directory that you want to check.
+
+python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py
+
+     Check_Power_Cmds.py can be run in test mode where the .ERRORS file is not copied over
+     into the ACIS-LoadReview.txt file
+
 
      The Rules:
 
@@ -139,12 +156,29 @@ Check Power Commands - Check the sequence of power commands and report any
     Then you check to see if the state changed. If it did, keep running the rules.
     If it did not, then stop.
 """
+# Using ARGPARSE
+cl_parser = argparse.ArgumentParser(description='WeeklyPDAMS plots')
+
+# Add the TEST argument as NON-POSITIONAL.  
+cl_parser.add_argument("-t", '--test', help='In test mode, plots are not moved to htdocs', action="store_true")
+
+# Parse out the args
+testargs = cl_parser.parse_args()
+
+# Set the test flag based upon user input
+if testargs.test:
+    # For Test Purposes:
+    print('\nCheck_Power_Cmds -  RUNNING IN TEST MODE\n')
+    test_flag = True
+else:
+    print("\nRunning for score.\n")
+    test_flag = False
+
 # Now create an instance of the the System State Class.
-#system_state = System_State_Class.System_State_Object()
 system_state = System_State_Class.System_State_Object()
 
 # Create an instance of the Backstop_File_class
-bfc = Backstop_File_Class.Backstop_File_Object()
+bfc = Backstop_File_Class.Backstop_File_Object(test_flag)
 
 # Capture the important commands from the Backstop file
 # First find the backstop file:

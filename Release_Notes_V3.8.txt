@@ -1,0 +1,55 @@
+Change Description
+==================
+
+The ACIS Ops Load Review software (lr) was modified to issue the command
+line which executes the Check_Power_Cmds.py program using Python3.
+
+Also, as a convenience to ACIS Ops, Every time lr is run on a weekly load
+(e.g. FEB2221A) it will save the production NonLoadTrackedEvents.txt file
+to a "dated" version (e.g. FEB2221A_NonLoadTrackedEvents.txt) in the directory:  
+
+/data/acis/LoadReviews/TEST_NLET_FILES
+
+This facilitates testing old load weeks using the NonLoadTrackedEvents.txt that
+was existent at the time the load was reviewed for production.
+
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/27
+
+
+Testing:
+======== 
+
+The change was tested by running the APR0819T load which
+is a version of the APR0819A load which was hand edited 
+to generate all power command errors that Check_Power_Cmds.py
+tests for. It was run in both a production mode as well as 
+a test mode to assure that the dated NLET file is created
+only when lr is run in production mode and only using the
+production NLET file.
+
+  All tests PASSED.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+

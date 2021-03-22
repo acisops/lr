@@ -1,0 +1,80 @@
+Change Description
+==================
+
+The ACIS Ops Check Power Commands program checks the timing of ACIS
+power commands in the review backstop file. 
+
+The ACIS Ops Check_Power_Cmds.py program has a rule that checks to 
+see if the time gap between an ACIS WSPOWXXXXX command  and the next 
+ACIS command is at least 63 seconds. If less than 63 seconds 
+a message is written to the load review output file.
+
+The rule was erroneously firing on time deltas just under 63
+seconds (e.g. 62.999...). The rule would not miss any real errors, 
+but was throwing errors that ought not be thrown. This was fixed.
+
+Also, the code was adjusted so that it can be invoked via python3.
+Deprecated Chandra.Time was removed.
+
+Files Changed:
+============== 
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/27
+
+	Modified:   Check_Power_Cmds.py
+                    Backstop_File_Class.py
+	            Rulesets.py
+                    System_State_Class.py
+	            VERSION
+
+ 	 Created:   Release_Notes_V1.6
+
+
+
+Testing:
+======== 
+
+ Tests were run on 8 load weeks with a version of the ACIS Ops LR software
+ modified to execute the modified Check_Power_Cmds program:
+
+      1) APR0819T Test Load   Hand edited to generate all possible errors; all errors detected
+
+      2) MAR1117A             4 Errors expected; 4 detected
+      3) SEP1317A             No errors expected; none detected
+      4) SEP1317B             3 errors expected; 3 detected
+      5) DEC2418A             2 expected; 2 flagged
+      6) DEC2418B             No errors expected; none detected
+      7) SEP2120A             No errors in load - none flagged                
+      8) FEB2221AA            No errors in load
+                              3 Erroneous 63 second violation errors with old code
+                              No errors flagged with new code
+
+ The APR0819T load is a copy of the APR0819 Normal load whose backstop file
+ was hand modified to generate all possible timing errors. The tar file
+ was copied, untarred, the backstop file modified, and the tarball
+ re-created with the new backstop file.
+
+ Resultant Load Review output using Check_Power_commands was compared
+ against the original load review output.
+
+  All tests PASSED.
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+

@@ -107,6 +107,17 @@ use Plucknames;
 #           commands code.
 #         - Removed the earth-acis-fov code
 #
+# Update: September 25, 2020
+#         V3.7
+#         - Use Python3 for Window_check.py
+#         - Added and/or modified comments
+#
+# Update: February 25, 2021
+#         v3.8
+#         - Store production NLET file as a dated file 
+#           to accomodate using for tests
+#         - Modified call to Check_Power_Cmds.py
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -137,13 +148,23 @@ GetOptions('break' => \$break, #run lr_break options,
 	   'n=s' => \$hostname, #to be passed to run_PSMC.pl
 	   'nolucky' => \$skiplucky, # acquire backstop manually
 	   'clean' => \$easy_clean,
-	   't=s' => \$test_dir,      # Test dirctory
+	   't=s' => \$test_dir,      # Test directory
            'nlet_file=s' => \$nlet_file); #NLET file name
 $argc = @ARGV;
 $argc >= 2  or die "ERROR! AT LEAST TWO INPUTS REQUIRED!\nUSAGE: lr {present load} {preceeding week} [-s alternate database server] [-n alternate PSMC code node] [-t test directory name] [-nlet_file alternative NLET file LR should use] [-b or --break use for a replan or interrupt]\n";
 
 # Record the NLET file being used in the log
-print "\n LR I HAVE NLET FILE: : $nlet_file\n";
+print "\n LR I am using NLET FILE: : $nlet_file\n";
+
+# If the Production NLET file is being used, record a dated copy of 
+# it in the /data/acis/LoadReviews/TEST_NLET_FILES directory
+if ( (! $test_dir) && ($nlet_file eq "/data/acis/LoadReviews/NonLoadTrackedEvents.txt"))
+  {
+     print "\n Production run with the Production NLET file - I will create a dated entry in the test NLET file dir\n";
+     `cp $nlet_file /data/acis/LoadReviews/TEST_NLET_FILES/@ARGV[0]_NonLoadTrackedEvents.txt`;
+  }
+else
+  {print "\nRunning in --TEST mode or not using the Production NLET file - No NLET file save required\n";}
 
 #----------------------------------------
 # Prepare for i/o control from python subprocess
@@ -289,14 +310,17 @@ else{
 # Only do the backup if this is not a test
 # and we're not already on the backup system
 if( (! $test_dir) &&
-    ($base_dir eq "/data/acis")){
-    unless( -d $back_ofls_dir){
-	mkpath($back_ofls_dir, 1, 0775);
-    }
-    else{
-	die "The directory $back_ofls_dir already exists. Code exiting\n";
-    }
-}
+    ($base_dir eq "/data/acis"))
+      {
+        unless( -d $back_ofls_dir)
+          {
+	   mkpath($back_ofls_dir, 1, 0775);
+          }
+        else
+          {
+	   die "The directory $back_ofls_dir already exists. Code exiting\n";
+          }
+      }
 
 #------------------------------------------------------
 # Transfer file from Lucky after making the directories
@@ -505,7 +529,7 @@ if ($mnvr eq ""){
 @mnvr_field2 = split(/\//, $mnvr);
 chomp($mnvr_field2[1]);
 
-#Get the name of where we are running
+#Get the name of ofls directory where we are running
 $localdir = getcwd();
 
 print "\nUNTARRING the backstop file";
@@ -802,7 +826,7 @@ chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
 
 # Now execute Check_Power_Cmds.py
-system("/proj/sot/ska3/flight/bin/python /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
+system("python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
 
 print "\nEXECUTING THE WINDOW CHECK PROGRAM.\n";
 # Now execute the Window Check program
