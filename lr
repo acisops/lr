@@ -118,6 +118,12 @@ use Plucknames;
 #           to accomodate using for tests
 #         - Modified call to Check_Power_Cmds.py
 #
+#
+# Update: August 23, 2021
+#         v3.8.5
+#         - Update to copy the bright-source list employed to ofls.
+#
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -826,11 +832,11 @@ chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
 
 # Now execute Check_Power_Cmds.py
-system("python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
+system("/usr/local/bin/python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
 
 print "\nEXECUTING THE WINDOW CHECK PROGRAM.\n";
 # Now execute the Window Check program
-system('python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
+system('/usr/local/bin/python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
 
 # Done with Check_Power_Cmds.py and Window_Check.py, so go back to $lr_dir
 # which is  /data/acis<-bak>/LoadReviews.
@@ -865,6 +871,16 @@ system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
 print " Copying ACIS-LoadReview.txt into the web directory:\n";
 print "system: cp ${ofls_dir}/${html_str} ${web_target_dir}\n";
 system("cp ${ofls_dir}/${html_str} ${web_target_dir}");
+
+
+#--------------------------------
+# Copy in Bright-Source List 
+#--------------------------------
+$bs_list = "/data/acis/LoadReviews/data/bright_xray.txt";
+print " Copying bright-source list to the ofls:\n";
+print "system: cp ${bs_list} ${ofls_dir}\n";
+system("cp ${bs_list} ${ofls_dir}");
+
 
 # But if this is being run in test mode, we still do not update
 # the web page itself.
