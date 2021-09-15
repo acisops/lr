@@ -1,0 +1,48 @@
+Change Description
+==================
+
+The ACIS Ops Load Review software (lr) was modified to copy in the bright-source 
+list (bright_xray.txt) at the time of lr execution, storing the version for 
+reference sake in the ofls subdirectory.
+
+This facilitates testing old load weeks, and allows comparison against any changes 
+or developments in the X-ray transient sky after the time of load production.
+
+
+Files Changed:
+============== 
+
+"lr" 
+And these release notes.
+
+The changes can be seen here:
+https://github.com/acisops/lr/pull/28
+
+
+Testing:
+======== 
+
+The change was tested by running the AUG2321A load in 
+test mode to ensure that the code executed normally, matching
+the content of the AUG2321A production run without issues and
+that the bright_xray.txt file was copied into the ofls 
+working directory.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as this week's load is activated.
+
