@@ -24,7 +24,7 @@ Files Changed:
 And these release notes.
 
 The changes can be seen here:
-https://github.com/acisops/lr/pull/
+https://github.com/acisops/lr/pull/29
 
 
 Testing:

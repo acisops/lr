@@ -339,7 +339,6 @@ if( (! $test_dir) &&
 
 # CD to the newly-created ofls<x> directory.
 # CD to /data/acis/LoadReviews/<YEAR>/LOAD/ofls<a,b,c etc> -------  IN OFLS DIR
-print("\n------------------SWITCHING TO $ofls_dir");
 chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 
 if ($skiplucky)
@@ -661,8 +660,6 @@ print "\nACIS-backstop completed.\n";
 #------------------------------
 # Set up soft links
 #------------------------------
-
-print("\n------------------SWITCHING TO $cur_load_dir");
 chdir("$cur_load_dir") || die "cannot change to ${cur_load_dir}\n";
 
 if(-e "./ofls")
@@ -674,7 +671,6 @@ if(-e "./ofls")
 symlink( "${ofls_dir}", "./ofls");
 
 # CD to the OFLS dir
-print("\n------------------SWITCHING TO $ofls_dir");
 chdir("${ofls_dir}") || die "Cannot change to {$ofls_dir}";
 
 
@@ -748,7 +744,6 @@ else
     print "\nBright source code failed. Email nadams\@cfa with above errors.\n";
 }
 
-#zzzzzzzzzzzzzzzzzzzzzzzzzzz
 #--------------------------------------------------------------
 #
 # Any function that can be done prior to the execution of the
@@ -837,7 +832,6 @@ print "Done with thermal codes...\n\n";
 print "\nACIS TABLES USED IN THIS LOAD:\n$cfg_file\n$dat_file\n";
 
 # CD to /data/acis<-bak>/LoadReviews.
-print("\n------------------SWITCHING TO $lr_dir");
 chdir("$lr_dir");
 
 # Do NOT use this directory for ACE if there is test directory
