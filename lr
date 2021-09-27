@@ -124,6 +124,11 @@ use Plucknames;
 #         - Update to copy the bright-source list employed to ofls.
 #
 #
+# Update: September, 21, 2021
+#         V3.9
+#         - Move CHECK_POWER_COMMANDS and WINDOW_CHECK to before
+#           run_models call
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -338,7 +343,7 @@ chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 
 if ($skiplucky)
  {
-    print "In another window, please copy desired backstop tarball\n";
+    print "/nIn another window, please copy desired backstop tarball\n";
     print "into load directory $ofls_dir\n";
     print "DO NOT unzip the tarball.\n";
     print "\n\nfile copied, ready to continue?(Y/N)\: ";
@@ -350,7 +355,7 @@ if ($skiplucky)
  } # ENDIF if ($skiplucky)
 else
  {  # using sftp lucky                               -------------- GET TARBALL
-    print "Copy zipped tarball file from lucky\n";
+    print "\nCopy zipped tarball file from lucky\n";
     print "get /home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz \n";
 #----------------------------------------
 # Fork a process to sftp to lucky
@@ -646,11 +651,11 @@ print "\tRunning Health and Safety Script...\n\n";
 system("${script_store_dir}/LRHS $localdir/${backfile} ${hist} > ${ofls_dir}/LRHS.output "); 
 print "\tRunning ACIS Load Review Script...\n\n"; 
 
-#RUN ACIS BACKSTOP
+# RUN ACIS BACKSTOP
 $backstop_str = "$backstop -s ${server} ${localdir}/${backfile} ${hist}"; 
 print "\nRunning $backstop_str...\n";
 system("$backstop_str");
-print "\nACIS-backstop completed.";
+print "\nACIS-backstop completed.\n";
 
 #------------------------------
 # Set up soft links
@@ -667,6 +672,7 @@ symlink( "${ofls_dir}", "./ofls");
 
 # CD to the OFLS dir
 chdir("${ofls_dir}") || die "Cannot change to {$ofls_dir}";
+
 
 #determine and display version of ACIS tables used:
 
@@ -701,7 +707,7 @@ close(DAT);
 # Check for bad sun angle observations: changed to take
 # previous directory string
 #------------------------------
-print "Running saa_checker.pl...$script_dir/saa_checker.pl ${prev_load_dir}\n";
+print "\nRunning saa_checker.pl...$script_dir/saa_checker.pl ${prev_load_dir}\n";
 system ("$script_dir/saa_checker.pl ${prev_load_dir}");
 open(SAA,"saa_check.txt") || warn "\nNo Observations with bad Sun Angles\n";
 print "\nATTENTION! Observations with bad sun angles:\n";
@@ -738,13 +744,49 @@ else
     print "\nBright source code failed. Email nadams\@cfa with above errors.\n";
 }
 
+#--------------------------------------------------------------
+#
+# Any function that can be done prior to the execution of the
+# Thermal Model run should be included here.
+#
+# At this point we are in the $ofls_dir - e.g. /data/acis/LoadReviews/2021/SEP2021/oflsa
+# so any function you place here should either execute in this directory, or 
+# you can chdir to a different directory but be SURE to chdir back to
+# $ofls_dir when done.
+#
+#--------------------------------------------------------------
+#
+# Run Check_Power_Cmds.py
+print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM";
+system("/usr/local/bin/python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
+
+# Now execute the Window Check program
+print "\nEXECUTING THE WINDOW CHECK PROGRAM.";
+system('/usr/local/bin/python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
+
+#--------------------------------
+# Copy in Bright-Source List 
+#--------------------------------
+$bs_list = "/data/acis/LoadReviews/data/bright_xray.txt";
+print " \nCopying bright-source list to the ofls:\n";
+print "\nsystem: cp ${bs_list} ${ofls_dir}\n";
+system("cp ${bs_list} ${ofls_dir}");
+
+
+#--------------------------------------------------------------------
+#run code to compare the backstop files
+#--------------------------------------------------------------------
+print "\nExecuting the backstop_compare code\n";
+system("$script_dir/backstop_comp.sh");
+
+
 #--------------------------------------------------------------------
 # Run psmc_check and dpa_check, dea_check and fp_check...
 # will secure shell to acis.cfa.harvard.edu if not on a linux machine
 #--------------------------------------------------------------------
 print "\nRunning the thermal code...\n";
 if ($appx) {
-    print "Thermal models skipped when not on HEAD LAN\n";
+    print "\nThermal models skipped when not on HEAD LAN\n";
 } else {
 # Get FP sensitive obsids from prev, current, and next AO cycles
     $fps_cmd = "$script_dir/fptemp_sens_finder.pl -o $ofls_dir/fp_sensitive.txt ";
@@ -784,12 +826,6 @@ if ($appx) {
 }
 print "Done with thermal codes...\n\n";
 
-#--------------------------------------------------------------------
-#run code to compare the backstop files
-#--------------------------------------------------------------------
-print "Executing the backstop_compare code\n";
-system("$script_dir/backstop_comp.sh");
-
 #--------------------------------------------------
 #close down
 #--------------------------------------------------------------------
@@ -823,26 +859,6 @@ if(-e "${back_dir}/ofls"){
 }
 symlink( "${back_ofls_dir}", "${back_dir}/ofls");
 
-# Go back to the OFLS<x> directory and run Check_Power_Cmds.py
-#     The reason I'm bouncing back and forth from $lr_dir to $ofls_dir
-#     and then back to $lr_dir is that I want the new program (Check_Power_Cmds) to
-#     be done when all the old LR functionality is complete.
-chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
-
-print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
-
-# Now execute Check_Power_Cmds.py
-system("/usr/local/bin/python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
-
-print "\nEXECUTING THE WINDOW CHECK PROGRAM.\n";
-# Now execute the Window Check program
-system('/usr/local/bin/python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
-
-# Done with Check_Power_Cmds.py and Window_Check.py, so go back to $lr_dir
-# which is  /data/acis<-bak>/LoadReviews.
-chdir("$lr_dir");
-
-
 # Moved the Web Text code here
 
 #----------------------------------------------------
@@ -860,7 +876,7 @@ if (! -d "$web_target_dir") {
 	system ("scp ${web_lr_dir}/lr_web.css acisdude\@colossus-v:${web_bak}/lr_dir/20${cur_year}");
        }
 }
-print "system: show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
+print "\nsystem: show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
     . "-o ${ofls_dir}/${html_str}\n";
 system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
        . "-o ${ofls_dir}/${html_str}");
@@ -868,18 +884,10 @@ system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
 # Now we always copy the file into the web directory. This way
 # even if you are running in -TEST mode, you can look at the
 # annotated web version if you use file:///
-print " Copying ACIS-LoadReview.txt into the web directory:\n";
-print "system: cp ${ofls_dir}/${html_str} ${web_target_dir}\n";
+print "\nCopying ACIS-LoadReview.txt into the web directory:\n";
+print "\nsystem: cp ${ofls_dir}/${html_str} ${web_target_dir}\n";
 system("cp ${ofls_dir}/${html_str} ${web_target_dir}");
 
-
-#--------------------------------
-# Copy in Bright-Source List 
-#--------------------------------
-$bs_list = "/data/acis/LoadReviews/data/bright_xray.txt";
-print " Copying bright-source list to the ofls:\n";
-print "system: cp ${bs_list} ${ofls_dir}\n";
-system("cp ${bs_list} ${ofls_dir}");
 
 
 # But if this is being run in test mode, we still do not update

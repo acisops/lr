@@ -1,0 +1,64 @@
+Change Description
+==================
+
+The ACIS Ops Load Review software (lr) was modified so that all backstop file 
+processing tasks are completed before the thermal models are run
+
+There are two primary functions of LR:
+
+   1) Process the CR*.backstop file and make automated checks
+   2) Run the thermal models.
+
+There were backstop processing functions set to execute before and some after
+the execution of the thermal models. With this change, all backstop functions
+are completed prior to the thermal model execution.
+
+That way, if there is a problem with the thermal models (SEP2021) all of the
+backstop functions will be completed.
+
+
+Files Changed:
+============== 
+
+"lr" 
+And these release notes.
+
+The changes can be seen here:
+https://github.com/acisops/lr/pull/29
+
+
+Testing:
+======== 
+
+The change was tested by running the:
+
+   MAR1117A
+   FEB2221
+   FEB1819B
+   SEP1321
+   SEP2021
+   SEP2721
+
+loads in test mode. The output in the test directories was 
+compared to that in the production directories. All differences were
+expected and understood.          
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+Deployment Plan
+===============
+
+Deploy as soon as the first segment of the SEP2721 load is uploaded
+and executing.
+
+
