@@ -54,7 +54,7 @@ lr, acis-backstop.pl, Release_Notes_V4.0.txt
 
 The changes can be seen here:
 
-https://github.com/acisops/lr/pull/
+https://github.com/acisops/lr/pull/30
 
 This update must be done in concert with the change in backstop_history:
 
