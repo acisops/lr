@@ -129,6 +129,19 @@ use Plucknames;
 #         - Move CHECK_POWER_COMMANDS and WINDOW_CHECK to before
 #           run_models call
 #
+# Update: November 24, 2021
+#         V4.0
+#         - Added -VO argument to the command line which will allow
+#           the user to force the use of the Vehicle Only load
+#           when reading in the Review Load, the Continuity Load
+#           or both (VOR, VOC, VOB)
+#         - User can include the letter in the Continuity load argument.
+#           This will allow the user to force an earlier load, if the same name,  to be the continuity load.
+#         - Clarified the questions which, when -break is used, determine what the
+#           load type is (TOO, SCS-107, STOP).
+#         - added --nomodels switch to run LR without running the thermal models
+#         - Added comments and fixed typos
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -137,10 +150,10 @@ use Plucknames;
 # Set up autoflush
 $| = 1;
 
-# Capture the command line an dprint it out so that there's
+# Capture the command line and print it out so that there's
 # a record of what the user typed in:
 my $commandline = $0 . " " . (join " ", @ARGV);
-print "\nCommand Line: $commandline \n\n";
+print "\nlr - Command Line: $commandline \n\n";
 
 #
 # Some inits for the ACIS-Continuity file
@@ -154,15 +167,36 @@ $hostname="acis.cfa.harvard.edu";   #for PSMC
 $skiplucky = 0;
 $break = 0;
 $easy_clean = 0;
-GetOptions('break' => \$break, #run lr_break options,
-	   's=s' => \$server, #to be passed to acisparams.pl
-	   'n=s' => \$hostname, #to be passed to run_PSMC.pl
-	   'nolucky' => \$skiplucky, # acquire backstop manually
+GetOptions('break' => \$break,         #run lr_break options,
+	   's=s' => \$server,           #to be passed to acisparams.pl
+	   'n=s' => \$hostname,       #to be passed to run_PSMC.pl
+	   'nolucky' => \$skiplucky,   # acquire backstop manually
 	   'clean' => \$easy_clean,
-	   't=s' => \$test_dir,      # Test directory
-           'nlet_file=s' => \$nlet_file); #NLET file name
+	   't=s' => \$test_dir,         # Test directory
+           'nlet_file=s' => \$nlet_file, # NLET file name
+           'nomodels' => \$nomodels,
+           'VO=s', \$VO_choice);      # Vehicle Only switch [VOC, VOR, VOB]
 $argc = @ARGV;
 $argc >= 2  or die "ERROR! AT LEAST TWO INPUTS REQUIRED!\nUSAGE: lr {present load} {preceeding week} [-s alternate database server] [-n alternate PSMC code node] [-t test directory name] [-nlet_file alternative NLET file LR should use] [-b or --break use for a replan or interrupt]\n";
+
+# Create an array of valid -VO switch values. If the user supplies a value and 
+# if it's not in the array then write an error message (listing the valid ones) 
+# and then end execution before any subdirectories are created
+@VO_types  = ("VOC", "VOR", "VOB");
+
+# If $VO_choice has no value, then the user didn't supply a --VO argument
+# so there's nothing to check
+if ($VO_choice  ne "")
+  {
+    # But since they did supply one, check to see if the supplied argument 
+    # is in the list. We want to check this and, if the input is invalid, exit.
+    if(  not( grep( /^$VO_choice$/,  @VO_types)))
+    {
+     die("FATAL ERROR - $VO_choice is an invalid value for the VO switch.\nValid values are: VOC, VOR, VOB\n");
+    }
+  }
+
+
 
 # Record the NLET file being used in the log
 print "\n LR I am using NLET FILE: : $nlet_file\n";
@@ -204,6 +238,7 @@ $script_store_dir = <${base_dir}/LoadReviews/script>;
 # PRODUCTION
 $backstop = <${base_dir}/LoadReviews/script/acis-backstop.pl>;
 
+
 #------------------------------
 # Get the directory to use for the C++ code
 #------------------------------
@@ -235,6 +270,55 @@ $cur_load=@ARGV[0];
 # Continuity load
 $prev_load=@ARGV[1];
 
+
+# The basic command line for lr is: lr Review_load Continuity_load
+#                              e.g. lr OCT3021A OCT2821
+# These arguments are stored in $cur_load and $prev_load respectively.
+#
+# This code addition allows for the inclusion of the letter to the 
+# Continuity load week in the LR command. e.g. lr OCT3021A OCT2821B
+#
+# Up until now we never included it. LR doesn't expect a letter there, and the thermal
+# models (via ACIS-Continuity.txt - created by lr) default to the .../ofls directory. 
+# Turns out that it's possible that a Continuity load week might have an A, B, or C
+# load but the actual continuity load used was A or B. ofls will point to C. This
+# code update allows for that. It also allows for not specifying a letter
+# If the user does not specify a letter then the ACIS-Continuity.txt file
+# will default to the ofls directory for that previous week.
+# 
+# In either case, $prev_load will end up containing the 7 character load week without
+# the load letter so that the rest of lr will not have to be changed.
+
+# Find the length of the preview load name. Syntax was fixed at 7 letters
+# i.e. MMMDDYY (OCT2821).  But now it can be either 7 or 8: OCT2821 or OCT2821A
+$ofls_val = "";
+$len_prevload = length($prev_load);
+print("\nLength of the input string is: $len_prevload");
+
+# Get the last token in the preview load name
+$last_token = substr($prev_load, -1);
+
+print("\nBefore the IF:");
+print("\n    The Previous load variable contains:  $prev_load");
+print("\n    The last token is: $last_token");
+
+# If the length was 8 and the last token was a capital letter
+# Then remove the letter from $prev_load, and add the lower case of that letter
+# to the ofls string.
+if ($len_prevload == 8 && $last_token =~ m/^[A-Z]/)
+  {
+   # Remove the letter from $prev_load
+   $prev_load = substr($prev_load, 0, $len_prevload - 1);
+   # add the lower case of the load letter to the ofls string
+   $ofls_val = $ofls_val.lc($last_token);
+  }
+
+print("\nThe Previous load variable now contains:  $prev_load");
+print("\nThe ofls value that will be used is: $ofls_val");
+
+print("\n");
+
+# Initialize variables used to point to current and previous load directory years.
 $load_dir="";
 $prev_dir="";
 $prev_year="";
@@ -364,7 +448,7 @@ else
     $user=<STDIN>;
     chop($user);
 
-    print "\n Ok Off to transfer the backstop file as soon as I get your password - be back in a second.....\n";
+    print "\n Ok as soon as I get your password I will copy the tarball file into $cur_load_dir - be back in a second.....\n";
     $my_sftp_status = system("${sftp} ${user}\@lucky.harvard.edu:/home/SOT_Transfer/$load_name/${cur_load}_backstop.tar.gz");
 
     # if the status is non-zero, end it all right here.
@@ -552,6 +636,7 @@ print "\nUNTARRING the backstop file";
 #----------------------------------------
 if ($break == 1)
   {
+    # lr_break returns the load type and the interrupt time
     $load_type,$interrupt_time =  lr_break();
     $hist=$edit_hist;
   }
@@ -565,7 +650,21 @@ open(CONTFILE, ">$ofls_dir/ACIS-Continuity.txt");
 
 # Now that you know the location of the previous load, write that full
 # directory path to the ACIS-Continuity.txt file
-print CONTFILE $prev_load_dir, "\n";
+print CONTFILE $prev_load_dir.$ofls_val, "\n";
+
+# Now, if the user specified "VOC" for the VO command line argument,
+# Then append "VO_" to the load type.  This will inform the models
+# that when the continuity load is read, the Vehicle Only version
+# should be used.  Otherwise load_type should be just the present
+# value
+if  ($VO_choice eq "VOC")
+  {
+    # User selected VOC for the VO switch. Tell the model to read
+    # the vehicle only load for the Continuity. Append "VO_"
+    # to the recognized load type
+    $load_type = "VO_".$load_type;
+  }
+
 
 # Write out the type of load: Normal, TOO, SCS107  
 if ($break == 1)
@@ -580,6 +679,8 @@ else
 # Close the continuity file
 close(CONTFILE);
 
+# Inform the user of the load type LR has determined from your answers
+print "\nLR has determined that the review load is of type: $load_type\n";
 
 
 
@@ -807,17 +908,24 @@ if ($appx) {
 	$break_str = ""
     }
  
-    # If the -T switch was used, pass the test directory path to run_models
-    # using the -p switch.  Otherwise, run_models will formulate a path to
-    # the "for score" ofls directory.
-    if($test_dir)
-        {
-	  system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
-        }
+    # Run the thermal models if the -nomodels was not set
+    if(not $nomodels)
+      {
+        # If the -T switch was used, pass the test directory path to run_models
+        # using the -p switch.  Otherwise, run_models will formulate a path to
+        # the "for score" ofls directory.
+        if($test_dir)
+            {
+	      system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
+            }
+        else
+            {
+	      system("$script_dir/run_models.pl $cur_load -h $hostname $break_str -nlet_file $nlet_file");
+            }
+
+      } #ENDIF NOT NOMODELS
     else
-        {
-	  system("$script_dir/run_models.pl $cur_load -h $hostname $break_str -nlet_file $nlet_file");
-        }
+      {print("\n      User elected to NOT run the thermal models\n\n");}
 
     #update the webpage
     if( ! $test_dir){
@@ -876,6 +984,8 @@ if (! -d "$web_target_dir") {
 	system ("scp ${web_lr_dir}/lr_web.css acisdude\@colossus-v:${web_bak}/lr_dir/20${cur_year}");
        }
 }
+
+
 print "\nsystem: show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
     . "-o ${ofls_dir}/${html_str}\n";
 system("show_web_lr.pl -f ${ofls_dir}/ACIS-LoadReview.txt "
@@ -916,7 +1026,7 @@ exit(0);
 #--------------------------------------------------------------------
 sub find_names{
     my($cur_load,$prev_load,$test_dir)=@_;
-#directory generation and tar file copying
+    #directory generation and tar file copying
     if($test_dir){
 	$load_dir=$test_dir;
     }
@@ -925,7 +1035,7 @@ sub find_names{
     }
     
     
-#Parse- this is the expected MMMDDYYA load
+    #Parse- this is the expected MMMDDYYA load
     if($cur_load =~ m/^[A-Z]{3}[0-3][0-9]{3}[A-Z]$/){
 	$load_name=$cur_load;
 	$load_version=substr($load_name,7,1);
@@ -996,7 +1106,7 @@ sub lr_break()
 {
     # Inits
     # 
-    # If you are in BREAK, then it's either a TOO or an SCS-107 Default to TOO
+    # If you are in BREAK, then it's either a TOO, an SCS-107-only, or a Full Stop. Default to TOO
     # Unless the user indicates this is an SCS-107 the type will default to TOO
     $load_type = "TOO";
 
@@ -1078,23 +1188,45 @@ sub lr_break()
 # Only display history editing instructions for "A" version of load 
 # (or if replan has same name as approved load)
 # If this is the A load, OR
-#    either it's not the same name as an approved load or the iterrupt time is different, OR
-#    a test directory exists
-#RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
-#if (${load_version} eq "a" || $q eq "2" || $test_dir)
-
+#    either it's not the same name as an approved load or the iterrupt time is different
 if (${load_version} eq "a" || $q eq "2")
   {
     $display_flag = 1;
     print "\nIMPORTANT!Please answer these questions:\n";
     $ans107=0;
-    print "\tHas the Spacecraft autonomously put HRC-S in the focal plane?\n\t(1=no 2=yes)\n";
+    print "\tHas an SCS-107 been run (autonomously or via command) putting HRC-S in the focal plane?\n\t(1=no 2=yes)\n";
     $ans107=<STDIN>;
     chop($ans107);
 
-    # Print the response to the question:  autonomously put 
+    # Print the response to the question:  Has an SCS-107 been run putting
     # HRC-S in the focal plane?
     print "\nResponse: $ans107\n";
+
+     
+    # If an SCS-107 was run, find out it it's a SCS-107 only or part of a Full Stop
+    #    $ans107 == 2 means YES a 107 was run
+    if ($ans107 eq 2)
+      {
+        print "\n\tWas this a FULL STOP (both science and vehicle loads stopped)?\n\t(1=no 2=yes)\n";
+        $ansFS=<STDIN>;
+        chop($ansFS);
+
+        # Print the response to the question:  Was this a FULL STOP 
+        print "\nResponse: $ansFS\n";
+
+        # Set the load type to either SCS-107 or STOP
+        if ($ansFS eq 1)
+          {$load_type = "SCS-107";}
+        else
+          {$load_type = "STOP";}
+      } # ENDIF ($ans107 eq 2)
+    else # Otherwise it was a TOO load
+         # This variable set may not be strictly necessary since load_type is initialized at the
+         # top of the subroutine. But I hate fall through default results like that
+      {$load_type = "TOO";}
+        
+     # Inform the user what type of load was determined from this subroutine.
+     print "\n\nI have determined that the Review Load is of type: $load_type\n\n";
 
     # Capture the interrupt time
     print "\tPlease enter the interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
@@ -1122,14 +1254,6 @@ if (${load_version} eq "a" || $q eq "2")
     print STDERR "$edit_call\n";  # Debug
     system($edit_call);
     `chmod g+w $edit_hist`;
-
-    # If the User says this was the result of an SCS-107, set the load type
-    # 
-    if ($ans107 eq 2)
-      { # The load type is SCS-107
-        $load_type = "SCS-107";
-        # The interrupt time was specified by the user, in the code above.
-      } # END if ($ans107 eq 2)
 
   } # END IF if (${load_version} eq "a" || $q eq "2" || $test_dir)
 

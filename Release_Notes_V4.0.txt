@@ -1,0 +1,102 @@
+Change Description
+==================
+
+The main drivers for this update are:
+
+  1) Continuity load having the same load week name as the review load (e.g. SEP2121B SEP2021A)
+     
+     Prior to this update, the user did not specify the load letter for the continuity load in the lr
+     command line. This prevented the prior load of the same load week as the review load from
+     being specified as the continuity load.
+
+  2) A full weekly load being built with both science and vehicle commands, the load is uplinked,
+     but only the vehicle commands executed (e.g. OCT2821 and JAN1722).
+
+     The thermal models need to know that when assembling a load history, only the vehicle commands 
+     should be included when reading ther continuity load.  The ACIS Ops Load Review software (lr) was
+     modified to give the user the ability to specify that, when reading continuity loads, the thermal models
+     should read the vehicle-only  VR*.backstop file.  The default is to read the CR*.backstop file.
+
+     This is accomplished by adding a --VO VOC switch to the lr command line. If not used the default read of 
+     CR*.backstop will be executed. If the switch is specified, it is first checked for legal values. If the value of
+     VOC is supplied to the switch then the thermal models will read the VR*.backstop file. This is accomplished
+     by appending "VO_" to the load type discerned by lr (Normal, TOO, SCS-107, FULL STOP).
+     This load type is written out to the ACIS-Continuity.txt file, which is read by backstop history.
+
+     This update must be done in concert with the update to Backstop_History as
+     Backstop_History has been  modified to recognize the VO_ prefix and knows how to handle it.
+
+Additional updates were made to lr:
+
+  3) Fix the bug which incorrectly threw and error when checking for the "triplet" - a set of 3
+     commands expected after the conclusion of the Perigee Passage inbound ECS measurement.
+     Initially, lr expected the power command within the triplet to be WSVIDALLDN. Over time
+     the triplet could contain WSPOW00000 and WSPOW0002A.
+
+  4) A --nomodels option to lr and run_models.pl which tells lr to not run the thermal models
+     This can be used to speed up lr regression tests when the modification does not affect the
+     thermal models.
+
+  5) Clarified the user prompts which, when the -break switch is used, determine what the
+     load type is (TOO, SCS-107, STOP).
+
+  6) Added comments and fixed typos
+
+
+
+
+
+
+Files Changed or added:
+=================== 
+
+lr, acis-backstop.pl, Release_Notes_V4.0.txt
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/
+
+This update must be done in concert with the change in backstop_history:
+
+https://github.com/acisops/backstop_history/pull/22
+
+
+Testing:
+======== 
+
+The changes were tested by running the:
+
+   SEP2021B
+   OCT2521B
+   JAN1822B
+   JAN2422A
+
+loads in test mode. Behavior checked both if a new switch was, and was not used (e.g. --nomodels and
+--VO VOC). Also tested when a  continuity load had a letter attached to it and when it did not both in cases
+where it was required (SEP2021B) and where it was not required. If not required output was the same
+as in production.
+
+Thermal models were run where the changes affect the ouput of the models such as SEP2021B and OCT2521B
+Assembled history was correct. 
+
+The output in the test directories was  compared to that in the production directories. All differences were
+expected and understood.      
+
+
+Interface impacts
+=================
+
+User has new switches to use when appropriate.
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+
+
