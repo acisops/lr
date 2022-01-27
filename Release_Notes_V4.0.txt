@@ -66,6 +66,7 @@ Testing:
 
 The changes were tested by running the:
 
+   JUL0821A
    SEP2021B
    OCT2521B
    JAN1822B
@@ -86,7 +87,7 @@ expected and understood.
 Interface impacts
 =================
 
-User has new switches to use when appropriate.
+ACIS Ops lr user has new switches to use when appropriate.
 
 
 Review
