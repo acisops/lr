@@ -10,7 +10,7 @@ The main drivers for this update are:
      being specified as the continuity load.
 
   2) A full weekly load being built with both science and vehicle commands, the load is uplinked,
-     but only the vehicle commands executed (e.g. OCT2821 and JAN1722).
+     but only the vehicle commands executed (e.g. JAN1722).
 
      The thermal models need to know that when assembling a load history, only the vehicle commands 
      should be included when reading ther continuity load.  The ACIS Ops Load Review software (lr) was
@@ -76,6 +76,9 @@ loads in test mode. Behavior checked both if a new switch was, and was not used 
 --VO VOC). Also tested when a  continuity load had a letter attached to it and when it did not both in cases
 where it was required (SEP2021B) and where it was not required. If not required output was the same
 as in production.
+
+All changes which affected thermal model output were tested with and without new switches for
+all 4 load types (Normal, TOO, SCS-107, Full Stop).
 
 Thermal models were run where the changes affect the ouput of the models such as SEP2021B and OCT2521B
 Assembled history was correct. 
