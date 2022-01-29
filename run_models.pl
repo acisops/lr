@@ -11,6 +11,24 @@
 # is an issue. 
 #
 # This is version 1.10, which replaces version 1.9
+#
+# Update: March 8, 2018
+#         Gregg Germain
+#         Included nlet_file switch to allow users to specify an
+#         alternate nlet file
+#            - Default is /data/acis/LoadReviews/NonLoadTrackedEvents.txt
+#
+#
+# Update: November 22, 2019
+#         Gregg Germain
+#         HTTP -> HTTPS; Remove -dmz from web server path
+#         V1.14
+#
+#
+# Update: April 24, 2020
+#         John ZuHone
+#         Make BEP and FEP models run from $SKA
+#         V1.15
 #--------------------------------------------------------------------
 use POSIX qw(uname);
 use Cwd;
@@ -27,10 +45,12 @@ use Getopt::Long;
 #------------------------------
 $myhost='acis.cfa.harvard.edu';
 $break = 0;
+$nlet_file = <\\"/data/acis/LoadReviews/NonLoadTrackedEvents.txt\\">;
 
 GetOptions('h=s' => \$myhost, #host to run on.
 	   'p=s' => \$path, # optional path 
-           'break' => \$break);
+           'break' => \$break,
+           'nlet_file=s' => \$nlet_file);
 #note: add a help option
 my ($OS ,$machine, $rev,$ver, $processor)  = (POSIX::uname());
 
@@ -44,7 +64,6 @@ $load = @ARGV[0];
 
 $ver=chop($load);
 $ver=~ tr/A-Z/a-z/;
-
 
 #------------------------------
 #set the directories to use
@@ -62,7 +81,7 @@ else{
 if ($appx) {  # On backup machine?
     $webroot = "/data/anc/apache/htdocs/acis";
 } else {
-    $webroot = "/proj/web-cxc-dmz/htdocs/acis";
+    $webroot = "/proj/web-cxc/htdocs/acis";
 }
 #------------------------------
 # Set the out directories for the webpages
@@ -123,18 +142,29 @@ if ($break == 1) {
 #---------------------------------------------
 #Set up the ska environment to run
 #---------------------------------------------
-$ska=</proj/sot/ska/bin>;
+
+$ska = '/proj/sot/ska3/flight';
+$ENV{'SKA'} = $ska;
+
 #Commands to execute: (BUT NOT EXECUTED YET)
 # make detector housing heater history file
 $dhhtr_history_str="/data/acis${appx}/LoadReviews/script/make_dhheater_history.csh";
-$psmc_ska_str = "${ska}/psmc_check --oflsdir=${lr_dir} --out ${lr_dir}/out_psmc --verbose=0 $break_str";
-$dpa_ska_str = "${ska}/dpa_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dpa --verbose=0 $break_str";
-$dea_ska_str = "${ska}/dea_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dea --verbose=0 $break_str";
-$fp_ska_str = "${ska}/acisfp_check --oflsdir=${lr_dir} --outdir=${lr_dir}/out_fptemp --verbose=0 $break_str";
 
-$fep1mong_ska_str = $ENV{"HOME"} . "/.local/bin/fep1_mong_check --oflsdir=${lr_dir} --out ${lr_dir}/out_fep1_mong --verbose=0 $break_str";
-$fep1actel_ska_str = $ENV{"HOME"} . "/.local/bin/fep1_actel_check --oflsdir=${lr_dir} --out ${lr_dir}/out_fep1_actel --verbose=0 $break_str";
-$beppcb_ska_str = $ENV{"HOME"} . "/.local/bin/bep_pcb_check --oflsdir=${lr_dir} --out ${lr_dir}/out_bep_pcb --verbose=0 $break_str";
+# NLET-PSMC
+$psmc_ska_str = "${ska}/bin/psmc_check --oflsdir=${lr_dir} --out ${lr_dir}/out_psmc --nlet_file ${nlet_file} --verbose=0 $break_str";
+
+# NLET-DPA
+$dpa_ska_str = "${ska}/bin/dpa_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dpa --nlet_file ${nlet_file}  --verbose=0 $break_str";
+
+# NLET-DEA
+$dea_ska_str = "${ska}/bin/dea_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dea --nlet_file ${nlet_file}  --verbose=0 $break_str";
+
+# NLET-FPTEMP
+$fp_ska_str = "${ska}/bin/acisfp_check --oflsdir=${lr_dir} --outdir=${lr_dir}/out_fptemp --nlet_file ${nlet_file}  --verbose=0 $break_str";
+
+$fep1mong_ska_str = "${ska}/bin/fep1_mong_check --oflsdir=${lr_dir} --out ${lr_dir}/out_fep1_mong --nlet_file ${nlet_file}  --verbose=0 $break_str";
+$fep1actel_ska_str = "${ska}/bin/fep1_actel_check --oflsdir=${lr_dir} --out ${lr_dir}/out_fep1_actel --nlet_file ${nlet_file}  --verbose=0 $break_str";
+$beppcb_ska_str = "${ska}/bin/bep_pcb_check --oflsdir=${lr_dir} --out ${lr_dir}/out_bep_pcb --nlet_file ${nlet_file}  --verbose=0 $break_str";
 
 #------------------------------
 # items to run

@@ -52,6 +52,13 @@
 #         - Modified code to print out a row of "-cti"'s when a Perigee Passage
 #           CTI measurement is completed.
 #         - Added numerous comments
+#
+# Update: January 6, 2022
+#         Gregg Germain
+#         V3.3
+#         - Modified the "triplet" code to include WSPOW00000 as a legal
+#           triplet power command.  Also combined the 2 individual sections
+#           of triplet power command test code into one which now includes the WSPOW0.
 #--------------------------------------------------------------------
 use DBI;
 use Text::ParseWords;
@@ -1871,14 +1878,6 @@ sub process_acispkt{
     #----------------------------------------
     # Video all down
     #----------------------------------------
-    if ($Rec_Eventdata{TLMSID} eq "WSVIDALLDN") {
-	$viddwn_cnt=$viddwn_cnt+1;
-	$per_vidalldn=$dec_day;
-        # WSVIDALLDN was used in the triplet prior to January 2018.
-	if($triplet_check == 1){
-	    $triplet_check = 2;
-	}
-    }
 
     #----------------------------------------
     # New power command which leaves three 
@@ -1893,15 +1892,20 @@ sub process_acispkt{
     #  The above triplet treatment for WSVIDALLDN
     #  is left in there for old loads to still work
     #----------------------------------------
-    if ($Rec_Eventdata{TLMSID} eq "WSPOW0002A") {
-	$viddwn_cnt=$viddwn_cnt+1;
-	$per_vidalldn=$dec_day;
-        # WSVIDALLDN was used in the triplet prior to January 2018.
-	if($triplet_check == 1){
-	    $triplet_check = 2;
-	}
-    }
 
+    # Code which captures a WSPOW00000, WSPOW0002A, and WSVIDALLDN
+    # capture check for the post-outbound perigee passage ECS triplet power command.
+    if (($Rec_Eventdata{TLMSID} eq "WSPOW00000") ||
+       ($Rec_Eventdata{TLMSID} eq "WSPOW0002A") ||
+       ($Rec_Eventdata{TLMSID} eq "WSVIDALLDN"))
+      {
+	$viddwn_cnt=$viddwn_cnt+1;
+  	$per_vidalldn=$dec_day;
+        # Increment the value of triplet_check indicating you have obtained
+        # the first two items of the triplet
+	if($triplet_check == 1)
+          { $triplet_check = 2; }
+      }
 
 
     #----------------------------------------
