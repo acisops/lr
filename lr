@@ -300,7 +300,7 @@ $last_token = substr($prev_load, -1);
 
 print("\nBefore the IF:");
 print("\n    The Previous load variable contains:  $prev_load");
-print("\n    The last token is: $last_token");
+
 
 # If the length was 8 and the last token was a capital letter
 # Then remove the letter from $prev_load, and add the lower case of that letter

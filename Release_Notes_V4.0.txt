@@ -68,7 +68,9 @@ The changes were tested by running the:
 
    JUL0821A
    SEP2021B
+   OCT1821A
    OCT2521B
+   OCT2821A
    OCT3021A
    JAN1822B
    JAN2422A
@@ -81,7 +83,7 @@ as in production.
 All changes which affected thermal model output were tested with and without new switches for
 all 4 load types (Normal, TOO, SCS-107, Full Stop).
 
-Thermal models were run where the changes affect the ouput of the models such as SEP2021B and OCT2521B
+Thermal models were run where the changes affect the ouput of the models such as SEP2021B and OCT18-3021
 Assembled history was correct. 
 
 The output in the test directories was  compared to that in the production directories. All differences were
