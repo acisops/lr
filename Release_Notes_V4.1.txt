@@ -19,8 +19,7 @@ lr, Release_Notes_V4.1.txt
 
 The changes can be seen here:
 
-https://github.com/acisops/lr/pull/
-
+https://github.com/acisops/lr/pull/31
 
 Must be installed with or after an acis_thermal_check update:
 
