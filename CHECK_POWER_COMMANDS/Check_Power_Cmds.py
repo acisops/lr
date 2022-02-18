@@ -24,6 +24,11 @@
 #         - Part of the Feb 22 update to fix the 63 second erroneous violations
 #         - Removed deprecated Chandra.Time
 #         - Eliminated commented-out line
+#
+# Update: February 15, 2022
+#          Gregg Germain
+#          - Allow for the case of a Vehicle-Only Review load where there are no ACISPKT commands
+#
 ################################################################################
 import argparse
 
@@ -168,10 +173,9 @@ testargs = cl_parser.parse_args()
 # Set the test flag based upon user input
 if testargs.test:
     # For Test Purposes:
-    print('\nCheck_Power_Cmds -  RUNNING IN TEST MODE\n')
+    print('\n    Check_Power_Cmds -  RUNNING IN TEST MODE')
     test_flag = True
 else:
-    print("\nRunning for score.\n")
     test_flag = False
 
 # Now create an instance of the the System State Class.
@@ -201,32 +205,40 @@ array_row_number = 0
 # Grab the first item in the array
 present_cmd = system_packets[array_row_number]
 
-# Now  process each entry until you hit your
-# first ACISPKT.  Then you process that first one.  This will set up
-# the system state for processing the next ACISPKT that you encounter
-while present_cmd['cmd_type'] != 'ACISPKT':
 
-    # Run the ORB rules on the present state
-    system_state, new_rules_fired, violations_list = run_one_command(present_cmd,
-                                                                     system_state,
-                                                                     bfc,
-                                                                     Rulesets.ORB_CMD_SW_rule_set)
+# If this s a Vehicle-Only Review load then there will be no ACISPKT commands within the load.
+# So skip the while loop which is intended ot take you to the first one.  
+# This means that array_row_number will equal 0
+
+if 'ACISPKT' in system_packets['cmd_type']:
+
+    # 
+    # Now  process each entry until you hit your first ACISPKT.  
+    # Then you process that first one.  This will set up
+    # the system state for processing the next ACISPKT that you encounter
+    while present_cmd['cmd_type'] != 'ACISPKT':
+
+        # Run the ORB rules on the present state
+        system_state, new_rules_fired, violations_list = run_one_command(present_cmd,
+                                                                             system_state,
+                                                                             bfc,
+                                                                             Rulesets.ORB_CMD_SW_rule_set)
   
-    # Append all the rules that may have fired to the master rule list
-    if new_rules_fired:
-        all_rules_fired.append(list(new_rules_fired))
+        # Append all the rules that may have fired to the master rule list
+        if new_rules_fired:
+            all_rules_fired.append(list(new_rules_fired))
  
-    # Append any violations you found to the master violations list
-    if violations_list:
-        all_violations.append(violations_list[0])
+        # Append any violations you found to the master violations list
+        if violations_list:
+            all_violations.append(violations_list[0])
 
-    # You want to increment the system_packets index so that you can look
-    # at the next command.
-    # You will be looking at the next row
-    array_row_number += 1
+        # You want to increment the system_packets index so that you can look
+        # at the next command.
+        # You will be looking at the next row
+        array_row_number += 1
 
-    # Now look at the next command in the backstop file.
-    present_cmd = system_packets[array_row_number]
+        # Now look at the next command in the backstop file.
+        present_cmd = system_packets[array_row_number]
 
 
 # Ok so this next command you are looking at is an ACISPKT command.
@@ -286,7 +298,16 @@ for eachpacket in system_packets[array_row_number:]:
  
     # Append any violations you found to the master violations list
     if violations_list:
-        all_violations += violations_list[0]
+        all_violations+= violations_list[0]
 
-# Write out the error
-bfc.insert_errors('ACIS-LoadReview.txt', all_violations)
+
+if len(all_violations) == 0:
+    print('\n    NO POWER COMMAND ERRORS FOUND\n')
+else:
+    # Write out the errors
+    print('\n    ERROR - POWER COMMAND ERRORS FOUND!')
+    bfc.insert_errors('ACIS-LoadReview.txt', all_violations)
+
+
+
+
