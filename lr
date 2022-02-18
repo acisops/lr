@@ -682,7 +682,7 @@ if  ( ($VO_choice eq "VOC") || ($VO_choice eq "VOB") )
 # Now if $VO_choice is either VOB or VOR, then the REVIEW Load is to be run Vehicle Only.
 # In this case copy the CR*.backstop file to ORIG_CR*.backstop, and the .../vehicle/VR*.backstop
 # is to be copied to CR*_V.backstop.
-# We do this by calling the Python program Swap_Baclkstop_Files.py
+# 
 if  ( ($VO_choice eq "VOR") || ($VO_choice eq "VOB") )
   {
 

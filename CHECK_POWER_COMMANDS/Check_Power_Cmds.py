@@ -206,7 +206,7 @@ array_row_number = 0
 present_cmd = system_packets[array_row_number]
 
 
-# If this s a Vehicle-Only Review load then there will be no ACISPKT commands within the load.
+# If this is a Vehicle-Only Review load then there will be no ACISPKT commands within the load.
 # So skip the while loop which is intended ot take you to the first one.  
 # This means that array_row_number will equal 0
 
