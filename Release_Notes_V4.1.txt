@@ -1,0 +1,74 @@
+Change Description
+==================
+
+The main driver for this update is handling the circumstance where the Review load is a full science + vehicle
+commands load, but we know - prior to the review - that only the vehicle load command set, in the
+review load, will be executed. The new LR switch: VOR for Vehicle Only Review was implemented. The Focal plane
+thermal model had difficulties with the -109 database searches when the Vehicle-Only portion of a full load was 
+processed by lr (see FSDS-18).
+
+The program which checks for power command timing errors had to be modified to handle loads without any ACISPKT commands.
+Also the Check_Power_Cmds output messages were cleaned up and made more informative.
+
+
+
+Files Changed or added:
+=================== 
+
+lr, Release_Notes_V4.1.txt
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/31
+
+Must be installed with or after an acis_thermal_check update:
+
+FSDS-18 - https://github.com/acisops/acis_thermal_check/pull/48
+
+
+
+Testing:
+======== 
+
+The changes were tested by running these regression test loads:
+
+DEC2418A
+DEC2418B
+MAY2620
+AUG3120
+SEP2021
+OCT2821
+OCT3021
+JAN1022 
+FEB1422
+
+These test types included Normal, TOO, SCS-107 and Full Stop loads; loads with and without power commanding errors,
+loads which were vehicle-only as built (e.g. MAY2620 and AUG3120), and loads which were built as full loads but 
+only the vehicle commands were activated (e.g. OCT2821 and FEB1422), and loads which were not affected by 
+Vehicle-Only Continuity or Review loads. In cases where there was no production case of a load type being executed as
+a full Review load (science+vehicle) where the Vehicle-Only commands were executed, tests were run and checked by hand
+(e.g. JAN1022). 
+
+The assembled histories for OCT2821 and FEB1422 were checked by hand and these loads were added to the regression test suite. 
+Tests were also conducted using acis_thermal_checl/pull/48 to assure that the problem was fixed and the results were correct.
+Where applicable, thermal model output was checked. All differing results were accounted for: all tests passed.
+
+
+
+Interface impacts
+=================
+
+ACIS Ops lr user has a new switch to use when appropriate VOR.
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+
+

@@ -125,7 +125,7 @@ use Plucknames;
 #
 #
 # Update: September, 21, 2021
-#         V3.9
+#          V3.9
 #         - Move CHECK_POWER_COMMANDS and WINDOW_CHECK to before
 #           run_models call
 #
@@ -141,6 +141,10 @@ use Plucknames;
 #           load type is (TOO, SCS-107, STOP).
 #         - added --nomodels switch to run LR without running the thermal models
 #         - Added comments and fixed typos
+#
+# Update: February 10, 2022
+#          V4.1
+#          - Activated hooks for VOB and VOR switches
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
@@ -191,9 +195,12 @@ if ($VO_choice  ne "")
     # But since they did supply one, check to see if the supplied argument 
     # is in the list. We want to check this and, if the input is invalid, exit.
     if(  not( grep( /^$VO_choice$/,  @VO_types)))
-    {
-     die("FATAL ERROR - $VO_choice is an invalid value for the VO switch.\nValid values are: VOC, VOR, VOB\n");
-    }
+      {
+       die("FATAL ERROR - $VO_choice is an invalid value for the VO switch.\nValid values are: VOC, VOR, VOB\n");
+      }
+    else
+      { print "\n The VO value is: $VO_choice";}
+
   }
 
 
@@ -298,7 +305,7 @@ print("\nLength of the input string is: $len_prevload");
 # Get the last token in the preview load name
 $last_token = substr($prev_load, -1);
 
-print("\nBefore the IF:");
+
 print("\n    The Previous load variable contains:  $prev_load");
 
 
@@ -422,7 +429,7 @@ if( (! $test_dir) &&
 #------------------------------------------------------
 
 # CD to the newly-created ofls<x> directory.
-# CD to /data/acis/LoadReviews/<YEAR>/LOAD/ofls<a,b,c etc> -------  IN OFLS DIR
+# CD to /data/acis/LoadReviews/<YEAR>/LOAD/ofls<a,b,c etc>                 --------------------------------  IN OFLS DIR
 chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 
 if ($skiplucky)
@@ -483,7 +490,8 @@ print "unzipping: $zip ...\n";
 # Get tar file
 $file = (Plucknames->findNames(".", "backstop.tar"))[0];
 
-#backstop extraction and acis script
+# Extract both the CR*.backstop file and the .../vehicle/VR*.backstop file
+# backstop extraction and acis script
 @tarTOC = Archive::Tar->list_archive($file, 0);
 @bck = Plucknames->tarNames(\@tarTOC, "backstop"); 
 
@@ -652,17 +660,54 @@ open(CONTFILE, ">$ofls_dir/ACIS-Continuity.txt");
 # directory path to the ACIS-Continuity.txt file
 print CONTFILE $prev_load_dir.$ofls_val, "\n";
 
-# Now, if the user specified "VOC" for the VO command line argument,
-# Then append "VO_" to the load type.  This will inform the models
+# Now, if the user specified either "VOC" or "VOB"for the VO command line argument,
+# then append "VO_" to the load type.  This will inform the models
 # that when the continuity load is read, the Vehicle Only version
 # should be used.  Otherwise load_type should be just the present
 # value
-if  ($VO_choice eq "VOC")
+#
+# VOB stands for (V)ehicle (O)nly (B)oth, meaning that the VR*.backstop vehicle only file
+# should be read for both the Review and the Continuity load.  But this piece of code
+# handles what gets written to the ACIS-Continuity.txt file. So in both cases (VOC and VOB)
+# You want ACIS-Continuity.txt to indicate vehicle-only for the Continuity load.
+# Reading the VR*.backstop file for the review load is handled by the call to run-models.pl.
+if  ( ($VO_choice eq "VOC") || ($VO_choice eq "VOB") )
   {
     # User selected VOC for the VO switch. Tell the model to read
     # the vehicle only load for the Continuity. Append "VO_"
     # to the recognized load type
     $load_type = "VO_".$load_type;
+  }
+
+# Now if $VO_choice is either VOB or VOR, then the REVIEW Load is to be run Vehicle Only.
+# In this case copy the CR*.backstop file to ORIG_CR*.backstop, and the .../vehicle/VR*.backstop
+# is to be copied to CR*_V.backstop.
+# 
+if  ( ($VO_choice eq "VOR") || ($VO_choice eq "VOB") )
+  {
+
+    # Save the full backstop file as ORIG_CR*.backstop
+    print "\nReceived the $VO_choice switch. Copying $backfile to ORIG_${backfile}";
+    system("mv $backfile ORIG_${backfile}");
+
+    # Formulate the modified name for the CR backstop file to include "_V" in the name
+    # Index of the beginning of the extension: ".backstop"
+    $ext_index = index($backfile, ".backstop");
+
+    # Extract the file name without the extension
+    $old_CR_file_name = substr($backfile, 0, $ext_index);
+
+    # Compose a new name by concatenating the "_V" to the name and include the extension
+    $new_CR_file_name = "${old_CR_file_name}_V.backstop";
+
+    # Perform the copy of the Vehicle-Only file to tne CR file with the new name.
+    print "\n    ...and now copying $vfile to $new_CR_file_name";
+    system( "cp $vfile $new_CR_file_name");
+
+
+    # Lastly, change the variable $backfile so that it points to the new CR*_V.backstop file
+    # Other applications need to access this file and they need to know the new name
+    $backfile  = $new_CR_file_name;
   }
 
 
@@ -761,7 +806,7 @@ print "\nACIS-backstop completed.\n";
 #------------------------------
 # Set up soft links
 #------------------------------
-chdir("$cur_load_dir") || die "cannot change to ${cur_load_dir}\n";
+chdir("$cur_load_dir") || die "cannot change to ${cur_load_dir}\n";   #  -------------------------------- CHDIR IN .../YYYY/MMMDDYY DIR
 
 if(-e "./ofls")
   {
@@ -772,7 +817,7 @@ if(-e "./ofls")
 symlink( "${ofls_dir}", "./ofls");
 
 # CD to the OFLS dir
-chdir("${ofls_dir}") || die "Cannot change to {$ofls_dir}";
+chdir("${ofls_dir}") || die "Cannot change to {$ofls_dir}";             #  -------------------------------- CHDIR IN OFLS DIR
 
 
 #determine and display version of ACIS tables used:
@@ -859,7 +904,9 @@ else
 #
 # Run Check_Power_Cmds.py
 print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM";
+# PRODUCTION
 system("/usr/local/bin/python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
+
 
 # Now execute the Window Check program
 print "\nEXECUTING THE WINDOW CHECK PROGRAM.";
@@ -940,7 +987,7 @@ print "Done with thermal codes...\n\n";
 print "\nACIS TABLES USED IN THIS LOAD:\n$cfg_file\n$dat_file\n";
 
 # CD to /data/acis<-bak>/LoadReviews.
-chdir("$lr_dir");
+chdir("$lr_dir");                                 #  -------------------------------- CHDIR IN /DATA/ACIS/LoadReviews DIR
 
 # Do NOT use this directory for ACE if there is test directory
 unless($test_dir){

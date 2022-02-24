@@ -262,13 +262,13 @@ class Backstop_File_Object:
         # ACIS-LoadReview.txt.ERRORS files intact for comparison.
         if not self.test_flag:
             try:
-                print('Moving ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
+                print('      Moving ACIS-LoadReview.txt.ERRORS to ACIS-LoadReview.txt')
                 shutil.move('ACIS-LoadReview.txt.ERRORS', 'ACIS-LoadReview.txt')
             except OSError as err:
                 print(err)
                 print('Examine the ofls directory and look for the .ERRORS file.')
             else:
-                print('Copy was successful')
+                print('      Copy of errors into ACIS-LoadReview.txt was successful')
         else:
             print('\nTEST MODE - Leaving the ACIS-LoadReview.txt and ACIS-LoadReview.txt.ERRORS files intact for comparison')
 
