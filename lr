@@ -146,6 +146,10 @@ use Plucknames;
 #          V4.1
 #          - Activated hooks for VOB and VOR switches
 #
+# Update: March 15, 2022
+#          V4.2
+#          - Modified lr to include the DO*.orp file in the file extraction from the tarball
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -545,13 +549,9 @@ if (scalar @cti_rep_file_list != 0)
     $cti_rep_file=pop(@field2);
     chomp ($cti_rep_file);
         
-    print "\n    CTI REP FILE IS: ", $cti_rep_file;
-               
     @field3 = split(/\//, $cti_rep_file);
     $cti_rep_file_name=pop(@field3);
     chomp ($cti_rep_file_name); # file name only
-        
-    print "\n     cti_rep_file_name File: $cti_rep_file_name\n";
 
   }
 else # List is empty inform the user. Give the user the chance to specify one
@@ -607,6 +607,17 @@ if ($msfile eq ""){
 $ms_name=pop(@field5);
 chomp($ms_name);
 
+# Extract the ORP file from mps/er/DO*.orp
+@orp_file = Plucknames->tarNames(\@tarTOC, "mps", "er",  "DO");
+@orp_field = split(/\s+/, $orp_file[0]);
+$orp=pop(@orp_field);
+chomp($orp);
+if ($orp eq ""){
+    print "WARNING: can't extract DO*.orp file.\n";
+}
+
+@orp_field2 = split(/\//, $orp); #short name
+$orp_name = pop(@orp_field2);
 
 #Get NIL er file
 @nil_file = Plucknames->tarNames(\@tarTOC, "mps", "er", "C${load_name}"); 
@@ -614,7 +625,7 @@ chomp($ms_name);
 $nil=pop(@nil_field);
 chomp($nil);
 if ($nil eq ""){
-    print "WARNING: can't extract C${load_name} NIL file.\n";
+    print "\nWARNING: can't extract C${load_name} NIL file.\n";
 }
 @nil_field2 = split(/\//, $nil); #short name
 $nil_name=pop(@nil_field2);
@@ -637,7 +648,7 @@ $localdir = getcwd();
 
 print "\nUNTARRING the backstop file";
 # UNTAR THE BACKSTOP TAR FILE --------------------------------------- TAR -XVF
-`$tar -xvf $file $backfile $mmfile $msfile $nil $mnvr $vfile  $cti_rep_file`;
+`$tar -xvf $file $backfile $mmfile $msfile $nil $mnvr $vfile  $cti_rep_file $orp`;
 
 #----------------------------------------
 #  LR BREAK PROCESSING - Run ONLY if the -b flag is set
@@ -744,13 +755,15 @@ print "\tms*.sum File: $ms_name\n";
 print "\tCRM Pad Time file: $crm_name\n";
 print "\tHistory File Used: $hist\n";
 print "\tManuever File Used: $mnvr\n";
-
+print "\tCTI_Report File Used: $cti_rep_file_name\n";
+print "\tOrbit Events File Used: $orp_name\n";
 #unlink ("*.tar");
 
 
-#move files to the right locations.
+# Move files to the right locations.
 rename("$mmfile","./$mm_name");
 rename("$msfile","./$ms_name");
+rename("$orp", "./$orp_name");
 
 # If we found a CTI report file then copy it over into the
 # operational ofls directory.  
@@ -911,6 +924,17 @@ system("/usr/local/bin/python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMAND
 # Now execute the Window Check program
 print "\nEXECUTING THE WINDOW CHECK PROGRAM.";
 system('/usr/local/bin/python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
+
+# Next execute the SCS-155 Deadman Check
+print "\nSCS-155 DEADMAN CHECK PROGRAM";
+
+system("/usr/local/bin/python /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
+
+# Next execute the HETG Check
+print "\nHETG CHECK PROGRAM";
+
+system("/usr/local/bin/python /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
+
 
 #--------------------------------
 # Copy in Bright-Source List 
