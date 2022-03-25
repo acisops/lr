@@ -216,20 +216,28 @@ for each_cmd in assembled_commands:
     # after the 155 enable and activate, then you can check the time interval between
     # SCS-155 enable and OORMPDS.
     if scs_155_en and scs_155_act and oormpds_acq:
-        delta_t_sec, delta_t_minutes, delta_t_hours = cd.Calc_Delta_Time(COENAS1_date, OORMPDS_date)
+        # Set the required secondss between SCS-155 enable and OORMPDS
+        required_minutes = 2880.0
+        required_seconds = (48.0 * 3600.0)
+
+        delta_t_seconds, delta_t_minutes, delta_t_hours = cd.Calc_Delta_Time(COENAS1_date, OORMPDS_date)
         # Check the value returned - it should be 48 hours
-        delta_t_hours = round(delta_t_hours, 0)
-        if delta_t_hours == 48.0:
-            print('     '+OORMPDS_date+'      Radmon DISABLE  ==> Time between 155 ENABLE and OORMPDS: ', delta_t_hours, 'hours.  Ok.' )
+        required_v_actual = required_seconds - delta_t_seconds
+
+        # If the time delta between SCS-155 enable and OORMPDS differs by less
+        # than 3 minutes, all is good. Otherwise throw an error
+        if abs(required_seconds - delta_t_seconds) <= 180.0:
+            print('     '+OORMPDS_date+'      RADMON DISABLE  ==> Time between 155 ENABLE and OORMPDS:  %.4f hours off by %.4f seconds.  Ok.' % (delta_t_hours, required_v_actual) )
         else:
-            print('     '+OORMPDS_date+'      Radmon DISABLE ==> Time between 155 ENABLE and OORMPDS: ', delta_t_hours, 'hours. ERROR.' )
+            print('     '+OORMPDS_date+'      RADMON DISABLE ==> Time between 155 ENABLE and OORMPDS: %.4f hours off by %.4f seconds. ERROR.' % (delta_t_hours, required_v_actual) )
 
         # Shut off the booleans for enable and activate to avoid recalculation
         scs_155_en=False
         scs_155_act=False
 
     # If you have acquired the OORMPDS time and the SCS-155 DISABLE time
-    # then you can calculate the delta shutoff time
+    # then you can calculate the delta shutoff time between RADMON DIS and 
+    # SCS-155 DISA
     if oormpds_acq and scs_155_disa:
         delta_t_sec, delta_t_minutes, delta_t_hours = cd.Calc_Delta_Time(OORMPDS_date, CODISAS1_date)
         # Check the calculated time delta - it should be 5 minutes (rounded)
@@ -264,6 +272,10 @@ for each_cmd in assembled_commands:
              else:
                  print('>>>WARNING: Time Between OORMPDS and Deadman Timeout is not 10 mins.: ', delta_t_minutes, 'minutes' )
      
+             # Double check to be certain the Deadman timeout is not before the deadman DISA
+             if deadman_timeout_secs <= CODISAS1_time:
+                 print('>>> Error Deadman Timeout at: %s occurs on or before the SCS-155 Disable Command at: %s' % (deadman_timeout_date, CODISAS1_date ) )
+
         # Shut off the remaining booleans in preparation for the next orbit
         oormpds_acq=False
         scs_155_disa = False

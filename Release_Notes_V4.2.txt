@@ -57,11 +57,6 @@ The changes can be seen here:
 https://github.com/acisops/lr/pull/33
 
 
-
-FSDS-
-
-
-
 Testing:
 ======== 
 
@@ -74,11 +69,13 @@ MAR0722
 MAR1122
 MAR1422
 MAR2122
+JAN1022 - prior to the guideline being implemented, tests failure modes.
+
+TEST_MAR2122 - MAR2122 load hand modified to test placement of the
+               SCS-155 disable command after the deadman timeout
 
 These tests included all examples of load where the guidelines were
-implemented which included Normal and TOO load types. JAN1022, which
-was prior to the guideline being implemented, was included to test the
-failure modes.
+implemented which included Normal and TOO load types. 
 
 All tests passed.
 
