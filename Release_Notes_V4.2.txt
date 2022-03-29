@@ -1,0 +1,101 @@
+Change Description
+==================
+
+This update to the ACIS Ops Load Review software provides checks for
+the two Priority 2 guidelines as described in:
+
+https://occweb.cfa.harvard.edu/twiki/bin/view/Constraints/MPGuidelines/Release/GuidelineRadiationSafingWithoutHRC
+
+These are:
+
+ "When HRC data is not used for onboard radiation monitoring and safing, ensure the following:
+
+ 1. HETG is inserted by rad entry, either during the same maneuver used to safe the SIM or prior,
+    and kept in until at least the start of the maneuver to the first target exiting the rad 
+    zone Priority 2.
+
+ 2. Ensure the following is commanded for every rad entry Priority 2: 
+
+      Time 	                                     Event 
+Rad Entry Minus 48h 	Activate SCS-155 containing; A_NSM_XXHR.RTS timer = 48h, 10m
+Rad Entry                                      Nominal SI Safing
+Rad Entry + 5m                                 Disable SCS-155"
+
+The second guideline is referred to as the SCS-155 Deadman check, or
+Deadman Check in this document.
+
+For item 1, the update includes a new program: HETG_Check.py, which
+checks the status of the HETG as compared to the perigee passages and
+will flag a load which does not have the HETG in for the perigee passage.
+
+For item 2, the update includes an new program: Deadman_Check.py which
+will determine if the SCS-155 enable, activate and disable commands
+appear in the load, and checks the timing of those commands as
+compared to the guideline. SCS-155 contain the deadman timer and code
+which will execute at deadman timer timeout and which protects ACIS.
+
+The load review program itself, lr, was modified to execute the two
+programs.  In addition, to handle the circumstance where the SCS-155
+enable and activate commands appear at the end of the Review load, but
+the subsequent Radzone entry does not appear in the load, lr was
+modified to extract the Orbital Events file (DO*.orp) from the load
+week tarball. Utility programs were written to extract the information
+from the DO*.orp file for use by Deadman_check.py as well as other
+convenience programs.
+
+Output from the two programs appears on the screen while lr is
+running, and also appears in the log file created when LR is run, and
+stored in the OFLS directory for that load week.
+
+
+Files Changed or added:
+=======================
+
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/33
+
+
+Testing:
+======== 
+
+The changes were tested by running these regression test loads:
+
+JAN1022 
+FEB2122
+FEB2822
+MAR0722
+MAR1122
+MAR1422
+MAR2122
+MAR2822
+JAN1022 - prior to the guideline being implemented, tests failure modes.
+
+TEST_MAR2122 - MAR2122 load hand modified to test placement of the
+               SCS-155 disable command after the deadman timeout
+
+These tests included all examples of load where the guidelines were
+implemented which included Normal and TOO load types. 
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
