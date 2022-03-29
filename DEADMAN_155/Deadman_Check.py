@@ -31,7 +31,7 @@ IMPORTANT: VO (Vehicle Only) loads DO NOT HAVE OORMPDS or OORMPEN
     Radzone Entry
     SCS-155 deactivate.
 
-    In this progam these 4 commands or states will be referred to as Deadman 155 states.
+    In this program these 4 commands or states will be referred to as Deadman 155 states.
     The complete set of 4 states will be referred to as a state group.
 
   The Deadman timeout is fixed at 48 hours 10 minutes from activation.
@@ -135,7 +135,7 @@ for each_cmd in assembled_commands:
     # print a line out that delineates Continuity load deadman reports from
     # Review load Deadman reports
     if (each_cmd['time'] >= rev_start_time) and \
-       (review_load_started_flag == False):
+       (not review_load_started_flag):
         # Set the flag to True so that this line gets written out only once
         review_load_started_flag = True
         # inform the user that the review load  commands are being processed
@@ -256,7 +256,7 @@ for each_cmd in assembled_commands:
         # this next section which calculates the time delta between SCS-155 activation
         # and RADMON DIS (because you don't have the activation time). This is only
         # a problem at the start analysis of the Continuity load.
-        if COACTS1_time != None:
+        if COACTS1_time is not None:
              deadman_timeout_secs = COACTS1_time + (48.0 * 3600.0) + (10.0 * 60.0)
              deadman_timeout_date = apt.date(deadman_timeout_secs)
      
@@ -350,19 +350,28 @@ if scs_155_act and scs_155_en and not oormpds_acq:
         deadman_timeout_secs = COACTS1_time + (48.0 * 3600.0) + (10.0 * 60.0)
         deadman_timeout_date = apt.date(deadman_timeout_secs)
      
+        # Expected length of the deadman timer in minutes
+        expected_deadman_timer = 48.0 * 60.0
+
         # Print out the expected Deadman timeout date
         print('     '+deadman_timeout_date+'      SCS 155 Timeout & Execution (Activate + 002:00:10)')
 
         # Now you have everything you need to check the timing of the SCS-155
-        # enable and activate commands. Determine the time delta between SCS-155
+        # enable and activate commands. Determine the actual time delta between SCS-155
         # enable and Radmon Entry
         delta_t_sec, delta_t_minutes, delta_t_hours = cd.Calc_Delta_Time(COENAS1_date, OORMPDS_date)
-        # Check the value returned - it should be 48 hours (rounded)
-        delta_t_hours = round(delta_t_hours, 0)
-        if delta_t_hours == 48.0:
-            print('          ==> Time between ENABLE and OORMPDS: ', delta_t_hours, 'hours. Ok.' )
+
+        # Check the value returned - it should be 48 hours 
+        delta_t_minutes_r = round(delta_t_minutes, 0)
+
+        # Compare the prospective to the actual with an allowable difference or 3 minutes
+        if abs(delta_t_minutes_r - expected_deadman_timer) <=3.0:
+            print('          ==> The time between ENABLE and OORMPDS: %.2f hours. Ok.' % (delta_t_hours) )
         else:
-            print('>>>ERROR: Time Between ENABLE and OORMPDS is NOT 48 hours: ', delta_t_hours, 'hours' )
+            print('>>>ERROR: Time Between ENABLE and OORMPDS is NOT 48 hours: %f hours' % (delta_t_hours))
+            print('    Nominal Timer length: ', expected_deadman_timer)
+            print('      Actual Timer length: ', delta_t_minutes_r)
+            print('           difference: ', expected_deadman_timer - delta_t_minutes_r,  'minutes')
 
     else:
         print('\n Big Trouble - the EEF and EQF are not in the same orbit')

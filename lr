@@ -928,12 +928,12 @@ system('/usr/local/bin/python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window
 # Next execute the SCS-155 Deadman Check
 print "\nSCS-155 DEADMAN CHECK PROGRAM";
 
-system("/usr/local/bin/python /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
+system("/usr/local/bin/python3 /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
 
 # Next execute the HETG Check
 print "\nHETG CHECK PROGRAM";
 
-system("/usr/local/bin/python /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
+system("/usr/local/bin/python3 /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
 
 
 #--------------------------------

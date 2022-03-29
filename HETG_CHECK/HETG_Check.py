@@ -50,8 +50,7 @@ from backstop_history import BackstopHistory
 import apt_date_secs as apt
 import Calc_Delta as cd
 import ORP_File_Class as ofc
-
-exec(open('/home/gregg/LR_CODE/UTILITIES/OFLS_File_Utilities.py').read())
+import OFLS_File_Utilities as oflsu
 
 #
 # Parse the input arguments
@@ -88,7 +87,7 @@ rev_start_date = assembled_commands[0]['date']
 rev_start_time = assembled_commands[0]['time']
 
 # Next, find the status of the HETG at the end of the Continuity load
-cont_status = Get_OFLS_Status_Line(load_week_path)
+cont_status = oflsu.Get_OFLS_Status_Line(load_week_path)
 
 # Iniitalize the event dates
 if cont_status['HETG_status'] == 'HETG-IN':
@@ -151,7 +150,7 @@ for each_cmd in assembled_commands:
     # print a line out that delineates Continuity load HETG reports from
     # Review load HETG reports
     if (each_cmd['time'] >= rev_start_time) and \
-       (review_load_started_flag == False):
+       (not review_load_started_flag):
         # Set the flag to True so that this line gets written out only once
         review_load_started_flag = True
         # inform the user that the review load  commands are being processed
