@@ -2,11 +2,11 @@ Change Description
 ==================
 
 
+lr and all associated Load Review programs were modified to run under
+RH8 and Python3.
+
 LR was also modified to eliminate the check for the TXINGS commands
 as part of the Perigee Passage ECS measurements.
-
-lr and all associated Load Review programs were modified to run under
-RH8.
 
 
 
