@@ -1,0 +1,54 @@
+Change Description
+==================
+
+
+LR was also modified to eliminate the check for the TXINGS commands
+as part of the Perigee Passage ECS measurements.
+
+lr and all associated Load Review programs were modified to run under
+RH8.
+
+
+
+Files Changed or added:
+=======================
+
+
+The changes can be seen here:
+
+https://github.com/acisops/lr/pull/
+
+
+Testing:
+======== 
+
+The changes were tested by running these regression test loads:
+
+APR0322
+MAY2822
+MAY3022
+AUG1322
+
+Covering Normal, TOO, SCS-107 and Full Stop loads.
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+

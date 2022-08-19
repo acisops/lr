@@ -1,4 +1,5 @@
-#!/usr/bin/env perl 
+#! /usr/bin/env perl 
+
 use Getopt::Std;
 use Getopt::Long;
 use POSIX qw(uname);
@@ -150,6 +151,10 @@ use Plucknames;
 #          V4.2
 #          - Modified lr to include the DO*.orp file in the file extraction from the tarball
 #
+# Update: June 13, 2022
+#         V4.3
+#         - Changes to accomodate DS10.11/Red Hat 8, and the change in txings
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -246,7 +251,7 @@ $lr_dir = <${base_dir}/LoadReviews>;
 $lr_bak_dir = </data/acis-bak/LoadReviews>;
 $script_store_dir = <${base_dir}/LoadReviews/script>;
 
-# PRODUCTION
+# PRODUCTION Define call to acis-backstop.  
 $backstop = <${base_dir}/LoadReviews/script/acis-backstop.pl>;
 
 
@@ -784,8 +789,8 @@ else
 # copied one in.
 print "\nRunning the converter to go from CTI to CRM";
 print "\nThe Converter command I'm running is: ";
-print "\n    python $script_store_dir/Convert_CTI_to_CRM.py $ofls_dir\n";
-`python $script_store_dir/Convert_CTI_to_CRM.py $ofls_dir`;
+print "\n    python3 $script_store_dir/Convert_CTI_to_CRM.py $ofls_dir\n";
+`python3 $script_store_dir/Convert_CTI_to_CRM.py $ofls_dir`;
 
 if(-e "$nil")
   {
@@ -807,14 +812,19 @@ rmtree("./mps");
 #Run the Health and Safety script
 
 print "\tRunning Health and Safety Script...\n\n";
-system("${script_store_dir}/LRHS $localdir/${backfile} ${hist} > ${ofls_dir}/LRHS.output "); 
+# PRODUCTION
+system("python3 ${script_store_dir}/LRHS $localdir/${backfile} ${hist} > ${ofls_dir}/LRHS.output "); 
+
 print "\tRunning ACIS Load Review Script...\n\n"; 
 
-# RUN ACIS BACKSTOP
+# RUN ACIS-BACKSTOP
+
+# PRODUCTION
 $backstop_str = "$backstop -s ${server} ${localdir}/${backfile} ${hist}"; 
 print "\nRunning $backstop_str...\n";
 system("$backstop_str");
 print "\nACIS-backstop completed.\n";
+
 
 #------------------------------
 # Set up soft links
@@ -918,22 +928,21 @@ else
 # Run Check_Power_Cmds.py
 print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM";
 # PRODUCTION
-system("/usr/local/bin/python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
-
+system("python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
 
 # Now execute the Window Check program
 print "\nEXECUTING THE WINDOW CHECK PROGRAM.";
-system('/usr/local/bin/python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
+system('python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
 
 # Next execute the SCS-155 Deadman Check
 print "\nSCS-155 DEADMAN CHECK PROGRAM";
 
-system("/usr/local/bin/python3 /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
+system("python3 /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
 
 # Next execute the HETG Check
 print "\nHETG CHECK PROGRAM";
 
-system("/usr/local/bin/python3 /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
+system("python3 /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
 
 
 #--------------------------------
@@ -987,7 +996,9 @@ if ($appx) {
         # the "for score" ofls directory.
         if($test_dir)
             {
+              # Production
 	      system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
+
             }
         else
             {
