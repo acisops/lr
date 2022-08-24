@@ -68,7 +68,8 @@
 #         v2.21
 #         Gregg Germain
 #         - Modified invocation of Python3 due to RH8/DS10.11
-#
+#         - Removed copy of history files to luke-v and han-v
+#       
 ####################################################################
 #COFT=COMMENTED OUT FOR TESTING
 #--------------------------------------------------------------------
@@ -126,15 +127,15 @@ else
 $xcanuck_flu=GetFluMon('xcanuck');
 
 $acis60_v_flu=GetFluMon('acis60-v');
-$han_v_flu=GetFluMon('han-v');
-
-$colossus_v_flu=GetFluMon('colossus-v');
 
 $aciscdp_v_flu=GetFluMon('aciscdp-v');
-$luke_v_flu=GetFluMon('luke-v');
 
 $acisway_v_flu=GetFluMon('acisway');
 $ishmael_v_flu=GetFluMon('ishmael');
+
+$colossus_v_flu=GetFluMon('colossus-v');
+#$han_v_flu=GetFluMon('han-v');
+#$luke_v_flu=GetFluMon('luke-v');
 
 
 # If this is a backup run then the FLU-MON directory
@@ -502,14 +503,6 @@ foreach $file (@history_files)
       	print "HF - copying: $mission_hist_file to aciscdp-v:$aciscdp_v_flu\n";
 	system("scp ${ops_dir}/$mission_hist_file  acisweb\@aciscdp-v:${aciscdp_v_flu}");
 
-        # HAN-V
-      	print "HF - copying: $mission_hist_file to han-v:$han_v_flu\n";
-	system("scp ${ops_dir}/$mission_hist_file han-v:${han_v_flu}");
-
-        # LUKE-V
-      	print "HF - copying: $ops_dir/$mission_hist_file to luke-v:$luke_v_flu\n";
-	system("scp ${ops_dir}/$mission_hist_file luke-v:${luke_v_flu}");
-
 	$i++;   
       }
     elsif ($choice eq "too")
@@ -520,7 +513,7 @@ foreach $file (@history_files)
       { 
 	print "\n\n$file - History file run under TEST mode.";
 	print "\nNo files are copied to acis60-v/acisway/ishmael/aciscdp-v during testing";
-        print "\nBut if I WERE going to copy files, the commands I'd give would look something like this:";
+        print "\nBut if I WERE going to copy files, to all four R/T machines, the commands I'd give would look something like this:";
  
         print "\n  scp /proj/sot/acis/FLU-MON/$mission_hist_file  acisweb\@acis60-v:${acis60_v_flu}";
         print "\n";
@@ -556,13 +549,7 @@ foreach $file (@history_files)
         print "HF - copying: $scs_155_mission_hist_file to aciscdp-v:$aciscdp_v_flu\n";
         system("scp ${ops_dir}/$scs_155_mission_hist_file  acisweb\@aciscdp-v:${aciscdp_v_flu}");
 
-        # HAN-V
-        print "HF - copying: $scs_155_mission_hist_file to han-v:$han_v_flu\n";
-        system("scp ${ops_dir}/$scs_155_mission_hist_file han-v:${han_v_flu}");
 
-        # LUKE-V
-        print "HF - copying: $scs_155_mission_hist_file to luke-v:$luke_v_flu\n";
-        system("scp ${ops_dir}/$scs_155_mission_hist_file luke-v:${luke_v_flu}");
       } # END ($choice ne "too" && $test == 0)
 
 
@@ -974,7 +961,7 @@ sub set_test_env()
 	$test_dir = "/pool14/duderg/src/regress/history-files";
 	$ops_dir="$base_dir/acisdude/reg_script/${choice}test";
 
-	$ACE_UPDATE="${test_dir}/ACE-update-v2.15.pl -test $ops_dir";
+	$ACE_UPDATE="${test_dir}/ACE-update.pl -test $ops_dir";
 	foreach $f (@history_files)
             {
 	    copy("${ops_dir}/in/${f}.dat", "$ops_dir/${f}.dat") ||
