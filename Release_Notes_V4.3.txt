@@ -2,7 +2,7 @@ Change Description
 ==================
 
 
-lr and all associated Load Review programs, shown below, were modified, as
+lr and the associated Load Review programs, shown below, were modified, as
 necessary, and tested,  to run under RH8 and Python3.
 
 In addition, the following updates were made:
