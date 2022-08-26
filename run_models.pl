@@ -33,9 +33,9 @@
 # Update: June 15, 2022
 #         Gregg Germain
 #         V1.16
-#         Remove the no longer needed call to make_dhheater_history.csh
+#         - Remove the no longer needed call to make_dhheater_history.csh
 #            - Broken under RH8/DS10.11
-#         Remove $dhhtr_history_str from @executables
+#         - Print a line indicating what thermal model is about to be run
 	     
 #--------------------------------------------------------------------
 use POSIX qw(uname);
@@ -188,7 +188,8 @@ if ($OS !~ /Linux/i ||
     $processor !~ /x86_64/){
     print "\tThis host, ${machine} ${processor}, cannot run the psmc_check.\n\tUsing SSH to connect to ${myhost} to run psmc_check.\n";
     #fork a process to acis to run the PSMC code
-    foreach $item (@executables){
+    foreach $item (@executables)
+     {
 	my $pid = fork();
 	if (not defined $pid) {
 	    print "ERROR>>>resources not avilable. $0 cannot execute model runs.\n";
@@ -204,7 +205,14 @@ if ($OS !~ /Linux/i ||
 }
 else{
     foreach $item (@executables)
-      {
+    {
+	# Get the position of the first space in the model execution string
+	$first_space_pos = index($item, " ");
+	# Extract the substring from the start of the command to the first space
+	$model_to_be_run = substr($item, 0, $first_space_pos);
+	
+	print "\nExecuting model: $model_to_be_run\n";
+	
 	$ret=system($item);
 	if ($ret != 0){
 	    print "$item failed to execute properly\n. $!\n";

@@ -227,6 +227,7 @@ class StateVector:
      outfile.write('(FP SI,HETG status,LETG status,current OBSID,RadMon status,current TLM FMT,Dither)\n')
      outfile.write('\t\t= ('+self.FPInstrument+','+self.HETG+','+self.LETG+','+str(self.OBSID)+','+self.RADMON+','+self.FORMAT+','+self.DITHER+')\n\n')
      #print("\nHistory Set: ",self.FPInstrument,self.HETG,self.LETG,str(self.OBSID),self.OORMPDS,self.OORMPEN,self.FORMAT,self.SIMODE)
+
 #################################################################
 #
 # WhoInFP.py - Returns a string telling you which instrument is 
@@ -348,8 +349,6 @@ def ProcessBackstopFile3(backstopfilepath):
      #
      # First break the command line into tokens split on '|'
      linetokens = line.split('|')
-     #zzzzzzzzz
-     #print(linetokens)
 
      #
      # Now extract the command(3rd token) and clean up leading 
@@ -364,8 +363,6 @@ def ProcessBackstopFile3(backstopfilepath):
         #
         # Clean up the line and place it in the relevant line list
         cleanedline = CleanUpLine(linetokens)
-        #zzzzz
-        #print(cleanedline)
 
         # The lines are cleaned up but they still need to be filtered for
         # relevancy since not all COMMAND_HW commands are relevant. For
@@ -460,6 +457,7 @@ def LRPerigeePassageChecks3(cmdline, sv, outfile):
       outfile.write(outputline+'=====>  ERROR !!!PERIGEE PASSAGE VIOLATION!\n')
       sv.SetState('VIOLATION')
       RuleFired = True
+      
 ##################################################################################
 #
 # LRFindObservationRuleSet3.py - Rule set to process ACIS packets and locate 
@@ -584,6 +582,7 @@ def LRFindObservationRuleSet3(cmdline, sv, outfile):
 
       
    return RuleFired
+   
 ##################################################################################
 #
 # LRCleanUpRules3.py - Rule set be run after all the relevant lines in the 
@@ -606,6 +605,7 @@ def LRCleanUpRules3(sv, outfile):
       (sv.GetAcisStopScience == False):
       print('*****WARNING!!!!***** A science run was started at the end of this load, but not stopped')
       outfile.write('*****WARNING!!!!***** A science run was started at the end of this load, but not stopped\n')
+      
 ################################################################################
 #
 # LRChandraStateRuleSet3.py - Rule set to recognize Chandra type status
@@ -771,7 +771,8 @@ def LRChandraStateRuleSet3(cmdline, sv, outfile):
         RuleFired = True
 
    return RuleFired
-#! /usr/local/bin/python
+   
+
 ##################################################################################
 #
 #  LRHS.py - Expert System to check the health and safety of ACIS in 

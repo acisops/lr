@@ -2,12 +2,29 @@ Change Description
 ==================
 
 
-lr and all associated Load Review programs were modified to run under
-RH8 and Python3.
+lr and all associated Load Review programs, shown below, were modified, as
+necessary, and tested,  to run under RH8 and Python3.
 
-LR was also modified to eliminate the check for the TXINGS commands
-as part of the Perigee Passage ECS measurements.
+In addition, the following updates were made:
 
+lr -  eliminated the check for the TXINGS commands as part of the
+      Perigee Passage ECS measurements.
+   - Removed code that called fptemp_sens_finder.pl; function no
+     longer needed
+
+LRHS - Commented statements removed.
+
+run_models.pl - removed the call to make_dhheater_history.csh as it's
+                        no longer needed.
+		      - Print a line indicating what thermal model is about to be run
+
+acis-backstop.pl - Perigee Passage TXING Quiet checks removed
+
+history-files.pl - history files were no longer copied  to luke-v and
+                         han-v
+
+ACE-update.pl - history files were no longer copied  to luke-v and
+                         han-v
 
 
 Files Changed or added:

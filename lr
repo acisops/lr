@@ -154,6 +154,7 @@ use Plucknames;
 # Update: June 13, 2022
 #         V4.3
 #         - Changes to accomodate DS10.11/Red Hat 8, and the change in txings
+#         - Removed code that called fptemp_sens_finder.pl
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
@@ -969,16 +970,6 @@ print "\nRunning the thermal code...\n";
 if ($appx) {
     print "\nThermal models skipped when not on HEAD LAN\n";
 } else {
-# Get FP sensitive obsids from prev, current, and next AO cycles
-    $fps_cmd = "$script_dir/fptemp_sens_finder.pl -o $ofls_dir/fp_sensitive.txt ";
-    $yr = 0 + $cur_year;
-    $ao_str = "$yr";
-    $yr++;
-    $ao_str .= ",$yr";
-    $yr++;
-    $ao_str .= ",$yr";
-    $fps_cmd = "$fps_cmd -c $ao_str";
-    system($fps_cmd);
     
     # This is so we can tell the thermal models if
     # this is an interrupt load
