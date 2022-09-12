@@ -83,9 +83,9 @@ $base_dir = </data/acis${appx}>;
 
 # FLU-MON directory definitions
 
-$han_flu=GetFluMon('han-v');
+#$han_flu=GetFluMon('han-v');
 $acis60v_flu = GetFluMon('acis60-v');
-#$acisoccv_flu = GetFluMon('acisocc-v');
+
 $acisway_flu = GetFluMon('acisway');
 $ishmael_flu = GetFluMon('ishmael');
 $colossusv_flu = GetFluMon('colossus-v');
