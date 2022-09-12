@@ -29,6 +29,14 @@
 #         John ZuHone
 #         Make BEP and FEP models run from $SKA
 #         V1.15
+#
+# Update: June 15, 2022
+#         Gregg Germain
+#         V1.16
+#         - Remove the no longer needed call to make_dhheater_history.csh
+#            - Broken under RH8/DS10.11
+#         - Print a line indicating what thermal model is about to be run
+	     
 #--------------------------------------------------------------------
 use POSIX qw(uname);
 use Cwd;
@@ -147,8 +155,6 @@ $ska = '/proj/sot/ska3/flight';
 $ENV{'SKA'} = $ska;
 
 #Commands to execute: (BUT NOT EXECUTED YET)
-# make detector housing heater history file
-$dhhtr_history_str="/data/acis${appx}/LoadReviews/script/make_dhheater_history.csh";
 
 # NLET-PSMC
 $psmc_ska_str = "${ska}/bin/psmc_check --oflsdir=${lr_dir} --out ${lr_dir}/out_psmc --nlet_file ${nlet_file} --verbose=0 $break_str";
@@ -169,8 +175,7 @@ $beppcb_ska_str = "${ska}/bin/bep_pcb_check --oflsdir=${lr_dir} --out ${lr_dir}/
 #------------------------------
 # items to run
 #------------------------------
-@executables=($dhhtr_history_str,
-	      $psmc_ska_str,
+@executables=( $psmc_ska_str,
 	      $dpa_ska_str,
 	      $dea_ska_str,
               $fp_ska_str,
@@ -183,10 +188,11 @@ if ($OS !~ /Linux/i ||
     $processor !~ /x86_64/){
     print "\tThis host, ${machine} ${processor}, cannot run the psmc_check.\n\tUsing SSH to connect to ${myhost} to run psmc_check.\n";
     #fork a process to acis to run the PSMC code
-    foreach $item (@executables){
+    foreach $item (@executables)
+     {
 	my $pid = fork();
 	if (not defined $pid) {
-	    print "ERROR>>>resources not avilable. $0 canot execute model runs.\n";
+	    print "ERROR>>>resources not avilable. $0 cannot execute model runs.\n";
 	} 
 	elsif ($pid == 0) { 
 	    exec("ssh $myhost $item");
@@ -198,13 +204,20 @@ if ($OS !~ /Linux/i ||
     } #end foreach loop
 }
 else{
-    foreach $item (@executables){
+    foreach $item (@executables)
+    {
+	# Get the position of the first space in the model execution string
+	$first_space_pos = index($item, " ");
+	# Extract the substring from the start of the command to the first space
+	$model_to_be_run = substr($item, 0, $first_space_pos);
+	
+	print "\nExecuting model: $model_to_be_run\n";
 	
 	$ret=system($item);
 	if ($ret != 0){
 	    print "$item failed to execute properly\n. $!\n";
 	}
-    } #end foreach loop
+      } #end foreach loop
 }
 
 #Only copy to webpage area IF WE DIDN'T GIVE ALTERNATE PATH

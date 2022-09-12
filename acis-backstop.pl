@@ -1,4 +1,4 @@
-#! /bin/env perl
+#! /bin/env perl  
 #--------------------------------------------------------------------
 # Note: /usr/local/bin on Solaris contains the most up to date perl
 #       /usr/local/bin on Linux points to /usr/bin, the most up to date perl
@@ -59,6 +59,22 @@
 #         - Modified the "triplet" code to include WSPOW00000 as a legal
 #           triplet power command.  Also combined the 2 individual sections
 #           of triplet power command test code into one which now includes the WSPOW0.
+#
+# Update: April 4, 2022
+#         - Incorporating HIST_File_Utilities_Class and creating
+#           ACIS-SCS155HIST.dat in OFLS directory
+#
+#  Called from LR with this line:
+#
+#        $backstop_str = "$backstop -s ${server} ${localdir}/${backfile} ${hist}";
+#                          ARGV[1] - ocatsqlsrv   
+#                          ARGV[2] - /data/acis/LoadReviews/2022/MAR2821/oflsa/CR086_2107.backstop
+#                          ARGV[3] - $prev_load_dir/ACIS-History.txt
+#
+# Update: August 18, 2022
+#              - V3.5
+#              - Perigee Passage TXGING Quiet checks removed
+#
 #--------------------------------------------------------------------
 use DBI;
 use Text::ParseWords;
@@ -74,6 +90,17 @@ use Date::Calc qw(Add_Delta_DHMS);
 #----------------------------------------
 #Variables:
 #----------------------------------------
+
+# ARGV[2] contains the full path to the Review load CR*.backstop file
+# Extract the full path to the directory
+$last_slash_pos = rindex($ARGV[2], "/");
+
+# Extract the substring up to but not including the final /
+$rev_load_dir_path = substr($ARGV[2], 0, $last_slash_pos);
+
+# Create the Review Load SCS-155 Deadman History file ACIS-SCS155HIST.dat
+system("/usr/local/bin/python3 /data/acis/LoadReviews/script/UTILITIES/Create_Weekly_155_HIST_file.py $rev_load_dir_path");
+
 $Rec_Time="";			# read the record and split
 $Rec_VCDU="";			# VCDU counter
 $Rec_MC="";			# Command
@@ -126,7 +153,8 @@ $per_oldstopsci=0;
 $check_acis_sci=0;
 $nil_flag=0;			# doing a NIL measurement
 $cti_flag=0;			# doing a CTI measurement
-$quiet_flag=0;                  # quieted the threshold crossings
+#$quiet_flag=0;               # quieted the threshold crossings
+                                        # Removed for FSW GIJ-58
 $dec_day=0;
 $pad=0;
 $pad2=0;
@@ -1575,7 +1603,7 @@ sub process_stop_science{
 	#if we have  started science
 	$compare = 0; #reset these at the end of the observation only
 	$loaded_ocat = 0;
-	$quiet_flag = 0;
+#	$quiet_flag = 0;
     }
     #!done radzone
     $check_acis_sci=0;
@@ -1926,9 +1954,9 @@ sub process_acispkt{
     #----------------------------------------
     # Quiet Threshold Crossings
     #----------------------------------------
-    if ($Rec_Eventdata{TLMSID} eq "WBTX_QUIET") { 
-	$quiet_flag=1;
-    }
+#    if ($Rec_Eventdata{TLMSID} eq "WBTX_QUIET") { 
+#	$quiet_flag=1;
+#    }
    
 }
 #--------------------------------------------------------------------
@@ -1988,12 +2016,12 @@ sub load_pblock{
     #--------------------------------------------------
     #If CTI, check that the quiet flag has been set
     #--------------------------------------------------
-    if($cti_flag){
-	if($quiet_flag == 0){
-	    printf LR "\n>>>ERROR: There is no WBTX_QUIET command before loading the parameter block for a CTI measurement.\n\n";
-	    add_error("o. There is no WBTX_QUIET command before loading the parameter block for a CTI measurement.\n\n");
-	    }
-    }
+#    if($cti_flag){
+#	if($quiet_flag == 0){
+#	    printf LR "\n>>>ERROR: There is no WBTX_QUIET command before loading the parameter block for a CTI measurement.\n\n";
+#	    add_error("o. There is no WBTX_QUIET command before loading the parameter block for a CTI measurement.\n\n");
+#	    }
+ #   }
 	    
     #------------------------------
     #Store entries,and compare with OCAT
