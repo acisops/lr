@@ -20,7 +20,7 @@ run_models.pl - removed the call to make_dhheater_history.csh as it's
 
 acis-backstop.pl - Perigee Passage TXING Quiet checks removed
 
-history-files.pl - history files aree no longer copied  to luke-v and
+history-files.pl - history files are no longer copied  to luke-v and
                          han-v
 
 ACE-update.pl - history files are no longer copied  to luke-v and
