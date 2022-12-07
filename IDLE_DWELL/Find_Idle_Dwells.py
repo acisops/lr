@@ -28,7 +28,7 @@ the next observataion.
 
 """
 #
-# Parse the input argument
+# Parse the input arguments
 #
 dwell_time_parser = argparse.ArgumentParser()
 
