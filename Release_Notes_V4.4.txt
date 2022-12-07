@@ -32,10 +32,9 @@ Files Changed or added:
 =======================
 
 
-The changes can be seen here:
+The updates can be seen here:
 
-https://github.com/acisops/lr/pull/XXXXX
-
+https://github.com/acisops/lr/pull/35
 
 Testing:
 ======== 
