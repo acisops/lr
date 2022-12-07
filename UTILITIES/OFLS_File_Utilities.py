@@ -51,6 +51,7 @@ def Read_ACIS_History_file(ofls_dir, edit=False):
     else:
         ofls_file = open( '/'.join((ofls_dir, 'ACIS-History.txt')), 'r')
     
+    
     # The file reads in as a single line
     line = ofls_file.readline()
 
@@ -63,14 +64,14 @@ def Read_ACIS_History_file(ofls_dir, edit=False):
     
     # Start the dictionary which will hold all the information from this file
     hist_dict = {'date': hist_date,
-                 'time': hist_time}
+                       'time': hist_time}
 
-    # The last list element in the split line is the staus line which gives you 
+    # The last list element in the split line is the status line which gives you 
     # things like the instrument, HETG and LETG status, obsid, Radmon status,
     # what format we are in, and whether Dither is enabled.
     status_line = splitline[-1]
     
-    # Split the status line on comments.
+    # Split the status line on commas.
     split_status_line = status_line.split(',')
     
     # Extract the information and add it to the dictionary
@@ -95,13 +96,13 @@ def Read_ACIS_History_file(ofls_dir, edit=False):
 #--------------------------------------------------------------------
 def Read_ACIS_Continuity_file(ofls_dir):
     """
-    A basic file which will read the contents of an ACIS-Continuity.txt file
+    Read the contents of an ACIS-Continuity.txt file located in ofls_dir
     and return the information in a dictionary
 
-    input: ofls_dir - Path to the OFLS directory
+    input: ofls_dir - Path to the OFLS directory contining the ACIS-Continuity.txt file
 
     output: continuity_dict - Dictionary containing the information stored
-                              in the ACIS-Continuity.txt file
+                                           in the ACIS-Continuity.txt file
     """
     # Open the ACIS-Continuity.txt file in the OFLS directory for reading
     cont_file = open( '/'.join((ofls_dir, 'ACIS-Continuity.txt')), 'r')
@@ -143,7 +144,7 @@ def Read_ACIS_Continuity_file(ofls_dir):
 
 #--------------------------------------------------------------------
 #
-# Function - Get_Continuity_End_Status
+# Function - Get_Continuity_Status_Line
 #
 #--------------------------------------------------------------------
 def Get_OFLS_Status_Line(ofls_dir):
@@ -154,7 +155,7 @@ def Get_OFLS_Status_Line(ofls_dir):
 
     input: ofls_dir - path to the OFLS directory of the Review load
 
-    output: continuity_status - Dictionary of the 
+    output: continuity_status - Dictionary of the contents of the status line
     """
     # If an ACIS-History_edit.txt file exists in the Review OFLS directory
     # then you can use that to capture the status data at the cut time of the
