@@ -76,8 +76,63 @@ class Backstop_File_Class:
 
         # Return the populated numpy array of backstop commands
         return self.backstop_commands_array
-        
 
+       
+    #---------------------------------------------------------------------------
+    #  Method:  Process_BSH_Array
+    #---------------------------------------------------------------------------
+    def Process_BSH_Array(self, bsh_array):
+        """
+        Given an  array of backstop commands obtained from a Backstop
+        History command assembly, process each command and store the
+        contents in the self.backstop_commands attribute which is a numpy
+        array. Backstop_History has already calculated the Chandra time
+        in seconds of each command so this routine doesn't have to do that.
+        """
+        
+        # Create an empty numpy array
+        self.backstop_commands_array = np.array([], dtype = self.backstop_dtype)
+
+        # Process each command
+        for each_cmd in bsh_array:
+            # Split the command column entry on "|"
+            split_line = each_cmd["commands"].split("|")
+
+            # Populate the new row for the array
+            new_row = np.array( [ (each_cmd["date"],
+                                               each_cmd["time"],
+                                               int(split_line[1].split()[0]),
+                                               int(split_line[1].split()[1]),
+                                               split_line[2].rstrip().lstrip(),
+                                               split_line[3][:-1]) ], dtype = self.backstop_dtype)
+
+            # Append this new row to  self.backstop_commands_array
+            self.backstop_commands_array = np.append(self.backstop_commands_array,
+                                                                                      new_row, axis = 0)
+            
+
+
+        # Return the populated numpy array of backstop commands
+        return self.backstop_commands_array
+        
+    #---------------------------------------------------------------------------
+    #
+    #  Method: Extract_TLMSID_Value
+    #
+    #---------------------------------------------------------------------------
+    def Extract_TLMSID_Value(self, command):
+        """
+        Given a command of the data structure self.backstop_commands_array
+        extract and return the value that TLMSID is equal to in the "tlmsid_string"
+        """
+        # Split the string on spaces
+        split_string = command["tlmsid_string"].split()
+
+        # Extract the value that "TLMSID is set equal to, being sure to remove
+        # the comma at the end and strip out all spaces
+        extracted_tlmsid_val = split_string[1][:-1].strip()
+
+        return extracted_tlmsid_val
     
     #---------------------------------------------------------------------------
     #

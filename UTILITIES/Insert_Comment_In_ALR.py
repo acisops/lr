@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 
@@ -34,7 +35,7 @@ def Insert_Comment_In_ALR( comment_list, ALR_path, extension = "COMMENTS"):
     """
     
     # Path to the ACIS-LoadReview.txt file to be modified.
-    ALR_file_path = "/".join((ALR_path, "ACIS-LoadReview.txt"))
+    ALR_file_path = os.path.join(ALR_path, "ACIS-LoadReview.txt")
     
     # Open the load review text file
     infile = open(ALR_file_path, 'r')

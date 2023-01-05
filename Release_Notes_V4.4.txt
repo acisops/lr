@@ -16,6 +16,9 @@ The routine will alert the ACIS load reviewer that there is a long
 dwell between science runs so that the reviewer can double check to
 determine if the dwell is safe.
 
+lr was modified due to a request to untar the <load_week>.or file from
+the weekly tarball.
+
 Additional small changes to lr were made to remove extraneous print
 statements and fix a typo in a print statement.
 
@@ -39,18 +42,16 @@ https://github.com/acisops/lr/pull/35
 Testing:
 ======== 
 
-Both unit and regression testing were carried out
+Both unit and regression testing were carried out.
 
 The changes were tested by running these regression test loads:
 
-DEC0522 - Normal
-NOV0822 - SCS-107
-OCT3122 - Normal - long dwell that resulted in a 1DPAMZT red limit
-                                 violation
-OCT2722 - TOO
-OCT2422 - STOP - Manuever-Only load
-
-DEC0522 - Normal - Run as a Vehicle-Only load
+JAN1022
+OCT2422 - Vehicle-Only load
+OCT2722
+OCT2422
+OCT3122 - long dwell that resulted in a 1DPAMZT red limit violation
+DEC1922 - Normal
 
 All tests passed.
 

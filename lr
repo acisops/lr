@@ -156,6 +156,13 @@ use Plucknames;
 #         - Changes to accomodate DS10.11/Red Hat 8, and the change in txings
 #         - Removed code that called fptemp_sens_finder.pl
 #
+# Update: December 3, 2022
+#         V4.4
+#         - Added Idle Dwell Check program to LR
+#         - Added the extraction of mps/or/<filename>.or from the tar file
+#             - This was done by introducing Tar_Extract.py as a utility in order
+#               to continue the migration from Perl to Python.
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -310,7 +317,6 @@ $prev_load=@ARGV[1];
 # i.e. MMMDDYY (OCT2821).  But now it can be either 7 or 8: OCT2821 or OCT2821A
 $ofls_val = "";
 $len_prevload = length($prev_load);
-print("\nLength of the input string is: $len_prevload");
 
 # Get the last token in the preview load name
 $last_token = substr($prev_load, -1);
@@ -444,7 +450,7 @@ chdir("${ofls_dir}") || die "Cannot change directories to $ofls_dir\n";
 
 if ($skiplucky)
  {
-    print "/nIn another window, please copy desired backstop tarball\n";
+    print "\nIn another window, please copy desired backstop tarball\n";
     print "into load directory $ofls_dir\n";
     print "DO NOT unzip the tarball.\n";
     print "\n\nfile copied, ready to continue?(Y/N)\: ";
@@ -486,15 +492,17 @@ else
 
  } # END ELSE if ($skiplucky)
 
-#------------------------------------------------
-# Unzip the file an extract the items we need.
-#------------------------------------------------
+
+#--------------------------------------------------------------------------------------------------
+# TARFILE EXTRACTION - Unzip the file an extract the items we need.
+#--------------------------------------------------------------------------------------------------
 # You are in the OFLS directory                      ----------  IN OFLS DIR
 @zip = Plucknames->findNames($ofls_dir, "backstop.tar.gz");
 $zip = $zip[0];
 print "unzipping: $zip ...\n";
 
 # GUNZIP the tarball ------------------------------------------- GUNZIP
+# This progam gzips the .tar file at the end of execution.
 `${gunzip} $zip`;
 
 # Get tar file
@@ -558,7 +566,6 @@ if (scalar @cti_rep_file_list != 0)
     @field3 = split(/\//, $cti_rep_file);
     $cti_rep_file_name=pop(@field3);
     chomp ($cti_rep_file_name); # file name only
-
   }
 else # List is empty inform the user. Give the user the chance to specify one
  {
@@ -588,6 +595,34 @@ else # List is empty inform the user. Give the user the chance to specify one
      }
  } # END ELSE  List is empty inform the user and exit the program
 
+
+# ORLIST - Extract the ORLIST for this week's file
+# This block of code finds the name and location of
+# the orlist .or file. That path is forwarded to Tarfile_Extract.py
+
+# Load version in ORLIST .or files are always uppercase
+# Create the upper case.
+$uc_load_version = uc $load_version;
+
+# Formulate the name of the ORLIST lor file for this load and version
+$orlist_file_name = $load_name."_".$uc_load_version.".or";
+
+# Find out where the file exists in the tarfile directory hierarchy 
+@or_file = Plucknames->tarNames(\@tarTOC,  $orlist_file_name);
+
+@or_field = split(/\s+/, $or_file[0]);
+$or=pop(@or_field);
+chomp($or);
+
+# Warn the user if the file cannot be extracted.
+if ($or eq ""){
+    print "WARNING: can't extract .or file.\n";
+}
+
+# Now extract the name of the file from the path.  This is used when
+# listing the files, as lr output for the user,  extracted from the tarfile
+@or_field2 = split(/\//, $or); #short name
+$or_name = pop(@or_field2);
 
 #file used in determining bad pitch angle observations
 @mm_sum = Plucknames->tarNames(\@tarTOC, "sum", "mps", "mm");
@@ -652,9 +687,14 @@ chomp($mnvr_field2[1]);
 #Get the name of ofls directory where we are running
 $localdir = getcwd();
 
+
 print "\nUNTARRING the backstop file";
 # UNTAR THE BACKSTOP TAR FILE --------------------------------------- TAR -XVF
-`$tar -xvf $file $backfile $mmfile $msfile $nil $mnvr $vfile  $cti_rep_file $orp`;
+
+# Untar the backstop tar file to extract the necessary files using Tarfile.Extract.py
+system("python3 /data/acis/LoadReviews/script/Tarfile_Extract.py --nargs $file  $backfile $mmfile $msfile $nil  $mnvr  $vfile  $cti_rep_file $orp");
+
+
 
 #----------------------------------------
 #  LR BREAK PROCESSING - Run ONLY if the -b flag is set
@@ -763,6 +803,7 @@ print "\tHistory File Used: $hist\n";
 print "\tManuever File Used: $mnvr\n";
 print "\tCTI_Report File Used: $cti_rep_file_name\n";
 print "\tOrbit Events File Used: $orp_name\n";
+print "\tORLIST file extracted: $or_name\n";
 #unlink ("*.tar");
 
 
@@ -914,7 +955,7 @@ else
     print "\nBright source code failed. Email nadams\@cfa with above errors.\n";
 }
 
-#--------------------------------------------------------------
+#---------------------------------------------------------------
 #
 # Any function that can be done prior to the execution of the
 # Thermal Model run should be included here.
@@ -924,7 +965,7 @@ else
 # you can chdir to a different directory but be SURE to chdir back to
 # $ofls_dir when done.
 #
-#--------------------------------------------------------------
+#---------------------------------------------------------------
 #
 # Run Check_Power_Cmds.py
 print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM";
@@ -936,14 +977,25 @@ print "\nEXECUTING THE WINDOW CHECK PROGRAM.";
 system('python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
 
 # Next execute the SCS-155 Deadman Check
-print "\nSCS-155 DEADMAN CHECK PROGRAM";
+print "\nEXECUTING THE SCS-155 DEADMAN CHECK PROGRAM";
 
 system("python3 /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
 
 # Next execute the HETG Check
-print "\nHETG CHECK PROGRAM";
+print "\nEXECUTING HETG CHECK PROGRAM";
 
 system("python3 /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
+
+# Execute the Idle Dwell check
+print "\nEXECUTING THE IDLE DWELL CHECK PROGRAM.\n";
+
+# Read in the ORLIST file
+system("python3 /data/acis/LoadReviews/script/Tarfile_Extract.py --nargs $file  $or");
+
+if ($VO_choice  eq "")
+  {system("python3 /data/acis/LoadReviews/script/IDLE_DWELL/Find_Idle_Dwells.py  ${ofls_dir}    ");}
+else
+  {system("python3 /data/acis/LoadReviews/script/IDLE_DWELL/Find_Idle_Dwells.py  ${ofls_dir}  --vo ${VO_choice}   ");}
 
 
 #--------------------------------
