@@ -21,8 +21,7 @@ HRC_Txing_Check.py determines the time delta between the beginning of loading
 one of the Event Histogram SI modes used when HRC is observing, and the
 activation of SCS-134.  The delta t must be at least equal to the bias time of the
 SI mode used plus the amount of time Txings takes to acquire 6 samples and determine
-whether or not a shutdown shoudl occur.
-
+whether or not a shutdown should occur.
 
 lr was modified to call both of the above routines and also satisfy a request to
 untar the <load_week>.or file from the weekly tarball.
