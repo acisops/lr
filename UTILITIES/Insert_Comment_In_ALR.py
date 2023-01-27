@@ -4,7 +4,6 @@ import shutil
 
 import apt_date_secs as apt
 
-
 def Insert_Comment_In_ALR( comment_list, ALR_path, extension = "COMMENTS"):
     
     """
@@ -66,13 +65,13 @@ def Insert_Comment_In_ALR( comment_list, ALR_path, extension = "COMMENTS"):
     # between which the comment must fall based on time stamp
     for each_comment in comment_list:
         # Find all the times in the event_times list that are LEQ  the comment time in question
-        leq_times = [index for index, etime in enumerate(event_times) if int(etime) <= each_comment[1]]
+        leq_times = [index for index, etime in enumerate(event_times) if etime <= each_comment[1]]
         
         # Now the last value in the leq_times list is the index into
         # time_stamped_line_indices where you will obtain the location
         # in the ALR list of where you want to insert the comment text
-        insert_loc = time_stamped_line_indices[leq_times[-1]]
-    
+        insert_loc = time_stamped_line_indices[leq_times[-1] +1]
+
         # At long last you now know where to insert the comment text
         # It's before insert_loc
         # Write the date (DOY) and the comment statement

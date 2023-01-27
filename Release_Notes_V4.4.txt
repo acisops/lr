@@ -1,11 +1,12 @@
 Change Description
 ==================
 
-lr has been updated to call the new routine:
+lr has been updated to call the new routines:
 
      Find_Idle_Dwells.py
+     HRC_Txing_Check.py
 
-The purpose of this routine is to scan the load being reviewed and
+The purpose of Find_Idle_Dwells.py is to scan the load being reviewed and
 identify long dwells between ACIS Stop Science commands and
 ACIS Start Science commands. This is in response to the
 1DPAMZT Red Limit reached during the OCT3122 load.  There was
@@ -16,8 +17,15 @@ The routine will alert the ACIS load reviewer that there is a long
 dwell between science runs so that the reviewer can double check to
 determine if the dwell is safe.
 
-lr was modified due to a request to untar the <load_week>.or file from
-the weekly tarball.
+HRC_Txing_Check.py determines the time delta between the beginning of loading
+one of the Event Histogram SI modes used when HRC is observing, and the
+activation of SCS-134.  The delta t must be at least equal to the bias time of the
+SI mode used plus the amount of time Txings takes to acquire 6 samples and determine
+whether or not a shutdown shoudl occur.
+
+
+lr was modified to call both of the above routines and also satisfy a request to
+untar the <load_week>.or file from the weekly tarball.
 
 Additional small changes to lr were made to remove extraneous print
 statements and fix a typo in a print statement.
@@ -30,6 +38,7 @@ added:
          UTILITIES/OFLS_File_Utilities.py
 	 UTILITIES/SIM_Class.py
 	 UTILITIES/Tarfile_Extract.py
+
 
 
 Files Changed or added:
@@ -54,6 +63,11 @@ OCT2422
 OCT3122 - long dwell that resulted in a 1DPAMZT red limit violation
 DEC1922 - Normal
 
+DEC0522P - First HRC Test Load
+DEC0522F - DEC0522P backstop file was hand modified to test error handing
+                    when an SCS-134 activation is missing or if ad SCS-134 activation
+		    occurred but no Event Histogram SI mode was previously loaded.
+		    
 All tests passed.
 
 

@@ -162,6 +162,7 @@ use Plucknames;
 #         - Added the extraction of mps/or/<filename>.or from the tar file
 #             - This was done by introducing Tar_Extract.py as a utility in order
 #               to continue the migration from Perl to Python.
+#         - Added HRC/TXING time delta check
 #
 ###########################################################
 # usage: lr [present load] [previous week]                #
@@ -989,14 +990,17 @@ system("python3 /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_di
 # Execute the Idle Dwell check
 print "\nEXECUTING THE IDLE DWELL CHECK PROGRAM.\n";
 
-# Read in the ORLIST file
-system("python3 /data/acis/LoadReviews/script/Tarfile_Extract.py --nargs $file  $or");
-
 if ($VO_choice  eq "")
   {system("python3 /data/acis/LoadReviews/script/IDLE_DWELL/Find_Idle_Dwells.py  ${ofls_dir}    ");}
 else
   {system("python3 /data/acis/LoadReviews/script/IDLE_DWELL/Find_Idle_Dwells.py  ${ofls_dir}  --vo ${VO_choice}   ");}
 
+# Execute the HRC/TXINGING Timing check
+print "\nEXECUTING THE HRC TXING TIMING CHECK PROGRAM.";
+system("python3 /data/acis/LoadReviews/script/HRC_TXING_CHECK/HRC_Txing_Check.py ${ofls_dir} ");
+
+# Read in the ORLIST file
+system("python3 /data/acis/LoadReviews/script/Tarfile_Extract.py --nargs $file  $or");
 
 #--------------------------------
 # Copy in Bright-Source List 
