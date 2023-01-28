@@ -212,25 +212,24 @@ for index, each_cmd in enumerate(extracted_cmds):
 if len(comment_list)> 0:
     icia.Insert_Comment_In_ALR(comment_list, load_week_path, "HRC_TXING")
 
-else:
-    print(">>> Warning - No HRC Txings comments")
-
-# Copy the updated ACIS-LoadReview.txt file
-# If the test flag was False, and there were comments, then copy the .HRC_TXING
-# file to ACIS-LoadReview.txt.
-# If the test flag was True then we leave the original ACIS-LoadReview.txt and the
-# ACIS-LoadReview.txt.HRC_TXING (if there is one)  files intact for comparison.
-if (args.test == False) and (len(comment_list)>0):
-    try:
-        print('\n    Moving ACIS-LoadReview.txt.HRC_TXING to ACIS-LoadReview.txt')
-        shutil.copy(load_week_path+'/ACIS-LoadReview.txt.HRC_TXING', load_week_path+'/ACIS-LoadReview.txt')
-    except OSError as err:
-        print(err)
-        print('Examine the ofls directory and look for the HRC_TXING file.')
+    # Copy the updated ACIS-LoadReview.txt file
+    # If the test flag was False, and there were comments, then copy the .HRC_TXING
+    # file to ACIS-LoadReview.txt.
+    # If the test flag was True then we leave the original ACIS-LoadReview.txt and the
+    # ACIS-LoadReview.txt.HRC_TXING (if there is one)  files intact for comparison.
+    if (args.test == False):
+        try:
+            print('\n    Moving ACIS-LoadReview.txt.HRC_TXING to ACIS-LoadReview.txt')
+            shutil.copy(load_week_path+'/ACIS-LoadReview.txt.HRC_TXING', load_week_path+'/ACIS-LoadReview.txt')
+        except OSError as err:
+            print(err)
+            print('Examine the ofls directory and look for the HRC_TXING file.')
+        else:
+            print('    Copy was successful')
     else:
-        print('    Copy was successful')
-else:
-    print('\n    Leaving the ACIS-LoadReview.txt  unchanged')
+        print('\n    Leaving the ACIS-LoadReview.txt  unchanged')
 
+else:
+    print(">>> Warning - No Event Histogram/SCS-134 Activation pairs found in this load.")
 
     

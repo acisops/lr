@@ -136,7 +136,7 @@ if (len([index  for index,each_cmd in enumerate(rev_cmds["commands"]) if "ACISPK
 
     # Create a list of tokens which tells the program which commands to extract
     token_list = ["SIMTRANS", "XCZ0000005", "XTZ0000005", "AA00000000", "OORMPDS", "EPERIGEE", "OORMPEN"]
-    
+
     # Extract the SIMTRANS, Start and Stop Science, and RADMON commands
     # out of the assembled and processed commands
     sim_acis_cmds = BFCI.Extract_Type_and_TLMSID(token_list, processed_history)
@@ -306,23 +306,26 @@ if (len([index  for index,each_cmd in enumerate(rev_cmds["commands"]) if "ACISPK
     if len(long_dwell_list)> 0:
         icia.Insert_Comment_In_ALR(long_dwell_list, load_week_path, "DWELL_COMMENTS")
 
-    # Copy the updated ACIS-LoadReview.txt file
-    # If the test flag was False, then move the .DWELL_COMMENTS file to
-    # ACIS-LoadReview.txt.
-    # If it was True then we leave the original ACIS-LoadReview.txt and the
-    # ACIS-LoadReview.txt.ERRORS files intact for comparison.
-    if dwell_args.test == False:
-        try:
-            print('\n    Moving ACIS-LoadReview.txt.DWELL_COMMENTS to ACIS-LoadReview.txt')
-            shutil.move(load_week_path+'/ACIS-LoadReview.txt.DWELL_COMMENTS', load_week_path+'/ACIS-LoadReview.txt')
-        except OSError as err:
-            print(err)
-            print('Examine the ofls directory and look for the DWELL_COMMENTS file.')
+        # Copy the updated ACIS-LoadReview.txt file
+        # If the test flag was False, then move the .DWELL_COMMENTS file to
+        # ACIS-LoadReview.txt.
+        # If it was True then we leave the original ACIS-LoadReview.txt and the
+        # ACIS-LoadReview.txt.DWELL_COMMENTS files intact for comparison.
+        if dwell_args.test == False:
+            try:
+                print('\nMoving ACIS-LoadReview.txt.DWELL_COMMENTS to ACIS-LoadReview.txt')
+                shutil.copy(load_week_path+'/ACIS-LoadReview.txt.DWELL_COMMENTS', load_week_path+'/ACIS-LoadReview.txt')
+            except OSError as err:
+                print(err)
+                print('Examine the ofls directory and look for the DWELL_COMMENTS file.')
+            else:
+                print('    Copy was successful')
         else:
-            print('    Copy was successful')
-    else:
-        print('\nTEST MODE - Leaving the ACIS-LoadReview.txt  unchanged')
-        
+            print('\nTEST MODE - Leaving the ACIS-LoadReview.txt  unchanged')
+
+    else: # long_dwell_list length <= 0 Let the user know in the log file.
+        print("\nNo Idle Dwells above the specified length of: ", long_dwell_cutoff, " seconds.")
+
 else: # The Review Load is a maneuver-only load
     print("\nReview Load is either a maneuver-only load or a full load with only the Vehicle Load executing - No Idle Dwell Check.")
     

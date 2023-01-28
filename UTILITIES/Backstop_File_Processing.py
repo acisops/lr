@@ -145,7 +145,7 @@ class Backstop_File_Class:
         this method extracts all those commands whose command_type 
         is "ACISPKT", and places them in the attribute: self.ACISPKT_array
 
-        If commands are not specified i nthe call the method defaults to
+        If commands are not specified in the call the method defaults to
         self.backstop_commands_array.
 
         Returns an array containing just those commands.
@@ -185,8 +185,8 @@ class Backstop_File_Class:
 
     #---------------------------------------------------------------------------
     #
-    #  Method:  Extract_ACISPKTS - Extract all commands whose command type
-    #                                                 is "ACISPKTS"
+    #  Method:  Extract_Command_Types
+    #                                                
     #---------------------------------------------------------------------------
     def Extract_Command_Types(self, type_list, commands = []):
         """"
@@ -210,8 +210,8 @@ class Backstop_File_Class:
         # Create an empty type_array
         self.type_array = np.array([], dtype = self.backstop_dtype)
 
-        # Scan the commands array and look for the commands which are
-        # of type "ACISPKT"
+        # Scan the commands array and look for the commands which are of any
+        # of the types in the list
         for each_row in commands:
             if each_row["command_type"] in type_list:
                 # Populate  the new row
@@ -223,7 +223,7 @@ class Backstop_File_Class:
                                                    each_row["tlmsid_string"],
                                                     )], dtype = self.backstop_dtype)
 
-                # Append the new row to  the ACISPKT array
+                # Append the new row to  the type array
                 self.type_array = np.append(self.type_array, new_row, axis = 0)
 
         # Return the collected array
@@ -232,8 +232,8 @@ class Backstop_File_Class:
 
     #---------------------------------------------------------------------------
     #
-    #  Method:  Extract_ACISPKTS - Extract all commands whose command type
-    #                                                 is "ACISPKTS"
+    #  Method:  Extract_Type_and_TLMSID
+    #                                                
     #---------------------------------------------------------------------------
     def Extract_Type_and_TLMSID(self, string_list, commands = []):
         """"
@@ -272,7 +272,7 @@ class Backstop_File_Class:
                                                        each_cmd["tlmsid_string"],
                                                         )], dtype = self.backstop_dtype)
     
-                    # Append the new row to  the ACISPKT array
+                    # Append the new row to  the extracted commands array
                     self.extracted_command_array = np.append(self.extracted_command_array, new_row, axis = 0)
     
         # Return the extracted commands array
@@ -327,6 +327,6 @@ class Backstop_File_Class:
         # string specifying the instrument at that step position
         instrument = self.sim_class_instance.Get_Instrument(step)
         
-        return(instrument)
+        return instrument
     
         
