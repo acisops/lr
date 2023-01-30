@@ -194,11 +194,11 @@ for index, each_cmd in enumerate(extracted_cmds):
         # Check to see if the time is long enough and write the corresponding comment.
         if delta_t < required_dt:
             # ERROR - Time delta is not long enough
-            full_comment = " ".join((scs134_act_string, "\n",">>> ERROR - Time between SI load start and SCS-134 activation is too short\n             Bias Start: ", bias_start_date, "\n     SCS-134 Activation: ", each_cmd["date"], "\n     Required Delta T:", str(required_dt), "\n        Actual Delta T:" , str(delta_t)))
+            full_comment = " ".join((scs134_act_string, "\n",">>> ERROR - Time between SI load start and SCS-134 activation is too short\n             Bias Start: ", bias_start_date, "\n     SCS-134 Activation: ", each_cmd["date"], "\n     Required Delta T:", str(required_dt), "        Actual Delta T:" , str(delta_t)))
             print(full_comment)
             
         else: # The time delta is long enough
-            full_comment = " ".join((scs134_act_string, "\n", "    Time between SI Mode load start and SCS-134 activation is good: \n     Required Delta T:", str(required_dt), "\n         Actual Delta T:" , str(delta_t)))
+            full_comment = " ".join((scs134_act_string, "\n", "    Time between SI Mode load start and SCS-134 activation is good: \n     Required Delta T:", str(required_dt), "       Actual Delta T:" , str(delta_t)))
 
         # Append the comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], full_comment])
