@@ -39,6 +39,10 @@ commands by mission planning.
 
 You would use those differences to identify the SI mode being loaded by this sequence of commands.
 
+As of the first iteration of this program, SI modes H1C_001(B) and H2C_001(B) will be the ONLY
+ones used to set up Txings for HRC science observations. And these two SI modes will only be used
+for that purpose.
+
 The time delta between the loading of the SI mode and the SCSD-134 activation for
  Event Histograms run during HRC science observatgions is = bias time + 1152seconds.
 The bias time differs from one SI mode to another if the number of chips differ.
@@ -124,11 +128,11 @@ for eachcmd in assembled_commands:
 evh_found_flag = False
     
 # Now step through the array and look for any command which contains one of  the
-# parameter block WT commands that are presentlyu used for HRC observation
+# parameter block WT commands that are presently used for HRC observation
 # Event Histograms.
 for index, each_cmd in enumerate(extracted_cmds):
     # If any Event History WT packet name exists in this backstop command,
-    # save it. otherwise the list will be empty
+    # save it.  Otherwise the list will be empty
     key_list = [eachkey  for eachkey in ev_parameter_block_dict.keys() if eachkey in each_cmd["commands"]  ]
 
     # If  one of the HRC Event Histogram SI modes parameter blocks appears in this
@@ -136,7 +140,7 @@ for index, each_cmd in enumerate(extracted_cmds):
     # its corresponding SCS-134 activation command, we found an error
     if key_list and (evh_found_flag == True):
         # We foung an error. Place an error statement in the comments list, and print it out for the log file.
-        full_comment = " ".join((">>> ERROR -", each_cmd["date"], "Multiple Event Histogram SI Mode loads without intervening SCS-134 activation"))
+        full_comment = " ".join((">>> ERROR -", each_cmd["date"], "Multiple Event Histogram SI Mode loads without an intervening SCS-134 activation"))
         print("\n", full_comment)
         # Append the comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], full_comment])
@@ -146,7 +150,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         bias_start_date = extracted_cmds[index - 6]["date"]
         bias_start_time = extracted_cmds[index - 6]["time"]
 
-        # Else if this is the first Event Histogram SI Mode load since the start of
+    # Else if this is the first Event Histogram SI Mode load since the start of
     # the load or the first since the last EV Load/SCS-134 activation pair.
     elif key_list and (evh_found_flag == False):
         
@@ -170,10 +174,15 @@ for index, each_cmd in enumerate(extracted_cmds):
 
     # Else you see an SCS-134 activation but you have NOT seen the Event Histogram
     # load that should have come prior to this command.  This is an error. Add an error
-    # comment, and print it out for the log file.
+    # comment, and print it out for the log file. This willcatch all errors of this type if there
+    # are one or more HRC observations in the load.
     elif ("COACTS1=134" in each_cmd["commands"]) and \
          ( evh_found_flag == False):
-        full_comment = " ".join((">>> ERROR -", each_cmd["date"], "SCS-134 activation without a prior Event Histogram SI Mode Load"))
+        
+       # Write the SCS-134 activation information line
+        scs134_act_string =  each_cmd["date"] + " SCS-134 Activation"
+        
+        full_comment = " ".join(("\n", scs134_act_string, "\n>>> ERROR - SCS-134 activation without a prior Event Histogram SI Mode Load"))
         print("\n", full_comment)
         # Append the comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], full_comment])
@@ -194,8 +203,8 @@ for index, each_cmd in enumerate(extracted_cmds):
         # Check to see if the time is long enough and write the corresponding comment.
         if delta_t < required_dt:
             # ERROR - Time delta is not long enough
-            full_comment = " ".join((scs134_act_string, "\n",">>> ERROR - Time between SI load start and SCS-134 activation is too short\n             Bias Start: ", bias_start_date, "\n     SCS-134 Activation: ", each_cmd["date"], "\n     Required Delta T:", str(required_dt), "        Actual Delta T:" , str(delta_t)))
-            print(full_comment)
+            full_comment = " ".join((scs134_act_string, "\n",">>> ERROR - Time between SI mode load start and SCS-134 activation is too short\n     SI Mode Load Start: ", bias_start_date, "\n     SCS-134 Activation: ", each_cmd["date"], "\n     Required Delta T:", str(required_dt), "        Actual Delta T:" , str(delta_t)))
+            print("\n",full_comment)
             
         else: # The time delta is long enough
             full_comment = " ".join((scs134_act_string, "\n", "    Time between SI Mode load start and SCS-134 activation is good: \n     Required Delta T:", str(required_dt), "       Actual Delta T:" , str(delta_t)))
@@ -206,7 +215,20 @@ for index, each_cmd in enumerate(extracted_cmds):
         # Set the evh_found_flag to False so that you can find the next SI mode load.
         evh_found_flag = False
         
-               
+# Done scanning all the commands in the load. In a legal load, where each HRC Event Histogram SI mode
+# load is paired with an SCS-134 activation,   evh_found_flag == False at this point.
+# So if you get to this point and evh_found_flag == True, then there exists an Event Histogram load 
+# which has no corresponding scs-134 activation.  This check handles the case where there
+# was only one HRC science observation in the load but the SCS-134 activation is missing.
+if evh_found_flag == True:
+    # ERROR - One of the HRC Event Histograms were loaded but there was never a corresponding SCS-134 activation
+    full_comment = " ".join(("\n",">>> ERROR - HRC Observation Event Histogram SI mode was loaded at but SCS-134 was not activated.\n     SI Mode Load Start: ", bias_start_date))
+    print("\n",full_comment)
+
+    # Append the comment to the comment list
+    comment_list.append([bias_start_date, bias_start_time, full_comment])
+ 
+
 # Done finding all HRC Txing delta t's. If there are lines in the comment_list, insert
 # them in a copy of ACIS_LoadReview.txt called ACIS_LoadReview.txt.TXING_COMMENT
 if len(comment_list)> 0:

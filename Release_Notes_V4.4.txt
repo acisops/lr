@@ -63,10 +63,15 @@ OCT3122 - long dwell that resulted in a 1DPAMZT red limit violation
 DEC1922 - Normal
 
 DEC0522P - First HRC Test Load
-DEC0522F - DEC0522P backstop file was hand modified to test error handing
-                    when an SCS-134 activation is missing or if ad SCS-134 activation
-		    occurred but no Event Histogram SI mode was previously loaded.
-		    
+
+DEC0522F,G,H - Created by ACIS Ops
+                           DEC0522P backstop file was hand modified to test error handling
+                           when an HRC Observation Event Histogram SI mode was loaded,
+		           but an SCS-134 activation is missing or if an SCS-134 activation
+		           occurred but no Event Histogram SI mode was previously loaded.
+
+JAN3023T - Second HRC Test Load
+
 All tests passed.
 
 
