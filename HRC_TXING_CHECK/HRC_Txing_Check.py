@@ -174,7 +174,7 @@ for index, each_cmd in enumerate(extracted_cmds):
 
     # Else you see an SCS-134 activation but you have NOT seen the Event Histogram
     # load that should have come prior to this command.  This is an error. Add an error
-    # comment, and print it out for the log file. This willcatch all errors of this type if there
+    # comment, and print it out for the log file. This will catch all errors of this type if there
     # are one or more HRC observations in the load.
     elif ("COACTS1=134" in each_cmd["commands"]) and \
          ( evh_found_flag == False):
