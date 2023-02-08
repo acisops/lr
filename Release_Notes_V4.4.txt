@@ -30,7 +30,7 @@ Additional small changes to lr were made to remove extraneous print
 statements and fix a typo in a print statement.
 
 To support  Find_Idle_Dwells.py, the following utility programs were
-added:
+updated or added:
 
 	 UTILITIES/Backstop_File_Processing.py
 	 UTILITIES/Insert_Comment_In_ALR.py
