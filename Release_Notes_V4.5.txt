@@ -1,0 +1,77 @@
+Change Description
+==================
+
+Additional tests were added to HRC_Txing_Check.py based upon the FEB0623T Test load.
+These new tests include: missing SCS-134 activation, the command to end the HRC
+observation occurs well after the ACIS Event Histogram Stop Science, and the ACIS
+Event Histogram is never activated.  In addition the program structure was simplified
+and an extraneous import eliminated.
+
+In addition, Insert_Comment_In_ALR.py was slightly modified in order to
+account for a corner case when inserting comments into the ACIS-LoadReview.txt file.
+
+In both cases comments were updated and improved.
+
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/
+
+Testing:
+======== 
+
+Both unit and regression testing were carried out for each of the two programs.
+
+Unit tests for  HRC_Txings_Check.py were carried out by running those programs on the
+regression test loads (see below) independently from the ACIS load review program.
+The output was checked against expected outputs.  Then regression tests were carried
+out by running the updated program from the ACIS load review program and the results
+checked to be sure they were correct and complete.
+
+Unit tests for Insert_Comment_In_ALR.py were carried out by generating a list of comments
+to be inserted in an ACIS-LoadReview.txt file and the resultant file checked for proper placement.
+Output from the Check_Power, Window_Check, Idle Dwell and HRC-Txing Checks on all regression
+tests confirmed that  Insert_Comment_In_ALR.py executes corectly.
+
+The changes were tested by running these regression test loads:
+
+
+DEC0522P - First HRC-Txings Test Load
+
+DEC0522F,G,H - Created by ACIS Ops
+                           DEC0522P backstop file was hand modified to test error handling
+                           when an HRC Observation Event Histogram SI mode was loaded,
+		           but an SCS-134 activation is missing or if an SCS-134 activation
+		           occurred but no Event Histogram SI mode was previously loaded.
+			   
+JAN3023A - Production load with no HRC commanding
+
+JAN3023T - Second HRC-Txings Test Load
+
+FEB0623T - Third HRC-Txings Test load
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
