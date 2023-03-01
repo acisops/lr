@@ -134,7 +134,7 @@ for eachcmd in assembled_commands:
         
         extracted_cmds =  np.append(extracted_cmds, new_row, axis=0)
 
-# Initialize the event histogram found flag to False
+# Initialize the event histogram loaded flag to False
 evh_loaded_flag = False
     
 # Now step through the array and look for any command which contains one of  the
