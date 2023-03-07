@@ -14,8 +14,7 @@ import apt_date_secs as apt
 import Backstop_File_Processing as bfp
 import Calc_Delta as cd
 
-#import Insert_Comment_In_ALR as icia
-exec(open("/home/gregg/UTILITIES/LR_CODE/Insert_Comment_In_ALR_V2.0.py").read())
+import Insert_Comment_In_ALR as icia
 
 import ORP_File_Class as ofc
 
@@ -25,23 +24,26 @@ The basic structure of an SI mode command sequence is:
 AA00000000   < START OF THE BIAS
 AA00000000
 WSPOW00000
-WSPOW08812  <--- The last digits of the power command change with different SI modes
+WSPOWxxxxx  <--- The last digits of the power command change with different SI modes
 RS_0000001
 RH_0000001
-WT00D96014   <--- The last digits of the parameter block  command change with different SI modes
+WTxxxxxxxx   <--- The last digits of the parameter block identifies the SI mode
 XTZ0000005    <---- Start Science Command; would be XCZ if it's continuous clocking
 
 The structure is identical for all  SI modes. The only items that change from one SI mode
 to another are the second WSPOWxxxxx, the WTxxxxxxxx, and the Start Science command.
 
 This program assumes that no ACISPKT command will be inserted inside the block of SI mode
-commands by mission planning.
+commands by mission planning.  It would be illegal for any the 8 commands of the SI mode to be 
+moved with respect to each other. This can never happen because ACIS has created the the SI modes
+as a unit and the load builder loads the SI modes as a unit.
 
 You would use those differences to identify the SI mode being loaded by this sequence of commands.
-
 As of the first iteration of this program, SI modes H1C_001(B) and H2C_001(B) will be the ONLY
 ones used to set up Txings for HRC science observations. And these two SI modes will only be used
-for that purpose.
+for that purpose. The parameter blocks that correspond to these two SI modes are:
+
+ WT00D98014 and WT00D96014
 
 The time delta between the loading of the SI mode and the SCSD-134 activation for
  Event Histograms run during HRC science observatgions is = bias time + 1152seconds.
@@ -50,6 +52,28 @@ The bias time calculation starts at the time of the first command of the SI mode
 
 The 1152 seconds is the time it takes for txings to have taken enough samples (6) to
 determine that a storm is bad enough to trigger a shutdown.
+
+These are the checks and errors performed by this program:
+
+1)  Event Histogram SI mode loaded and it was previously loaded before without
+completing an HRC observation.
+
+2) COACTS1=134
+
+        ERROR - 134 activation but no event histogram loaded
+        ERROR - 134 activation but event histogram not running
+
+3)  COACTS1=134, EH loaded, EH running
+
+     OK - Event Histogram is running long enough before  COACTS1=134
+     ERROR - Event Histogram not running long enough before  COACTS1=134
+
+
+4) 215PCAOF Command
+          OK - 215PCAOF and Event Histogram running
+          ERROR - 215PCAOF but there wasn't any COACTS1=134
+	  ERROR - 215PCAOF EH loaded but not running
+                      - Allows a 1 second differential IF Stop Science occurs first.
 
 """
 # Parser code
@@ -193,12 +217,13 @@ for index, each_cmd in enumerate(extracted_cmds):
        ("TLMSID= WT" in each_cmd["commands"]):
         evh_loaded_flag = False
 
-    # XTZ0000005 - and an Event Histogram SI mode loaded . Signal that the
+    # XTZ0000005 - and an Event Histogram SI mode was loaded . Signal that the
     # Event Histogram has started.
     if ("XTZ0000005" in  each_cmd["commands"]) and (evh_loaded_flag == True):
         event_hist_running = True;
 
-    # XTZ0000005 - Event Histogram SI mode NOT loaded 
+    # XTZ0000005 - and an Event Histogram SI mode has NOT been loaded.  Signal that
+    # Event Histogram has not started.
     elif ("XTZ0000005" in  each_cmd["commands"]) and (evh_loaded_flag == False):
         event_hist_running = False;
 
