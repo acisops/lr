@@ -102,7 +102,7 @@ comment_list = []
 # appear in all of the  Event Histogram SI modes run  during an HRC is science
 # observation. Each entry  consists of the parameter block packet name and
 # the bias time for that SI mode.
-ev_parameter_block_dict = {"WT00D98014": 454, "WT00D96014": 919}
+evhist_parameter_block_dict = {"WT00D98014": 454, "WT00D96014": 919}
 
 # Create an instance of the Backstop History class
 BSC = BackstopHistory.Backstop_History_Class( outdir = load_week_path, verbose = 0)
@@ -167,14 +167,15 @@ evh_loaded_flag = False
 for index, each_cmd in enumerate(extracted_cmds):
     # EVENT HISTOGRAM LOAD
     # Detect if we are loading one of the two Event Histograms used when HRC is observing.
-    # If any Event History WT packet name exists in this backstop command,
+    # If any Event Histogram WT packet name exists in this backstop command,
     # save it.  Otherwise the list will be empty
-    key_list = [eachkey  for eachkey in ev_parameter_block_dict.keys() if eachkey in each_cmd["commands"]  ]
+    key_list = [eachkey  for eachkey in evhist_parameter_block_dict.keys() if eachkey in each_cmd["commands"]  ]
 
     # If  one of the HRC Event Histogram SI modes parameter blocks appears in this
     # command line but we already found an Event Histogram but have not yet seen
     # its corresponding SCS-134 activation command, we found an error
     if key_list and (evh_loaded_flag == True):
+        
         # ERROR -  Place an error statement in the comments list, and print it out for the log file.
         full_comment = " ".join((each_cmd["date"], "\n>>> ERROR -", each_cmd["date"], "Multiple Event Histogram SI Mode loads without an intervening SCS-134 activation"))
         print("\n", full_comment)
@@ -198,7 +199,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         first_start_science_index = index - 6
 
         # Calculate the required delta t given the SI mode bias time
-        required_dt = ev_parameter_block_dict[key_list[0]] + 1152.0
+        required_dt = evhist_parameter_block_dict[key_list[0]] + 1152.0
          
         # The next step is to find the corresponding COACTS1=134 command that subsequently
         # appears in the load.  This will allow you to calculate the time delta between the start
@@ -214,19 +215,28 @@ for index, each_cmd in enumerate(extracted_cmds):
     # "overwrites" whatever the active SI mode is. So set the loaded flag to False.
     if (not key_list) and \
        ("ACISPKT" in each_cmd["commands"]) and \
-       ("TLMSID= WT" in each_cmd["commands"]):
+       (("TLMSID= WT" in each_cmd["commands"]) or \
+        ("TLMSID= WC" in each_cmd["commands"])):
         evh_loaded_flag = False
 
     # XTZ0000005 - and an Event Histogram SI mode was loaded . Signal that the
     # Event Histogram has started.
-    if ("XTZ0000005" in  each_cmd["commands"]) and (evh_loaded_flag == True):
-        event_hist_running = True;
+    if ("XTZ0000005" in  each_cmd["commands"]) and \
+       (evh_loaded_flag == True):
+        event_hist_running = True
 
     # XTZ0000005 - and an Event Histogram SI mode has NOT been loaded.  Signal that
     # Event Histogram has not started.
-    elif ("XTZ0000005" in  each_cmd["commands"]) and (evh_loaded_flag == False):
-        event_hist_running = False;
+    elif ("XTZ0000005" in  each_cmd["commands"]) and \
+         (evh_loaded_flag == False):
+        event_hist_running = False
 
+    # In this case if a CC mode is started then you know that and EVHIST was not loaded
+    # and cannot be running
+    elif "XCZ0000005" in  each_cmd["commands"]:
+        evh_loaded_flag == False
+        event_hist_running = False
+        
     # COACTS1=134 - HRC Observation begins.
     # ERROR - Event Histogram never loaded
     # Else you see an SCS-134 activation but you have NOT seen the Event Histogram

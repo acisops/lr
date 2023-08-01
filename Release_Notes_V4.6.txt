@@ -1,0 +1,86 @@
+Change Description
+==================
+
+This update includes changes to two Load Review check programs (HETG_Check.py and HRC_Txing_Check.py)
+and one utility program that is used by those programs (Insert_Comment_In_ALR.py).
+
+HETG_Check.py:
+
+When nearing the perigee passage, the SIM is moved to put the ACIS instrument under cover.
+To protect ACIS against a failed SIM move, the HETG is required to be inserted for the Perigee Passage.
+HETG_Check.py is run during a load review to show the reviewer the RADMON DISABLE, HETG isertion/retraction,
+and RADMON ENABLE times for the perigee passage.  HETG_Check.py was modified such that if, during a perigee passage,
+the HETG is retracted before RADMON ENABLE (OOPRMEN), the program will print an additional statement which displays
+the time delta between the retraction command and OORMPEN in both hours and minutes. This is to aid the reviewer in
+determining if the HETG has been retracted too soon.
+
+HRC_Txing_Check.py:
+
+The purpose of HRC_Txing_Check.py is to check the timing of ACIS and HRC commands during HRC science
+observations and determine if any guideline has been violated.  When an ACIS CC mode observation is
+between two HRC observations, the program threw a false error.  This update eliminates the false error.
+Opportunity was also taken to improve some variable names and comments.
+
+Insert_Comment_In_ALR.py:
+
+This utility program is used to insert comments/error statements in the ACIS-LoadReview.txt file - an output file
+of the ACIS load review.  The program was failing when a comment or error statement to be inserted has the exact same
+time stamp as the last time stamped output line already in the ACIS-LoadReview.txt file. This update fixed that error.
+
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/?????
+
+Testing:
+======== 
+
+Both unit and regression testing were carried out for each of the two programs.
+
+Unit tests for  HRC_Txings_Check.py were carried out by running those programs on the
+regression test loads (see below) independently from the ACIS load review program.
+The output was checked against expected outputs.  Then regression tests were carried
+out by running the updated program from the ACIS load review program and the results
+checked to be sure they were correct and complete.
+
+Unit tests for Insert_Comment_In_ALR.py were carried out by generating a list of comments
+to be inserted in an ACIS-LoadReview.txt file and the resultant file checked for proper placement.
+Output from the Check_Power, Window_Check, HETG_Check,  Idle Dwell and HRC-Txing Checks on all regression
+tests confirmed that  Insert_Comment_In_ALR.py executes corectly.
+
+The changes were tested by running these regression test loads:
+
+
+ JUL0323
+
+ JUL2423
+
+DEC0522F,G,H - Hand created by ACIS Ops to purposefully introduce errors into the loads.
+			   
+JAN3023A - Production load with no HRC commanding
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+

@@ -28,8 +28,13 @@ def Insert_Comment_In_ALR( comment_list, ALR_path, extension = "COMMENTS"):
     
     output: updated_ALR_file 
                  - An updated file located in ALR_path with the inserted comments
+          
+    Update: July 27, 2023
+                 Handled the case where the last time stamped line is the last
+                 one in the ALR list.
     
     """
+    
     # Path to the ACIS-LoadReview.txt file to be modified.
     ALR_file_path = os.path.join(ALR_path, "ACIS-LoadReview.txt")
     
@@ -61,24 +66,41 @@ def Insert_Comment_In_ALR( comment_list, ALR_path, extension = "COMMENTS"):
     # Now for each comment in the comments list, find the two indices
     # between which the comment must fall based on time stamp
     for each_comment in comment_list:
-        # Find the indices of all the times in the event_times list that are LEQ  the
-        # comment time in question
-        leq_times = [index for index, etime in enumerate(event_times) if etime <= each_comment[1]]
-        
-        # Now the last value in the leq_times list is the index into
-        # time_stamped_line_indices where you will obtain the location
-        # in the ALR list of where you want to insert the comment text
-        insert_loc = time_stamped_line_indices[leq_times[-1]] +1
-        
-        # At long last you now know where to insert the comment text
-        # It's before insert_loc
-        # Write the date (DOY) and the comment statement
-        ALR_lines.insert(insert_loc, "".join(("\n",  each_comment[2], "\n\n")) )
 
-        # Since you've added lines, you have to re-calculate the indices of all those
-        # lines which begin with a DOY time stamp again.
-        # This is the position of the stamped line in the ALR file.
-        time_stamped_line_indices = [index for index, eachline in enumerate(ALR_lines) if time_stamp.match(eachline)]
+        # Find all the times in the event_times list that are LEQ  the comment time in question
+        leq_times = [index for index, etime in enumerate(event_times) if etime <= each_comment[1]]
+
+        # If there is no time stamped line in the ACIS-LoadReview.txt file that occurs prior
+        # to the time stamp of this comment, do not display the comment. You will know
+        # there is no time stamped line if leq_times is an empty list
+        if len(leq_times) > 0:
+          
+            # before this comment, then place the comment before the first time stamped line.
+            # Now the last value in the leq_times list is the index into
+            # time_stamped_line_indices where you will obtain the location
+            # in the ALR list of where you want to insert the comment text
+            #
+            # The if statement is protection against the case where the last line time stamp
+            # and the comment time stamp is the same AND the last line time stamp is the
+            # last timed stamped line in ACIS-LoadReview.txt
+            if leq_times[-1] +1 < len( time_stamped_line_indices) :
+                insert_loc = time_stamped_line_indices[leq_times[-1] +1]
+            else:
+                 insert_loc = time_stamped_line_indices[leq_times[-1] ]
+                 
+            # At long last you now know where to insert the comment text
+            # It's before insert_loc
+            # Write the date (DOY) and the comment statement
+            ALR_lines.insert(insert_loc, "".join(("\n",  each_comment[2], "\n\n")) )
+        
+            # Since you've added lines, you have to re-calculate the indices of all those
+            # lines which begin with a DOY time stamp again.
+            # This is the position of the stamped line in the ALR file.
+            time_stamped_line_indices = [index for index, eachline in enumerate(ALR_lines) if time_stamp.match(eachline)]
+
+            # Re-generate the list of the times in seconds for those lines which have a
+            # DOY time in them.  This is a one for one pairing of time_stamped_line_indices
+            event_times = [apt.secs(ALR_lines[eachindex].split()[0])  for eachindex in time_stamped_line_indices]
     
     # So now you've updated the list of ALR lines to include any errors or
     # comments that exist.

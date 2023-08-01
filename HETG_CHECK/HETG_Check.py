@@ -55,12 +55,12 @@ import OFLS_File_Utilities as oflsu
 #
 # Parse the input arguments
 #
-deadman_parser = argparse.ArgumentParser()
-deadman_parser.add_argument("review_load_path", help="Path to the Review load directory. e.g. /data/acis/LoadReviews/2022/FEB2122/ofls'")
+hetg_parser = argparse.ArgumentParser()
+hetg_parser.add_argument("review_load_path", help="Path to the Review load directory. e.g. /data/acis/LoadReviews/2022/FEB2122/ofls'")
 
-deadman_parser.add_argument("nlet_file_path", help="Path to the NLET file to be used in assembling the history. e.g. /data/acis/LoadReviews/TEST_NLET_FILES/FEB2122A_NonLoadTrackedEvents.txt")
+hetg_parser.add_argument("nlet_file_path", help="Path to the NLET file to be used in assembling the history. e.g. /data/acis/LoadReviews/TEST_NLET_FILES/FEB2122A_NonLoadTrackedEvents.txt")
 
-args = deadman_parser.parse_args()
+args = hetg_parser.parse_args()
 
 #
 # Inits
@@ -251,6 +251,11 @@ for each_cmd in assembled_commands:
                 HETG_in_length = cd.Calc_Delta_Time(HETG_in_date, HETG_out_date)
                 percent_in = HETG_in_length[0]/radzone_length[0] * 100.0
                 print('          Percent time the HETG was in for this Perigee Passage: %.2f' % (percent_in),'%')
+                # Also calculate the amount of time between the HETG Retraction and OORMPEN
+                time_hetg_out = cd.Calc_Delta_Time(HETG_out_date , OORMPEN_date)
+                # ...and display that for the user
+                print("          The HETG retraction began %.2f hours or %.2f minutes prior to RADMON EN" % (time_hetg_out[2], time_hetg_out[1]))
+                
             elif (radzone_length[0] > 0.0) and \
                  (HETG_status == 'IN'):
                 # But if the HETG is still in, calculate the percentage using the OORMPEN time
