@@ -8,7 +8,7 @@ HETG_Check.py:
 
 When nearing the perigee passage, the SIM is moved to put the ACIS instrument under cover.
 To protect ACIS against a failed SIM move, the HETG is required to be inserted for the Perigee Passage.
-HETG_Check.py is run during a load review to show the reviewer the RADMON DISABLE, HETG isertion/retraction,
+HETG_Check.py is run during a load review to show the reviewer the RADMON DISABLE, HETG insertion/retraction,
 and RADMON ENABLE times for the perigee passage.  HETG_Check.py was modified such that if, during a perigee passage,
 the HETG is retracted before RADMON ENABLE (OOPRMEN), the program will print an additional statement which displays
 the time delta between the retraction command and OORMPEN in both hours and minutes. This is to aid the reviewer in
@@ -17,7 +17,7 @@ determining if the HETG has been retracted too soon.
 HRC_Txing_Check.py:
 
 The purpose of HRC_Txing_Check.py is to check the timing of ACIS and HRC commands during HRC science
-observations and determine if any guideline has been violated.  When an ACIS CC mode observation is
+observations and determine if any guideline has been violated.  When an ACIS CC mode observation appears
 between two HRC observations, the program threw a false error.  This update eliminates the false error.
 Opportunity was also taken to improve some variable names and comments.
 
@@ -39,7 +39,7 @@ https://github.com/acisops/lr/pull/38
 Testing:
 ======== 
 
-Both unit and regression testing were carried out for each of the two programs.
+Both unit and regression testing were carried out for each of the three  programs.
 
 Unit tests for  HRC_Txings_Check.py and HETG_Check.py were carried out by
 running those programs on the regression test loads (see below) independently
