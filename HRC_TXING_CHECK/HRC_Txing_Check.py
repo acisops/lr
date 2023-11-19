@@ -6,7 +6,7 @@
 #
 # Update V2.0
 #              Gregg Germain
-#              November 17, 2023
+#              November 19, 2023
 #              1) Incorporation of the new H2C_0002(B) SI mode
 #                   - Has extra window command along with a 4 second delay as compared
 #                     to H2C_0001(B)
