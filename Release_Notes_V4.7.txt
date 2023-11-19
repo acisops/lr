@@ -22,7 +22,7 @@ Files Changed or added:
 
 The updates can be seen here:
 
-https://github.com/acisops/lr/pull/XXXXXXXX
+https://github.com/acisops/lr/pull/39
 
 
 Testing:
