@@ -34,10 +34,6 @@ import Insert_Comment_In_ALR as icia
 
 import ORP_File_Class as ofc
 
-
-from IPython import embed
-
-
 """
 The basic structure of a with-bias SI mode command sequence is:
 
@@ -56,21 +52,19 @@ moved with respect to each other. This shouldn't happen because ACIS has created
 as a unit and the load builder loads the SI modes as a unit. However the program checks the sequence
 and timing of the commands in case a hand edit of the load introduced an error.
 
-The structure is identical for all with bias SI modes. The only items that change from one SI mode
-to another are the second WSPOWxxxxx, the WTxxxxxxxx, and the Start Science command.
+The structure is identical for all with-bias SI modes. The only items that change from one SI mode
+to another are the second WSPOWxxxxx, the WTxxxxxxxx, the Start Science command, and the
+possible addition of a window block.
 
 You would use those differences to identify the SI mode being loaded by this sequence of commands.
 SI modes H1C_0001B, H2C_0001B and H2C_0002B will be the ONLY ones used to set up Txings 
-for HRC science observations. And these  SI modes will be used only for that purpose. The parameter
-blocks that correspond to these  SI modes are:
+for HRC science observations, at this time.  The parameter blocks that correspond to these
+SI modes are:
 
  WT00D98014 and WT00D96014 and WT00DAA014
 
-NOTE: For the purposes of this program documentation the collection of ACIS SI modes that are acceptable
-           for running when HRC is observing will be referred to as "ACIS/HRC" SI modes.
-
 The time delta between the loading of the SI mode and the SCS-134 activation for
- ACIS/HRC SI modes which are run during HRC science observations is = bias time + 1152seconds.
+ NIL SI modes which are run during HRC science observations is = bias time + 1152seconds.
 The bias time differs from one SI mode to another if the number of chips differ.
 The bias time calculation starts at the time of the first command of the SI mode load.
 
@@ -79,30 +73,28 @@ determine that a storm is bad enough to trigger a shutdown.
 
 These are the checks, errors and warnings performed by this program:
 
-1)  ACIS/HRC SI mode loaded and it was previously loaded  without completing an HRC observation.
+1) COACTS1=134
 
-2) COACTS1=134
+        ERROR - 134 activation but no NIL SI mode loaded
+        ERROR - 134 activation but  NIL SI mode not running
 
-        ERROR - 134 activation but no ACIS/HRC SI mode loaded
-        ERROR - 134 activation but  ACIS/HRC SI mode not running
+2)  COACTS1=134, NIL SI mode  loaded and running
 
-3)  COACTS1=134, ACIS/HRC SI mode  loaded and running
-
-     OK - ACIS/HRC SI mode  is running long enough before  COACTS1=134
-     ERROR -  ACIS/HRC SI mode not running long enough before  COACTS1=134
+     OK - NIL SI mode  is running long enough before  COACTS1=134
+     ERROR -  NIL SI mode not running long enough before  COACTS1=134
 
 
-4) 215PCAOF Command
-          OK - 215PCAOF and  ACIS/HRC SI mode running
-          ERROR - 215PCAOF but there wasn't any COACTS1=134
-	  ERROR - 215PCAOF ACIS/HRC SI mode  loaded but not running
+3) 215PCAOF Command
+          OK - 215PCAOF and  NIL SI mode running
+          ERROR - 215PCAOF issued but there wasn't any COACTS1=134
+	  ERROR - 215PCAOF issued, NIL SI mode  loaded but not running
                       - Allows a 1 second differential IF Stop Science occurs first.
 
-5) WARINING - The sequence of the commands to load the ACIS/HRC SI mode is missing a command
+4) WARINING - The sequence of the commands to load the NIL SI mode is missing a command
 
-6) WARNING - The timing of the commands to load the ACIS/HRC SI mode has an extra command inserted
+5) WARNING - The timing of the commands to load the NIL SI mode has an extra command inserted
 
-7) WARNING - Informs the user that there were no  ACIS/HRC SI mode/SCS-134 activation/215PCAOF groups
+6) WARNING - Informs the user that there were no  NIL SI mode/SCS-134 activation/215PCAOF groups
                       in the load.
 
 Version 2.0:
@@ -113,11 +105,11 @@ Version 2.0:
     no longer be used in the future. This allows regression testing using old tests and
     a return to using the old SI modes in the future if desired.
 
-    The ACIS/HRC SI modes are no longer limited to Event Histogram type SI modes. 
+    The NIL SI modes are no longer limited to Event Histogram type SI modes. 
     The code comments and informational statements were changed to reflect this.
     New SI modes can be added by creating a .dat  file with the commands and delays.
     and editing the PB_to_Mode_Map.dat file.  The program no longer needs to be modified
-    when a new ACIS/HRC SI mode is created. Since we usually use the same SI mode
+    when a new NIL SI mode is created. Since we usually use the same SI mode
     for HRC observations in a load, the code will check to see if the command sequence
     for that load was already loaded and if so, will not repeat the loading.
 
@@ -132,11 +124,11 @@ Version 2.0:
 # Read_PB_to_Mode_Map
 #
 #-------------------------------------------------------------------------------
-def PB_to_Mode_Map():
+def PB_to_Mode_Map(data_files_dir):
     """
     Read in the PB_to_Mode_Map.dat file and create a dictionary of
     the two entries on each line of the file. The first entry is the
-    parameter block command for that ACIS/HRC SI mode 
+    parameter block command for that NIL SI mode 
     (e.g.WT00DAA014) and the second entry is the name of the file
     (no extension) that can be read to obtain the sequence of commands
     for that SI mode.
@@ -149,7 +141,7 @@ def PB_to_Mode_Map():
     pb_to_mode_map = {}
 
     # Open the mapping file
-    mapfile = open("/data/acis/LoadReviews/script/HRC_TXING_CHECK/PB_to_Mode_Map.dat", "r")
+    mapfile = open(data_files_dir+"PB_to_Mode_Map.dat", "r")
 
     # Read each line in the map file and process the two entries turning the
     # entries into a dictionary which maps the parameter block command
@@ -191,7 +183,7 @@ def extract_command_packet(cmd_string):
 #-------------------------------------------------------------------------------
 def Read_SI_Mode_File(filespec):
     """
-    Given the path to an ACIS/HRC SI mode definition file, this function will
+    Given the path to an NIL SI mode definition file, this function will
     read the specified SI mode command file and store the data in a list
     of lists. Each sublist consists of:
 
@@ -360,25 +352,28 @@ load_week_path = args.review_load_path
 # Inits
 #
 
-# Read the Parameter Block to SI mode definition file map
-pb_to_mode_map = PB_to_Mode_Map()
-
-# Make a list, using the pb_to_mode_map dict keys, of all the parameter blocks in
-# the SI modes that could be used when HRC is observing
-ACIS_HRC_parameter_block_list = (pb_to_mode_map.keys())
-
 # Set the variable specifying which was the last SI mode file read to None
 last_si_mode_file_read = None
 
-# Initialize the ACIS/HRC SI mode loaded flag to False
+# Initialize the NIL SI mode loaded flag to False
 si_mode_loaded_flag = False
 
-# Initialize the container for ACIS/HRC SI mode commands to None
+# Initialize the container for NIL SI mode commands to None
 si_mode_command_list = None
 
 # Create the list which will contain all the HRC/Txing time delta comments
 # which will appear in the ACIS-LoadReview.txt file.
 comment_list = []
+
+# Specify the base directory with the data files reside
+data_files_dir = "/data/acis/LoadReviews/script/HRC_TXING_CHECK/"
+
+# Read the Parameter Block to SI mode definition file map
+pb_to_mode_map = PB_to_Mode_Map(data_files_dir)
+
+# Make a list, using the pb_to_mode_map dict keys, of all the parameter blocks in
+# the SI modes that could be used when HRC is observing
+NIL_SI_parameter_block_list = (pb_to_mode_map.keys())
 
 #
 # Assemble the Load History
@@ -448,7 +443,7 @@ for eachcmd in assembled_commands:
         extracted_cmds =  np.append(extracted_cmds, new_row, axis=0)
 
 #
-# Process the extracted commands checking any ACIS/HRC SI modes that appear.
+# Process the extracted commands checking any NIL SI modes that appear.
 #
 
 # Now step through the array and look for any command which contains one of  the
@@ -461,7 +456,7 @@ for index, each_cmd in enumerate(extracted_cmds):
     # Detect if we are loading one of the  SI modes used when HRC is observing.
     # Any time one of the HRC Observation SI modes exists in extracted_cmds,
     # save it.  If there are no HRC Observations in the load,  the list will be empty
-    key_list = [eachkey  for eachkey in ACIS_HRC_parameter_block_list if eachkey in each_cmd["commands"]  ]
+    key_list = [eachkey  for eachkey in NIL_SI_parameter_block_list if eachkey in each_cmd["commands"]  ]
 
     # If  one of the HRC-Observing SI modes parameter blocks appears in this
     # command line but we already found an HRC observing si mode but have not yet seen
@@ -469,11 +464,11 @@ for index, each_cmd in enumerate(extracted_cmds):
     if key_list and (si_mode_loaded_flag == True):
         
         # ERROR -  Place an error statement in the comments list, and print it out for the log file.
-        full_comment = " ".join((each_cmd["date"], "\n>>> ERROR - ", each_cmd["date"], "Multiple ACIS/HRC SI Mode loads without an intervening SCS-134 activation"))
+        full_comment = " ".join((each_cmd["date"], "\n>>> ERROR - ", each_cmd["date"], "Multiple NIL SI Mode loads without an intervening SCS-134 activation"))
         print("\n", full_comment)
         # Append the comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], full_comment])
-        # Set the bias start date and time to this latest ACIS/HRC  SI Mode load
+        # Set the bias start date and time to this latest NIL  SI Mode load
         # That way when the next COACT1=134 is observed, the correct actual delta T
         # will be calculated from this SI mode load.
         bias_start_date = extracted_cmds[index - 6]["date"]
@@ -492,14 +487,14 @@ for index, each_cmd in enumerate(extracted_cmds):
         
         # Determine the name of the file required to read in the commands for this SI mode
         
-        # Next load in the appropriate ACIS/HRC SI mode file unless it was the last file
+        # Next load in the appropriate NIL SI mode file unless it was the last file
         # to have been loaded.
         required_file = pb_to_mode_map[pb_command]
 
         # Ordinarily the same SI mode is used every time an HRC observation is
         # executed. So if we have already processed an HRC observation and loaded
         # in an SI mode we can save some time by not re-loading it.
-        # But it's not an ironclad rule. So in case there's a mix of ACIS/HRC SI
+        # But it's not an ironclad rule. So in case there's a mix of NIL SI
         # modes used in the load, we will check to see if the presently required
         # SI mode file has  already been read in. 
         if (not si_mode_command_list) or  last_si_mode_file_read != required_file:
@@ -509,7 +504,7 @@ for index, each_cmd in enumerate(extracted_cmds):
             # si mode was seen before this one.
                
             # Load the commands for this SI mode
-            si_mode_command_list = Read_SI_Mode_File("/data/acis/LoadReviews/script/HRC_TXING_CHECK/"+required_file)
+            si_mode_command_list = Read_SI_Mode_File(data_files_dir+required_file)
             
             # Set the last file read variable
             last_si_mode_file_read = required_file
@@ -537,7 +532,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         bias_start_time = extracted_cmds[index - 6]["time"]
         
     # If this is an ACISPKT command and a  parameter block load command
-    # (starts with WT) but not one of the ACIS/HRC SI  modes used when
+    # (starts with WT) but not one of the NIL SI  modes used when
     # HRC is observing, then you are loading some other SI mode which
     # "overwrites" whatever the active SI mode is. So set the loaded flag to False.
     if (not key_list) and \
@@ -546,27 +541,27 @@ for index, each_cmd in enumerate(extracted_cmds):
         ("TLMSID= WC" in each_cmd["commands"])):
         si_mode_loaded_flag = False
 
-    # XTZ0000005 - and an ACIS/HRC SI mode was loaded . Signal the
-    # ACIS/HRC Start Science.
+    # XTZ0000005 - and an NIL SI mode was loaded . Signal the
+    # NIL Start Science.
     if ("XTZ0000005" in  each_cmd["commands"]) and \
        (si_mode_loaded_flag == True):
-        acis_hrc_mode_running = True
+        nil_si_mode_running = True
 
-    # XTZ0000005 - and an ACIS/HRC SI mode has NOT been loaded.  Signal that
-    # an ACIS/HRC SI mode has not started.
+    # XTZ0000005 - and an NIL SI mode has NOT been loaded.  Signal that
+    # an NIL SI mode has not started.
     elif ("XTZ0000005" in  each_cmd["commands"]) and \
          (si_mode_loaded_flag == False):
-        acis_hrc_mode_running = False
+        nil_si_mode_running = False
 
-    # In this case if a CC mode is started then you know that and an ACIS/HRC command was not loaded
+    # In this case if a CC mode is started then you know that and an NIL command was not loaded
     # and cannot be running
     elif "XCZ0000005" in  each_cmd["commands"]:
         si_mode_loaded_flag == False
-        acis_hrc_mode_running = False
+        nil_si_mode_running = False
         
     # COACTS1=134 - HRC Observation begins.
-    # ERROR - ACIS/HRC SI mode never loaded
-    # Else you see an SCS-134 activation but you have NOT seen the ACIS/HRC SI mode
+    # ERROR - NIL SI mode never loaded
+    # Else you see an SCS-134 activation but you have NOT seen the NIL SI mode
     # load that should have come prior to this command.  This is an error. Add an error
     # comment, and print it out for the log file. This will catch all errors of this type if there
     # are one or more HRC observations in the load.
@@ -581,7 +576,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         scs134_act_string =  each_cmd["date"] + " SCS-134 Activation: HRC Observation Begun"
 
         # Create the error string telling the reviewer that no acceptable SI mode was loaded
-        error_comment = " ".join((scs134_act_string, "\n>>> ERROR - HRC Observation: no acceptable ACIS/HRC SI Mode Load  loaded prior to an SCS-134 activation"))
+        error_comment = " ".join((scs134_act_string, "\n>>> ERROR - HRC Observation: no acceptable NIL SI Mode Load  loaded prior to an SCS-134 activation"))
         # Print it for the log file
         print("\n", error_comment)
         
@@ -592,7 +587,7 @@ for index, each_cmd in enumerate(extracted_cmds):
     # HRC START command but no acceptable ACIS SI mode  is  running. Give a grace
     # period of one second to account for time calculation accuracies.It may not happen the same way next time. 
     elif ("COACTS1=134" in each_cmd["commands"]) and \
-         ( acis_hrc_mode_running == False):
+         ( nil_si_mode_running == False):
         
         # Set the hrc activated and running flags to True
         hrc_running_flag = True
@@ -602,7 +597,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         scs134_act_string =  each_cmd["date"] + " SCS-134 Activation: HRC Observation Begun"
         
         # Calculate the time between the start of SI mode load and the activation of
-        # SCS-134. Even though we've detected that an  ACIS/HRC SI mode is running, we also
+        # SCS-134. Even though we've detected that an  NIL SI mode is running, we also
         # need to check that the timing between SI mode load and SCS-134 activation is correct.
         delta_t = round(each_cmd["time"] - bias_start_time, 2)
         
@@ -621,20 +616,20 @@ for index, each_cmd in enumerate(extracted_cmds):
         # Append the delta t comment comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], delta_t_comment])
 
-        # Now here is the error statement due to the fact that the ACIS/HRC SI mode is not running.
-        error_comment = " ".join((scs134_act_string, "\n>>> ERROR - SCS-134 activated but an ACIS/HRC SI mode is not running"))
+        # Now here is the error statement due to the fact that the NIL SI mode is not running.
+        error_comment = " ".join((scs134_act_string, "\n>>> ERROR - SCS-134 activated but an NIL SI mode is not running"))
         
         # Print the error out for the log file
         print("\n", error_comment)
         # Append the comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], error_comment])
         
-    # Else, if you have found an ACIS/HRC SI mode and this command is the 
+    # Else, if you have found an NIL SI mode and this command is the 
     # corresponding SCS-134 activation, you can calculate  the delta time
  
     elif ("COACTS1=134" in each_cmd["commands"]) and \
          ( si_mode_loaded_flag == True) and \
-         (acis_hrc_mode_running == True):
+         (nil_si_mode_running == True):
         
         # Set the hrc activated and running flags to True
         hrc_running_flag = True
@@ -660,11 +655,11 @@ for index, each_cmd in enumerate(extracted_cmds):
         comment_list.append([each_cmd["date"], each_cmd["time"], full_comment])
 
     # AA00000000 - No matter what ACIS SI mode is loaded this command stops the
-    #                         clocking. And if an ACIS/HRC SI mode  is running that gets
+    #                         clocking. And if an NIL SI mode  is running that gets
     #                         stopped too. So there's no need to differentiate between one of
-    #                         the two ACIS/HRC SI modes or any other.
+    #                         the two NIL SI modes or any other.
     if  ("AA00000000" in  each_cmd["commands"]):
-        acis_hrc_mode_running = False
+        nil_si_mode_running = False
         stop_science_date = each_cmd["date"]
         stop_science_time = each_cmd["time"]
         
@@ -673,24 +668,24 @@ for index, each_cmd in enumerate(extracted_cmds):
         # Create the string that indicates the HRC obs 15V power down command issued.
         HRC_shutdown_string = each_cmd["date"] + " 215PCAOF command: HRC Observation Ends"
         
-        # Now check to see if the ACIS/HRC SI mode was running at this point of
+        # Now check to see if the NIL SI mode was running at this point of
         # the load. Several situations have to be covered:
         #
-        #    1) The 215PCAOF comes before the ACIS/HRC SI mode stop science (i.e. ACIS/HRC SI mode
+        #    1) The 215PCAOF comes before the NIL SI mode stop science (i.e. NIL SI mode
         #        still running) - always OK.
         #
         #    2) SCS-134 was never activated - ERROR because if you are stopping HRC you
         #        must have expected that it was started
         #
-        #    3) The ACIS/HRC SI mode stop science comes before the 215PCAOF command
+        #    3) The NIL SI mode stop science comes before the 215PCAOF command
         #         -  Delta t between the  AA00 and 215PCAOF commands <= 1 second - OK
         #         -  Delta t between the  AA00 and 215PCAOF commands > 1 second - NOT OK
         #                - See Guideline
         #
         #
         #
-        # Possibility #1 - ACIS/HRC SI mode still running
-        if acis_hrc_mode_running == True:
+        # Possibility #1 - NIL SI mode still running
+        if nil_si_mode_running == True:
             comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_string])
             
         # Possibility #2 - Check to see if the SCS-134 activation ever occurred
@@ -699,20 +694,20 @@ for index, each_cmd in enumerate(extracted_cmds):
             print("\n", HRC_activation_error_string)
             comment_list.append([each_cmd["date"], each_cmd["time"], HRC_activation_error_string])
 
-        # Possibility #3  - ACIS/HRC SI mode loaded, run, and was shut down prior to 215PCAOF
+        # Possibility #3  - NIL SI mode loaded, run, and was shut down prior to 215PCAOF
         elif (si_mode_loaded_flag == True) and \
-              (acis_hrc_mode_running == False):
-            # Calculate the detla t between the ACIS/HRC SI mode shutdown and this 215PCAOF command
+              (nil_si_mode_running == False):
+            # Calculate the detla t between the NIL SI mode shutdown and this 215PCAOF command
             delta_t = each_cmd["time"]  -  stop_science_time
 
-            # If delta t is one second or less, then the ACIS/HRC SI mode was shut down closely enough
+            # If delta t is one second or less, then the NIL SI mode was shut down closely enough
             # to this HRC shutdown to nor risk the HRC
             if delta_t <= 1:
                 # Good shutdown timing with regard to the AA00000000. Record the
                 # shutdown time.
                 comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_string])
-            else: # HRC was running too long past the ACIS/HRC SI mode stop science
-                HRC_shutdown_error_string = " ".join((HRC_shutdown_string, "\n>>> ERROR - The ACIS/HRC SI mode was shut down more than 1 second prior to  the time of HRC shutdown"))
+            else: # HRC was running too long past the NIL SI mode stop science
+                HRC_shutdown_error_string = " ".join((HRC_shutdown_string, "\n>>> ERROR - The NIL SI mode was shut down more than 1 second prior to  the time of HRC shutdown"))
                 print("\n", HRC_shutdown_error_string)
                 comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_error_string])
  
@@ -734,7 +729,7 @@ if len(comment_list)> 0:
     # ACIS-LoadReview.txt.HRC_TXING (if there is one)  files intact for comparison.
     if (args.test == False):
         try:
-            print('\n    Coping ACIS-LoadReview.txt.HRC_TXING to ACIS-LoadReview.txt')
+            print('\n    Copying ACIS-LoadReview.txt.HRC_TXING to ACIS-LoadReview.txt')
             shutil.copy(load_week_path+'/ACIS-LoadReview.txt.HRC_TXING', load_week_path+'/ACIS-LoadReview.txt')
         except OSError as err:
             print(err)
@@ -745,5 +740,5 @@ if len(comment_list)> 0:
         print('\n    Leaving the ACIS-LoadReview.txt  unchanged')
 
 else:
-    print(">>> WARNING - No ACIS/HRC SI mode/SCS-134 Activation pairs found in this load.")
+    print(">>> WARNING - No NIL SI mode/SCS-134 Activation pairs found in this load.")
 
