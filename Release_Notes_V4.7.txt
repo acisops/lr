@@ -42,7 +42,7 @@ The changes were tested by running these regression test loads:
  JUL0323
  JUL2423
  NOV2023B - Re-run of the Production load.
- NOV2023X - Hand edited by ACIS Ops to introduce all possible ACIS/HRC SI modes that can
+ NOV2023X - Hand edited by ACIS Ops to introduce all possible NIL SI modes that can
                      be used during HRC observations. No errors introduced.
  NOV2023 W,Y,Z - NOV2023X load hand edited by ACIS Ops to purposefully introduce errors into the loads.
 
