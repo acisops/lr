@@ -183,7 +183,7 @@ def extract_command_packet(cmd_string):
 #-------------------------------------------------------------------------------
 def Read_SI_Mode_File(filespec):
     """
-    Given the path to an NIL SI mode definition file, this function will
+    Given the path to a NIL SI mode definition file, this function will
     read the specified SI mode command file and store the data in a list
     of lists. Each sublist consists of:
 
@@ -541,19 +541,19 @@ for index, each_cmd in enumerate(extracted_cmds):
         ("TLMSID= WC" in each_cmd["commands"])):
         si_mode_loaded_flag = False
 
-    # XTZ0000005 - and an NIL SI mode was loaded . Signal the
+    # XTZ0000005 - and a NIL SI mode was loaded . Signal the
     # NIL Start Science.
     if ("XTZ0000005" in  each_cmd["commands"]) and \
        (si_mode_loaded_flag == True):
         nil_si_mode_running = True
 
-    # XTZ0000005 - and an NIL SI mode has NOT been loaded.  Signal that
-    # an NIL SI mode has not started.
+    # XTZ0000005 - and a NIL SI mode has NOT been loaded.  Signal that
+    # a NIL SI mode has not started.
     elif ("XTZ0000005" in  each_cmd["commands"]) and \
          (si_mode_loaded_flag == False):
         nil_si_mode_running = False
 
-    # In this case if a CC mode is started then you know that and an NIL command was not loaded
+    # In this case if a CC mode is started then you know that and a NIL command was not loaded
     # and cannot be running
     elif "XCZ0000005" in  each_cmd["commands"]:
         si_mode_loaded_flag == False
@@ -597,7 +597,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         scs134_act_string =  each_cmd["date"] + " SCS-134 Activation: HRC Observation Begun"
         
         # Calculate the time between the start of SI mode load and the activation of
-        # SCS-134. Even though we've detected that an  NIL SI mode is running, we also
+        # SCS-134. Even though we've detected that a NIL SI mode is running, we also
         # need to check that the timing between SI mode load and SCS-134 activation is correct.
         delta_t = round(each_cmd["time"] - bias_start_time, 2)
         
@@ -617,14 +617,14 @@ for index, each_cmd in enumerate(extracted_cmds):
         comment_list.append([each_cmd["date"], each_cmd["time"], delta_t_comment])
 
         # Now here is the error statement due to the fact that the NIL SI mode is not running.
-        error_comment = " ".join((scs134_act_string, "\n>>> ERROR - SCS-134 activated but an NIL SI mode is not running"))
+        error_comment = " ".join((scs134_act_string, "\n>>> ERROR - SCS-134 activated but a NIL SI mode is not running"))
         
         # Print the error out for the log file
         print("\n", error_comment)
         # Append the comment to the comment list
         comment_list.append([each_cmd["date"], each_cmd["time"], error_comment])
         
-    # Else, if you have found an NIL SI mode and this command is the 
+    # Else, if you have found a NIL SI mode and this command is the 
     # corresponding SCS-134 activation, you can calculate  the delta time
  
     elif ("COACTS1=134" in each_cmd["commands"]) and \
@@ -655,7 +655,7 @@ for index, each_cmd in enumerate(extracted_cmds):
         comment_list.append([each_cmd["date"], each_cmd["time"], full_comment])
 
     # AA00000000 - No matter what ACIS SI mode is loaded this command stops the
-    #                         clocking. And if an NIL SI mode  is running that gets
+    #                         clocking. And if a NIL SI mode  is running that gets
     #                         stopped too. So there's no need to differentiate between one of
     #                         the two NIL SI modes or any other.
     if  ("AA00000000" in  each_cmd["commands"]):
