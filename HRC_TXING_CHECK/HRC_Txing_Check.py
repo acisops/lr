@@ -373,7 +373,7 @@ pb_to_mode_map = PB_to_Mode_Map(data_files_dir)
 
 # Make a list, using the pb_to_mode_map dict keys, of all the parameter blocks in
 # the SI modes that could be used when HRC is observing
-NIL_SI_parameter_block_list = (pb_to_mode_map.keys())
+NIL_SI_parameter_block_list = list(pb_to_mode_map.keys())
 
 #
 # Assemble the Load History
@@ -453,7 +453,7 @@ for eachcmd in assembled_commands:
 # index is an index into the extracted_cmds array.
 for index, each_cmd in enumerate(extracted_cmds):
     # HRC OBSERVING?
-    # Detect if we are loading one of the  SI modes used when HRC is observing.
+    # Detect if we are loading one of the  ACIS NIL SI modes used when HRC is observing.
     # Any time one of the HRC Observation SI modes exists in extracted_cmds,
     # save it.  If there are no HRC Observations in the load,  the list will be empty
     key_list = [eachkey  for eachkey in NIL_SI_parameter_block_list if eachkey in each_cmd["commands"]  ]
