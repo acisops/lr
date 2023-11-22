@@ -667,48 +667,42 @@ for index, each_cmd in enumerate(extracted_cmds):
     if ("215PCAOF" in  each_cmd["commands"]):
         # Create the string that indicates the HRC obs 15V power down command issued.
         HRC_shutdown_string = each_cmd["date"] + " 215PCAOF command: HRC Observation Ends"
+        comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_string])
         
         # Now check to see if the NIL SI mode was running at this point of
         # the load. Several situations have to be covered:
         #
-        #    1) The 215PCAOF comes before the NIL SI mode stop science (i.e. NIL SI mode
-        #        still running) - always OK.
         #
-        #    2) SCS-134 was never activated - ERROR because if you are stopping HRC you
+        #    1) SCS-134 was never activated - ERROR because if you are stopping HRC you
         #        must have expected that it was started
         #
-        #    3) The NIL SI mode stop science comes before the 215PCAOF command
+        #    2) The NIL SI mode stop science comes before the 215PCAOF command
         #         -  Delta t between the  AA00 and 215PCAOF commands <= 1 second - OK
         #         -  Delta t between the  AA00 and 215PCAOF commands > 1 second - NOT OK
         #                - See Guideline
         #
         #
         #
-        # Possibility #1 - NIL SI mode still running
-        if nil_si_mode_running == True:
-            comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_string])
-            
-        # Possibility #2 - Check to see if the SCS-134 activation ever occurred
-        elif hrc_activated_flag == False:
-            HRC_activation_error_string = " ".join((HRC_shutdown_string, "\n>>> ERROR - SCS-134  was never activated"))
-            print("\n", HRC_activation_error_string)
+        # Possibility #1 - Check to see if the SCS-134 activation ever occurred
+        if hrc_activated_flag == False:
+            HRC_activation_error_string = ">>> ERROR - SCS-134  was never activated"
+            print("\n", each_cmd["date"], HRC_activation_error_string)
             comment_list.append([each_cmd["date"], each_cmd["time"], HRC_activation_error_string])
 
-        # Possibility #3  - NIL SI mode loaded, run, and was shut down prior to 215PCAOF
+        # Possibility #2  - NIL SI mode loaded, run, and was shut down prior to 215PCAOF
         elif (si_mode_loaded_flag == True) and \
               (nil_si_mode_running == False):
-            # Calculate the detla t between the NIL SI mode shutdown and this 215PCAOF command
+            # This could be ok or it could be a problem. It' s ok so long as the DT between the ACIS
+            # stop science and the 215 command is a second or less.
+            # Calculate the delta t between the NIL SI mode shutdown and this 215PCAOF command
             delta_t = each_cmd["time"]  -  stop_science_time
 
             # If delta t is one second or less, then the NIL SI mode was shut down closely enough
             # to this HRC shutdown to nor risk the HRC
-            if delta_t <= 1:
-                # Good shutdown timing with regard to the AA00000000. Record the
-                # shutdown time.
-                comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_string])
-            else: # HRC was running too long past the NIL SI mode stop science
-                HRC_shutdown_error_string = " ".join((HRC_shutdown_string, "\n>>> ERROR - The NIL SI mode was shut down more than 1 second prior to  the time of HRC shutdown"))
-                print("\n", HRC_shutdown_error_string)
+            if delta_t > 1:
+                # HRC was running too long past the NIL SI mode stop science
+                HRC_shutdown_error_string = ">>> ERROR - The NIL SI mode was shut down more than 1 second prior to  the time of HRC shutdown"
+                print("\n", each_cmd["date"], HRC_shutdown_error_string)
                 comment_list.append([each_cmd["date"], each_cmd["time"], HRC_shutdown_error_string])
  
         # HRC is not running so set the HRC running flag to false. And set the
