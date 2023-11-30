@@ -1,0 +1,69 @@
+Change Description
+==================
+
+This update includes changes to the Load Review check program HRC_Txing_Check.py.
+
+HRC_Txing_Check.py:
+
+The purpose of HRC_Txing_Check.py is to check the timing of ACIS and HRC commands during HRC science
+observations and determine if any guideline has been violated.  This update includes processing the new
+ACIS SI mode for use during HRC observations: H2C_0001B.  The program was updated so that if, in the
+future, a new SI mode to be used when HRC is observing is introduced, the program does not need to
+be modifed.  Instead a file needs to be created and another file updated.  New checks were added which
+check the sequence of commands for an ACIS SI mode when HRC is observing.  The checks will generate
+a warning  if a command from this sequence is missing or if another ACIS command has been inserted
+in the midst of the sequence.
+
+
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/39
+
+
+Testing:
+======== 
+
+Both unit and regression testing were carried out for each of the three  programs.
+
+Unit tests for  HRC_Txings_Check.py and HETG_Check.py were carried out by
+running those programs on the regression test loads (see below) independently
+from the ACIS load review program. The output was checked against expected outputs.
+Then regression tests were carried out by running the updated program from the
+ACIS load review program and the results checked to be sure they were correct and complete.
+
+The changes were tested by running these regression test loads:
+
+ JAN3023
+ JUL0323
+ JUL2423
+ NOV2023B - Re-run of the Production load.
+ NOV2023X - Hand edited by ACIS Ops to introduce all possible NIL SI modes that can
+                     be used during HRC observations. No errors introduced.
+ NOV2023 W,Y,Z - NOV2023X load hand edited by ACIS Ops to purposefully introduce errors into the loads.
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
