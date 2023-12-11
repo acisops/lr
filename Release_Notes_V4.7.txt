@@ -7,7 +7,7 @@ HRC_Txing_Check.py:
 
 The purpose of HRC_Txing_Check.py is to check the timing of ACIS and HRC commands during HRC science
 observations and determine if any guideline has been violated.  This update includes processing the new
-ACIS SI mode for use during HRC observations: H2C_0001B.  The program was updated so that if, in the
+ACIS SI mode for use during HRC observations: H2C_0002B.  The program was updated so that if, in the
 future, a new SI mode to be used when HRC is observing is introduced, the program does not need to
 be modifed.  Instead a file needs to be created and another file updated.  New checks were added which
 check the sequence of commands for an ACIS SI mode when HRC is observing.  The checks will generate
