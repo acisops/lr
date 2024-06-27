@@ -1,0 +1,96 @@
+Change Description
+==================
+
+This update includes changes to the Load Review check programs to add the 1DPAMYT thermal model in the
+list of thermal models that lr runs, and automates a modification to the continuity load's ACIS-Continuity.txt file if
+required.
+
+A call to run the approved 1DPAMYT thermal model has been added to run_models.pl.
+
+Occasionally an executing load will be interrupted by an SCS-107-only or Full Stop
+after its follow on load was reviewed and approved. The follow on load can be, and has,
+been uplinked but run as Vehicle Only, until a new Return to Science load is built, approved
+and uplinked.
+
+An example of this is the MAY0624 - MAY1324 - MAY1424 load sequence:
+
+MAY0624 was running on the Spacecraft
+
+MAY1324 load was reviewed and approved as a Full Normal foillow on to MAY06
+
+Then the MAY0624 load was interrupted by an SCS-107
+
+MAY1324 was uplinked but run as Vehicle only.
+
+MAY1424 Return to Science load was built, reviewed, approved and uplinked.
+
+If lr has determined that a sequence similar to the above has occurred, the Vehicle Only load's ACIS-Continuity.txt file
+is modified with the interrupt type and the time of interrupt. This information is available in the NLET file.
+
+This adjustment need only be done once: when the Return to science Review load is the A load.
+So this functionality is only executed for A loads.
+
+
+
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/xxxxxxxxxxxxxx
+
+
+Testing:
+======== 
+
+The 1DPAMYT model addition was tested during each test for the ACIS-Continuity.txt modification
+update.  The modified run_models.pl, which contains the added call to run the 1DPAMYT model, was used.
+The validation plots were checked for accurate predictions. The creation and population of the out_dpamyt
+subdirectory in the lr ofls directories was verified.
+
+The program Adjust_ACIS-Continuity.py was tested stand alone on copies of production load
+directories. 
+
+The test loads were created by copying production loads into new subdirectories with new names
+and lr was run against those loads.
+
+The production loads involved were:
+
+MAY0624A
+MAY1324A and MAY1324B
+MAY1424A and MAY1424B
+
+The MAY1324 A and B load were run with the updated lr (given a different load name) to insure that Normal loads
+are still reviewed normally with the Normal ACIS-Continuity.txt file created.  Then the MAY1424 A and B loads
+were run with the updated lr (also given a different name). The expected modification to the MAY1324B ACIS-Continuity.txt
+file was observed when the MAY1424A load was run through lr.  No change to the MAY1324B ACIS-Continuity.txt file was
+obsereved for the lr run of the MAY1424B load, as expected.
+
+There are no recent examples of the MAY0624 - MAY1424 event sequence where the interrupt was a Full Stop.
+Consequently in order to verify correct operation when a Full Stop did occur, a test version of the NonLoadTrackedEvents.txt
+file was created and a STOP was substituted for the SCS-107 entry for the interruption of the MAY0624 load. The MAY1424 A
+and B tests were re-run and the expected ACIS-Continuity.txt file update was observed.
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
