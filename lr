@@ -734,7 +734,7 @@ if ( ($load_type eq "TOO") and ($upper_load_version eq "A") and \
   {
         print "\nOk this Review load: $cur_load ... is interrupting the $prev_load as a TOO interrupt\nbut I also notice that the continuity load, $prev_load, is to be treated as vehicle only.\n";
 	
-	print "\nWas the $prev_load reviewed as a ".color("bold")."NORMAL".color("reset")." load ".color("bold")."before".color("reset")." its continuity load was interrupted by an SCS-107 (either 107-only or Full Stop)\n and they uplinked $prev_load as VO just to keep the spacecraft maneuvering until a Return to Science load could be approved?[y/n]";
+	print "\nWas the $prev_load load reviewed as a ".color("bold")."NORMAL".color("reset")." load ".color("bold")."before".color("reset")." its continuity load was interrupted by an SCS-107 (either 107-only or Full Stop),\nsubsequently uplinked as a full load (i.e. Both Science and Vehicle portions), but only the Vehicle Commands were activated\njust to keep the spacecraft maneuvering until a Return to Science load could be approved?[y/n]";
 	$ans_cont_interrupted=<STDIN>;
 	chop($ans_cont_interrupted);
         print "\nResponse: $ans_cont_interrupted\n";
