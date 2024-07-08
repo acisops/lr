@@ -168,7 +168,7 @@ use File::Copy;
 #               to continue the migration from Perl to Python.
 #         - Added HRC/TXING time delta check
 #
-# Update: June 11, 2040
+# Update: June 11, 2024
 #              V4.5
 #              - Determine if the VOC[B] continuity load was uplinked and run as VO; adjust
 #                Continuity ACIS-Continuity.txt file if necessary

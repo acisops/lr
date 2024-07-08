@@ -96,7 +96,7 @@ else:
         # Check to see if this event is in the array of event types to recognize
         if  each_event.split()[1] in event_types:
             
-            # This is one of the events so assemble the second line of the ACSI-Continuity.txt file
+            # This is one of the events so assemble the second line of the ACIS-Continuity.txt file
             # Split the input line
             split_line = each_event.split()
 
