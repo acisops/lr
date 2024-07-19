@@ -8,6 +8,10 @@ use File::Copy;
 use Cwd;
 use Archive::Tar;
 use Plucknames;
+
+use Term::ANSIColor;
+use File::Copy;
+
 #Save time executing Load Reviews
 #Creates neccesary directories for current load.
 #SFTP's to lucky, user enters name and pwd and 
@@ -164,10 +168,16 @@ use Plucknames;
 #               to continue the migration from Perl to Python.
 #         - Added HRC/TXING time delta check
 #
+# Update: June 11, 2024
+#              V4.5
+#              - Determine if the VOC[B] continuity load was uplinked and run as VO; adjust
+#                Continuity ACIS-Continuity.txt file if necessary
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
-###########################################################  
+###########################################################
+
 #
 # Set up autoflush
 $| = 1;
@@ -603,7 +613,7 @@ else # List is empty inform the user. Give the user the chance to specify one
 
 # Load version in ORLIST .or files are always uppercase
 # Create the upper case.
-$uc_load_version = uc $load_version;
+$upper_load_version = uc($load_version);
 
 # Formulate the name of the ORLIST lor file for this load and version
 $orlist_file_name = $load_name."_".$uc_load_version.".or";
@@ -702,14 +712,49 @@ system("python3 /data/acis/LoadReviews/script/Tarfile_Extract.py --nargs $file  
 #----------------------------------------
 if ($break == 1)
   {
-    # lr_break returns the load type and the interrupt time
-    $load_type,$interrupt_time =  lr_break();
+      # lr_break returns the load type and the interrupt time
+      $load_type,$interrupt_time =  lr_break();
     $hist=$edit_hist;
   }
 
+# Now that you know the load type (e.g. Normal, SCS-107, Full Stop, TOO) and
+# the value of the VO switch (if any) it's time to check for the circumstance where
+# the continuity load was reviewed as NORMAL but then after the approval, ITS
+# continuity load was interrupted by an SCS-107 (either a 107-only or Full Stop).
+# 
+# Check to see if this is a TOO type load, whether it's the A load, and if the VO flag was set as VOC or VOB
+# If so, then ask the user if the continuity load was uplinked and run as a Vehicle Only
+# to fill in after ITS continuity load was interrupted by an SCS-107 (either 107-only
+# or a Full Stop)
+#
+# NOTE: The adjustment will be made even if this is a Test load.
+#
+if ( ($load_type eq "TOO") and ($upper_load_version eq "A") and \
+     (($VO_choice eq "VOC") or ($VO_choice eq "VOB")))
+  {
+        print "\nOk this Review load: $cur_load ... is interrupting the $prev_load as a TOO interrupt\nbut I also notice that the continuity load, $prev_load, is to be treated as vehicle only.\n";
+	
+	print "\nWas the $prev_load load reviewed as a ".color("bold")."NORMAL".color("reset")." load ".color("bold")."before".color("reset")." its continuity load was interrupted by an SCS-107 (either 107-only or Full Stop),\nsubsequently uplinked as a full load (i.e. Both Science and Vehicle portions), but only the Vehicle Commands were activated\njust to keep the spacecraft maneuvering until a Return to Science load could be approved?[y/n]";
+	$ans_cont_interrupted=<STDIN>;
+	chop($ans_cont_interrupted);
+        print "\nResponse: $ans_cont_interrupted\n";
+
+	# See what the user's answer was
+	if ((uc $ans_cont_interrupted) eq "Y")
+	{
+	    # Call the Python program to modify the ACSI-Continuity.txt file within
+	    # the Continuity load directory
+	    system("python3 /data/acis/LoadReviews/script/Adjust_ACIS-Continuity.py $ofls_dir $prev_load_dir $nlet_file");
+	    print "\nAdjustment made to the $prev_load ACIS-Continuity.txt file\n";
+	  }
+
+    } # END IF ( ($load_type eq "TOO") &&  (($vo_choice eq "VOC") || ($vo_choice eq "VOB")))
+
+
+
 # ------------------  CONTINUITY TRACKING -----------------------------
 # You now know everything you need to know in order to write
-# out the ACIS-Continuity.txt file
+# out the ACIS-Continuity.txt file in the Review load directory
 
 # Open the ACIS-Continuity.txt file
 open(CONTFILE, ">$ofls_dir/ACIS-Continuity.txt");
@@ -728,7 +773,7 @@ print CONTFILE $prev_load_dir.$ofls_val, "\n";
 # should be read for both the Review and the Continuity load.  But this piece of code
 # handles what gets written to the ACIS-Continuity.txt file. So in both cases (VOC and VOB)
 # You want ACIS-Continuity.txt to indicate vehicle-only for the Continuity load.
-# Reading the VR*.backstop file for the review load is handled by the call to run-models.pl.
+# Reading the VR*.backstop file for the review load is handled by the call to run_models.pl.
 if  ( ($VO_choice eq "VOC") || ($VO_choice eq "VOB") )
   {
     # User selected VOC for the VO switch. Tell the model to read
@@ -1240,7 +1285,7 @@ sub lr_break()
     $load_type = "TOO";
 
     # Initialize these user inputs to a meaningless number
-    # User inpute are either 1 (NO) or 2 (YES)
+    # User inputs are either 1 (NO) or 2 (YES)
     $ans107 = 0;
     $approved_once_answer = 0;
     $interrupt_same_answer = 0;
@@ -1352,13 +1397,13 @@ if (${load_version} eq "a" || $q eq "2")
     else # Otherwise it was a TOO load
          # This variable set may not be strictly necessary since load_type is initialized at the
          # top of the subroutine. But I hate fall through default results like that
-      {$load_type = "TOO";}
-        
+    {$load_type = "TOO";}
+         
      # Inform the user what type of load was determined from this subroutine.
-     print "\n\nI have determined that the Review Load is of type: $load_type\n\n";
+    print "\n\nI have determined that the Review Load is of type: $load_type\n\n";
 
     # Capture the interrupt time
-    print "\tPlease enter the interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
+    print "\tPlease enter the TOO interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
     $interrupt_time = <STDIN>;
     chop($interrupt_time);
 

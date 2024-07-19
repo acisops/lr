@@ -36,7 +36,12 @@
 #         - Remove the no longer needed call to make_dhheater_history.csh
 #            - Broken under RH8/DS10.11
 #         - Print a line indicating what thermal model is about to be run
-	     
+#
+# Update: June 3, 2024
+#              Gregg Germain
+#              V1.17
+#              - Add the necessary code to run the new 1DPAMYT thermal model
+#
 #--------------------------------------------------------------------
 use POSIX qw(uname);
 use Cwd;
@@ -96,6 +101,10 @@ if ($appx) {  # On backup machine?
 #------------------------------
 $outdir=<${webroot}/PSMC_thermPredic/$load/ofls${ver}/>;
 $dpadir=<${webroot}/DPA_thermPredic/$load/ofls${ver}/>;
+
+# New web directory for the 1DPAMYT thermal model
+$dpamytdir=<${webroot}/DPAMYT_thermPredic/$load/ofls${ver}/>;
+
 $deadir=<${webroot}/DEA_thermPredic/$load/ofls${ver}/>;
 $fpdir=<${webroot}/FP_thermPredic/$load/ofls${ver}/>;
 $fep1acteldir=<${webroot}/FEP1_ACTEL_thermPredic/$load/ofls${ver}/>;
@@ -162,6 +171,9 @@ $psmc_ska_str = "${ska}/bin/psmc_check --oflsdir=${lr_dir} --out ${lr_dir}/out_p
 # NLET-DPA
 $dpa_ska_str = "${ska}/bin/dpa_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dpa --nlet_file ${nlet_file}  --verbose=0 $break_str";
 
+# NLET-DPAMYT
+$dpamyt_ska_str = "${ska}/bin/dpamyt_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dpamyt --nlet_file ${nlet_file}  --verbose=0 $break_str";
+
 # NLET-DEA
 $dea_ska_str = "${ska}/bin/dea_check --oflsdir=${lr_dir} --out ${lr_dir}/out_dea --nlet_file ${nlet_file}  --verbose=0 $break_str";
 
@@ -176,12 +188,13 @@ $beppcb_ska_str = "${ska}/bin/bep_pcb_check --oflsdir=${lr_dir} --out ${lr_dir}/
 # items to run
 #------------------------------
 @executables=( $psmc_ska_str,
-	      $dpa_ska_str,
-	      $dea_ska_str,
-              $fp_ska_str,
-	      $fep1mong_ska_str,
-	      $fep1actel_ska_str,
-	      $beppcb_ska_str);
+                            $dpa_ska_str,
+	                    $dpamyt_ska_str,
+                            $dea_ska_str,
+                            $fp_ska_str,
+	                    $fep1mong_ska_str,
+	                    $fep1actel_ska_str,
+	                    $beppcb_ska_str);
 
 # IF we can't execute this on this machine, then run it on acis
 if ($OS !~ /Linux/i ||
@@ -230,6 +243,12 @@ unless ($path){
     unless (-d $dpadir){
 	mkpath($dpadir,0777);
     }
+
+    unless (-d $dpamytdir)
+      {
+	mkpath($dpamytdir,0777);
+      }
+    
     unless (-d $deadir){
         mkpath($deadir,0777);
     }
@@ -247,6 +266,9 @@ unless ($path){
     }
     system("cp -p ${lr_dir}/out_psmc/*.* ${outdir}");   
     system("cp -p ${lr_dir}/out_dpa/*.* ${dpadir}");
+	
+    system("cp -p ${lr_dir}/out_dpamyt/*.* ${dpamytdir}");
+	
     system("cp -p ${lr_dir}/out_dea/*.* ${deadir}");
     system("cp -p ${lr_dir}/out_fptemp/*.* ${fpdir}");
     system("cp -p ${lr_dir}/out_fep1_mong/*.* ${fep1mongdir}");
