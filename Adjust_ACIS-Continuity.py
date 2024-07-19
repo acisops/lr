@@ -53,9 +53,8 @@ rev_load_ofls_dir = args.rev_load_ofls_dir
 cont_load_dir = args.cont_load_dir
 nlet_file_path =  args.nlet_file_path
       
-# Capture the Review and Continuity load week names
-rev_load_week = rev_load_ofls_dir[28:35]
-cont_load_week = cont_load_dir[28:35]
+# Capture the  Continuity load week name
+cont_load_week = cont_load_dir.split("/")[-2]
 
 # Create an instance of the Backstop History class
 BSC = BackstopHistory.Backstop_History_Class(

@@ -68,6 +68,9 @@ were run with the updated lr (also given a different name). The expected modific
 file was observed when the MAY1424A load was run through lr.  No change to the MAY1324B ACIS-Continuity.txt file was
 obsereved for the lr run of the MAY1424B load, as expected.
 
+Test load directories were also created where the Continuity load does not have an ACIS-Continuity.txt file to modify.
+This tests the error handling portion of Adjust_ACIS-Continuity.py.
+
 There are no recent examples of the MAY0624 - MAY1424 event sequence where the interrupt was a Full Stop.
 Consequently in order to verify correct operation when a Full Stop did occur, a test version of the NonLoadTrackedEvents.txt
 file was created and a STOP was substituted for the SCS-107 entry for the interruption of the MAY0624 load. The MAY1424 A
