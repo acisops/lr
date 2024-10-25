@@ -11,7 +11,7 @@ Files Changed or added:
 
 The updates can be seen here:
 
-https://github.com/acisops/lr/pull/
+https://github.com/acisops/lr/pull/43
 
 
 Testing:
