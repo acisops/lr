@@ -1,0 +1,60 @@
+Change Description
+==================
+
+This update eliminates the false error thrown when an HRC observation is preceded,
+and followed, by an ACIS observation, and both of which uses the same ACIS SI mode.
+Commenting was improved as well.
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/
+
+
+Testing:
+======== 
+
+Unit tests were carried out by running  test scenarios on the updated acis-backstop.pl program in isolation.
+
+Then full regression tests were carried out by arranging for LR to call the new
+acis-backstop.pl program on loads which contained no HRC observations, HRC
+observations surrounded by ACIS observations which used different SI modes,
+HRC observations surrounded by ACIS observations using the same ACIS SI modes,
+Normal, TOO, SCS-107-only and Full Stop loads. ACIS-LoadReview.txt output files and
+thermal model plots were compared and all differences were understood.
+
+
+The production loads involved were:
+
+OCT2124
+OCT1324
+SEP0924
+AUG2924
+MAY0624
+JAN2624
+JAN0923
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
