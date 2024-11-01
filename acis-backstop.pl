@@ -66,14 +66,19 @@
 #
 #  Called from LR with this line:
 #
-#        $backstop_str = "$backstop -s ${server} ${localdir}/${backfile} ${hist}";
-#                          ARGV[1] - ocatsqlsrv   
-#                          ARGV[2] - /data/acis/LoadReviews/2022/MAR2821/oflsa/CR086_2107.backstop
-#                          ARGV[3] - $prev_load_dir/ACIS-History.txt
+#        /data/acis/LoadReviews/script/acis-backstop.pl -s server  CR*.backstop_path  Cont_Load_ACIS-History.txt
+#                          server - ocatsqlsrv   
+#                          Review Load backstop file path  - /data/acis/LoadReviews/2022/MAR2821/oflsa/CR086_2107.backstop
+#                          hist - $prev_load_dir/ACIS-History.txt
 #
 # Update: August 18, 2022
 #              - V3.5
 #              - Perigee Passage TXGING Quiet checks removed
+#
+# Update: October 25, 2024
+#               - V3.6
+#               - Solve the ACIS-HRC-ACIS SI mode issue when the two ACIS SI
+#                 modes are the same.
 #
 #--------------------------------------------------------------------
 use DBI;
@@ -87,6 +92,9 @@ use Time::Local;
 use Date::Calc qw(Add_Delta_Days);
 #  ($year, $month, $day = Add_Delta_Days($year,1,1, $doy - 1);
 use Date::Calc qw(Add_Delta_DHMS);
+
+use Scalar::Util qw(reftype);
+
 #----------------------------------------
 #Variables:
 #----------------------------------------
@@ -99,7 +107,7 @@ $last_slash_pos = rindex($ARGV[2], "/");
 $rev_load_dir_path = substr($ARGV[2], 0, $last_slash_pos);
 
 # Create the Review Load SCS-155 Deadman History file ACIS-SCS155HIST.dat
-system("/usr/local/bin/python3 /data/acis/LoadReviews/script/UTILITIES/Create_Weekly_155_HIST_file.py $rev_load_dir_path");
+system("python3 /data/acis/LoadReviews/script/UTILITIES/Create_Weekly_155_HIST_file.py $rev_load_dir_path");
 
 $Rec_Time="";			# read the record and split
 $Rec_VCDU="";			# VCDU counter
@@ -290,9 +298,12 @@ $egrep="/bin/egrep";
 #SETUP ITEMS for the script
 setup_command_list(\%command_list);
 setup_SI_MODES(\%si_mode_list);
+
 read_history($ARGV[1],\%chandra_status);
 #need to read the perigee passage
 read_perigee($ARGV[0],$ARGV[1],\%perigee_status);
+
+# Extract the last SI mode from the Continuity load ACIS-History.txt file.
 $last_simode=$chandra_status{last_simode};
 $first_simode=1; #flag to allow the OFLS to repeat the parameter blocks
 #--------------------------------------------------------------------
@@ -376,7 +387,6 @@ $dbh->do(q{use axafocat}) || die "Unable to access database axafocat". DBI->errs
 #--------------------------------------------------------------------
 while ( <BACK> ) 
 {
-
     Process_Next_Record($_);
     $scs_val=$Rec_Eventdata{SCS}; #new, record SCS data
     push (@timecont,$dec_day);
@@ -417,59 +427,76 @@ while ( <BACK> )
 		process_TG(\%chandra_status);
 		last SWITCH;
 	    }
+	    
 	    #Dither:
 	    if($Rec_Eventdata{TLMSID} =~ /DITH/){
 		process_dither(\%chandra_status);
 		last SWITCH;
 	    }
+	    
 	    #Radiation Monitor
-	    if($Rec_Eventdata{TLMSID} =~ /OORMP/){
+	    if($Rec_Eventdata{TLMSID} =~ /OORMP/)
+	    {
 		process_radmon(\%chandra_status,\%perigee_status,@crm_array);
 		last SWITCH;
 	    }
+	    
 	    #Format Change
-	    if($Rec_Eventdata{TLMSID} =~ /CSELFMT/){
+	    if($Rec_Eventdata{TLMSID} =~ /CSELFMT/)
+	    {
 		process_format(\%chandra_status);
 		last SWITCH;
 	    }
+
+	    
 	    #RadZone Entry and Exit
 	    if($Rec_Event =~ /ORBPOINT/){
 		process_radzone(@crm_array);
 		last SWITCH;
 	    }
+	    
 	    #SIM FOCUS and Translations
-	    if($Rec_Event =~ /^SIM/){
+	    if($Rec_Event =~ /^SIM/)
+	    {
 		process_sim(\%chandra_status);
 		last SWITCH;
-	    }
-	    #Obsid Changes
-	    if ($Rec_Event =~ /MP_OBSID/) {
+	      } # END SIMTRANS
+
+	    #Obsid Changes in response to an MP_OBSID command
+	    if ($Rec_Event =~ /MP_OBSID/)
+	      {
 		obsid_change(\%chandra_status);
 		last SWITCH;
-	    }
+	      } # END OBSID CHANGES
+	    
 	    #Stop Sciences
 	    if ($Rec_Eventdata{TLMSID} =~ /AA00000000/){
 		process_stop_science();
 		confirm_packet_space();
 		last SWITCH;
-	    }
+	    } # END SUB STOP SCIENCE
+	    
 	    #Start Science
 	    if ($Rec_Eventdata{TLMSID} =~ /XTZ0000005/ || 
-		$Rec_Eventdata{TLMSID} =~ /XCZ0000005/) {
+		$Rec_Eventdata{TLMSID} =~ /XCZ0000005/)
+	     {
 		process_start_science();
 		check_acistime();		
 		last SWITCH;
-	    }
+  	    }
+	    
 	    #Load Parameter blocks
 	    if ($Rec_Eventdata{TLMSID} =~ /WT0*/  ||
-		$Rec_Eventdata{TLMSID} =~ /WC0*/ )  {
+		$Rec_Eventdata{TLMSID} =~ /WC0*/ )
+	    {
 		check_acistime();
 		load_pblock(\%chandra_status);
 		last SWITCH;
-	    }
+	      }
 	    #Load Window Blocks
 	    if ($Rec_Eventdata{TLMSID} =~ /W100*/ ||
-		$Rec_Eventdata{TLMSID} =~ /W200*/) { 
+		$Rec_Eventdata{TLMSID} =~ /W200*/)
+	    {
 		load_windowblock(\%chandra_status);
 		check_acistime();
 		last SWITCH;
@@ -480,9 +507,9 @@ while ( <BACK> )
 		process_acispkt(\%perigee_status);
 		check_acistime();
 	    }
-	}#end SWTICH   
-      }#end lines we care about
-    } #end processing backstop file
+	}#end SWITCH   
+      }#end lines we care about -  if ($Rec_Event eq "ACISPKT" ||.....
+    } #END WHILE BACK - end processing backstop file
 
 end_load(\%chandra_status);
 check_errors();
@@ -565,6 +592,7 @@ sub setup_SI_MODES{
     $si_mode_array->{"WT008EA024"}="TE_008EA"; #CTI mixed
     $si_mode_array->{"WT00452024"}="HIE_0002"; #HRC-I event histogram
     $si_mode_array->{"WT00452024"}="HIO_0002"; #HRC-I event histogram
+    $si_mode_array->{"WT00DAA014"}="H2C_0002"; #HRC-I event histogram
     $si_mode_array->{"WT0023C024"}="HSE_0002"; #HRC-S event histogram (windows)
     $si_mode_array->{"WT0023A024"}="HSO_0002"; #HRC-S event histogram (windows)
     $si_mode_array->{"WT000B5024"}="TN_000B4"; #TN_000B4B raw mode I0-I3,S2,S3
@@ -762,14 +790,19 @@ sub print_status{
     return;
 }
 
-#--------------------------------------------------------------------
-# Update Status
-#--------------------------------------------------------------------
-sub update_status{
+#-----------------------------------------------------------------------------------
+# Update Status - Update the specified member of the
+#                           $chandra_status hash with the specified value
+#                           
+#------------------------------------------------------------------------------------
+sub update_status
+{
+    # Get the arguments - hash key, new value, the chandra_status hash
     ($key,$val,$stat) = (@_);
+    # Update the item
     $$stat{$key}=$val;
     return;
-}
+  }
 #--------------------------------------------------------------------
 # update_history_files: Update the history files
 #--------------------------------------------------------------------
@@ -1146,21 +1179,24 @@ sub process_radmon{
      #get Current Value of SI instrument
      $FP=$$stat{"FPSI"};
 
-    #Confirm that the HRC-S is in the focal plane
-    if($Rec_Eventdata{TLMSID} eq "OORMPDS"){
+    # Confirm that the HRC-S is in the focal plane
+    if($Rec_Eventdata{TLMSID} eq "OORMPDS")
+      {
 	$radmonoff=$dec_day;
 	$$perigee_stat{radtime}=$fields[0];
 	$ctifmtcheck=1;
-	if ($FP ne "HRC-S") {
+	if ($FP ne "HRC-S")
+	  {
 	    print LR  ">>> ERROR: ABOUT TO ENTER THE BELTS! NO SIM TRANSLATION YET!\n    FOCAL PLANE INSTRUMENT is $FP\n\n";
 	    add_error("o. RadMon was disabled prior to radbelt transit but we were NOT at HRC-S yet.\n\n");
-	}
+	  }
 	$ocat_simode=find_radzone_simode($Rec_Eventdata{TLMSID},$dec_day,
 					 @crm_list);
 	print LR "\n==>The requested SI_MODE for the inbound CTI is $ocat_simode\n\n";
 	$cti_flag=1;
 	#$$perigee_stat{"radtime"}="000"; WHY IS THIS IN HERE?????
-    }
+      }
+    
     #ENABLED
     if ($Rec_Eventdata{TLMSID} eq "OORMPEN") {
 	$$perigee_stat{"radtime"}=$fields[0];
@@ -1173,17 +1209,20 @@ sub process_radmon{
 		  $elec1exit,@crm_list);
 	
 	#Check the science status
-	if($cti_flag == 1) {
+	if($cti_flag == 1)
+	  {
 	    #Is science running
-	    if($startsciflag == 0){ #check the timing
-		$cti_flag=0;	# science run is done, CTI is done
-		$radstop_diff=($radmonon - $stopscitime)*1440.; #in min
-		    if($radstop_diff >= 3.25) { # 3.25 minutes
-			printf LR "\n>>>ERROR: RADMON occurs %5.2f min AFTER stop science.\n\n",$radstop_diff;
-			add_error("o. RADMON occured more than 3.25 minutes AFTER stop science.\n\n");
-		    }
-	    } #science is still RUNNING! don't clear CTI flag
-	}
+	      if($startsciflag == 0)
+	        { #check the timing
+    		   $cti_flag=0;	# science run is done, CTI is done
+    		   $radstop_diff=($radmonon - $stopscitime)*1440.; #in min
+    		   if($radstop_diff >= 3.25)
+    		     { # 3.25 minutes
+    			printf LR "\n>>>ERROR: RADMON occurs %5.2f min AFTER stop science.\n\n",$radstop_diff;
+    			add_error("o. RADMON occured more than 3.25 minutes AFTER stop science.\n\n");
+    		     }
+  	      } # END if $startsciflag == 0, science is still RUNNING! don't clear CTI flag
+	  } # END  if($cti_flag == 1)
 
 	# Old heater info, keep for now
 	$htroff=parse_time($$perigee_stat{offtime});
@@ -1212,7 +1251,9 @@ sub process_format{
     printf LR "%15s%10s%12s%10s\n\n",$fields[0],$Rec_VCDU,$Rec_Event,
             $Rec_Eventdata{TLMSID};
     printf TLMHIST "%15s\t%10s\t%10s\n",$fields[0],$Rec_Event,
-                   $Rec_Eventdata{TLMSID};
+	$Rec_Eventdata{TLMSID};
+
+    
     $oldFMT=$$stat{"FMT"};
     update_status("FMT",$Rec_Eventdata{TLMSID},$stat);
     $FMT=$Rec_Eventdata{TLMSID};
@@ -1246,7 +1287,8 @@ sub process_format{
 	print LR ">>>ERROR: CHANGE FROM FMT2 OCCURS BEFORE A STOP SCIENCE!\n\n";
 	add_error("o. There is a change from FMT2 before an ACIS stop science.\n\n");
     }
-    
+
+
 }
 #--------------------------------------------------------------------
 # process_radzone: Record items for the radzone
@@ -1258,21 +1300,27 @@ sub process_radzone{
    
     $FP=$chandra_status{"FPSI"};
     $lastCmdAcisFlag=0; #reset last cmd acis flag
-    if ($Rec_Eventdata{TYPE} eq "EPERIGEE") {
+
+    # If the command is EPERIGEE, process it.
+    if ($Rec_Eventdata{TYPE} eq "EPERIGEE")
+      {
 	$perevt=$dec_day;
 	$entrydelta=($perevt-$EE1evt)*24;
-	if($enter_rad == 0){
+	if($enter_rad == 0)
+	  {
 	    print LR "\n>>>WARNING: No EEF1000 seen before EPERIGEE. Is the load starting in the belts?\n";
 	    $enter_rad = 1; #by definition, in the rad zone
-	}
-	if ($entrydelta < 3.98) { #Switch to 4 hours with a 1.2 min buffer
+    	  }
+	if ($entrydelta < 3.98)
+	  { #Switch to 4 hours with a 1.2 min buffer
 	    print LR "\n>>>ERROR: Time delta between EE1RADZ0/EEF1000 and EPERIGEE is less than 4.0 hrs.\n\n";
-	}
+  	  }
 
-	if($triplet_check != 3){
+	if($triplet_check != 3)
+	  {
 	    print LR "\n>>>ERROR: The radzone ACIS commanding triplet was not seen\n\n";
 	    add_error("o. The radzone ACIS commanding triplet was not seen.\n\n");
-	};
+	  };
 	$triplet_check = 0;#reset
 	#NEED TO CLEAN THIS UP
 	$perigee_cnt=$perigee_cnt+1;
@@ -1280,12 +1328,15 @@ sub process_radzone{
      
 	$checkWStime = ($per_vidalldn - $per_oldstopsci)*1440;
 	
-          if ($checkWStime > 10.0) {
+	if ($checkWStime > 10.0)
+	  {
 	      printf LR ">>>ERROR: Time delta between the last WSVIDALLDN and the 2nd last AA00000000 is greater than 10.0 mins!\n\n";
 	      add_error("o. Time difference between a WSVIDALLDN command and the 2nd AA00000000 that precedes it is greater than 10 mins.\n\n");
-          }	
-	##End CLean up
-    }
+            }	
+	
+      } # END ($Rec_Eventdata{TYPE} eq "EPERIGEE")
+
+    # EEF1000 or EE1RADZ0 - process this command.
     if (($Rec_Eventdata{TYPE} eq "EE1RADZ0" ||
 	 $Rec_Eventdata{TYPE} eq "EEF1000") &&
 	 $enter_rad == 0 ){
@@ -1327,35 +1378,40 @@ sub process_radzone{
     
     #note, by requiring perigee, we are forcing 
     # the mid-radzone loads to be wrong
+
+    # XEF1000 - process this command
     if (($Rec_Eventdata{TYPE} eq "XE1RADZ0" ||
 	 $Rec_Eventdata{TYPE} eq "XEF1000"))
     {
 	$elec1exit=$dec_day;#set this exit everytime...deals with missed perigees.
-	    if($perevt != 0.0){ #we've seen perigee
+	if($perevt != 0.0)
+	  { #we've seen perigee
 		$elec1exit=$dec_day;
 		$simtest2=$dec_day;
-		if ($simtrans > $simtest1 and $simtrans < $simtest2) {
+		if ($simtrans > $simtest1 and $simtrans < $simtest2)
+		  {
 		    print LR "\n>>>ERROR: SIM translation occurs during perigee transit.\n";
 		    print LR "    -OR- EE1RADZ0/EEF1000 is missing for this orbit.\n\n"; 
 		    add_error("o. There is a SIM translation during rad zone transit.\n");
 		    add_error("   -OR- EE1RADZ0/EF1000 was missing for an orbit. \n\n");
 		    
-		}
+		  }
 		$ocat_simode=find_radzone_simode($Rec_Eventdata{TYPE},
 						 $dec_day,@crm_list);
 		print LR "\n==> The requested SI_MODE for the outbound CTI is ${ocat_simode}\n\n";
 		$cti_flag=1;
 		$exitdelta=($elec1exit-$perevt)*24;
 		
-		if ($exitdelta < 3.25 ) {
+		if ($exitdelta < 3.25 )
+		  {
 		    print LR "\n>>>ERROR: Time delta between XE1RADZ0/XEF1000 and EPERIGEE is less than 3.25 hrs.\n\n";
-		}
+	  	  }
 		$perevt=0.0;
 		$enter_rad=0;
-	    }
-    }#exit	
+	  } # END if($perevt != 0.0)
+      } # END IF XEF1000 command
 	    	
-    }
+    } # END SUBROUTINE process_radzone.
 #--------------------------------------------------------------------
 # Process_sim : Process all SIM translations and Focus
 #--------------------------------------------------------------------
@@ -1452,15 +1508,23 @@ sub process_sim{
 }
 #--------------------------------------------------------------------
 # obsid_change: record and set obsid, collect information from ocat
+#              input:  chandra_status array
 #--------------------------------------------------------------------
 sub obsid_change{
     my($stat)=(@_);
     
     printf LR "%15s%10s%10s%9s\n\n",$fields[0],$Rec_VCDU,$Rec_Event,
-               $Rec_Eventdata{ID};
+	$Rec_Eventdata{ID};
+    # Set the obsid variable to the OBSID specified in the MP_OBSID load command
     $obsid=$Rec_Eventdata{ID};
+
+    # Update $chandra_status with the obsid
     update_status("OBSID",$obsid,$stat);
+
+    # Update the indicated history file with the appropriate member of the
+    # $chanda_status hash
     update_history_files(OBSIDHIST,$stat);
+    
     $lastCmdAcisFlag=0; #reset ACIS last cmd flag 
 
     $obsid_cnt=$obsid_cnt+1;
@@ -1508,16 +1572,27 @@ sub obsid_change{
     print LR  "LATEST OCAT INFO FOR OBSID $obsid:\n";
     do { $ocatname = tmpnam() }
     until $fh = IO::File->new($ocatname, O_RDWR|O_CREAT|O_EXCL);
+
+    # $ocatinfo is a returned status flag.
     $ocatinfo=acisparams($obsid, $ocatname);
+    
     print LR  "\n\n";
     %ocat_entries=(); #clear hash
+
+    # Read the important OCAT entries for that OBSID
     %ocat_entries=read_ocat($ocatname);
+
+    # Set the flag saying you tried to read the OCT entries.
     $inocat = 1;
-  
-    if($ocatinfo == 0){
+
+    # If the read of the OCAT information was sucessful, set the loaded_ocat
+    # flag to 1.  
+    if($ocatinfo == 0)
+      {
 	$loaded_ocat = 1;
-    }
-    #Ok if this obsid is NOT an ECS measurement or a test, then we should
+      }
+
+    #If this is an ACIS obs and if this obsid is NOT an ECS measurement or a test, then we should
     #set a test flag...
     if ($ocatinfo == 0 and (! (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))) )
        {
@@ -1533,22 +1608,22 @@ sub obsid_change{
     #------------------------------
     # check for NIL
     #------------------------------
-    ##  $ocatinfo eq 2 means HRC observation
+    #  $ocatinfo eq 2 means HRC observation
     if ($ocatinfo == 2 and (! (($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))) )
-       {
- 	 $ocat_simode=find_NIL_simode($obsid,\@nil_array);	
+    {
+	 $ocat_simode=find_NIL_simode($obsid,\@nil_array);
 	 if ($ocat_simode =~ /_/)
             {
 	    $nil_flag=1;
-	    print LR " ==> NIL SI_Mode is $ocat_simode\n\n";
+	    print LR "==> NIL SI_Mode is $ocat_simode\n\n";
 	    }
 	 else
-            {$nil_flag=0};
+	 {$nil_flag=0 };
         }  
     else
         {$nil_flag=0};
-   
-    ###Want to grab the window information
+
+    # Want to grab the window information  IF ACIS OBSERVATION
     if($ocatinfo == 0 &&
        $ocat_entries{"Window Filter"} =~/Y/i){
 	#print window information:
@@ -1574,17 +1649,18 @@ sub obsid_change{
 	@window_ocat_array=read_ocat_win($winname);
 	unlink ($winname);
 	$loaded_ocat = 1;
-    } #end if ACIS observation
+    } #end IF ACIS OBSERVATION
    
 
     unlink($ocatname);
-    #set load ocat flag
-    if($startsciflag == 1  && $loaded_ocat == 1){
+    # If you have processed a START SCIENCE and OCAT data was
+    # loaded from the OCAT do a parameter check
+    if($startsciflag == 1  && $loaded_ocat == 1)
+    {
 	parameter_check($stat);
 	#$temp=compare_pblock();
 	$compare = 1;
-	
-    }
+       }
 }
 #--------------------------------------------------------------------
 # process_stop_science
@@ -1704,16 +1780,26 @@ sub process_stop_science{
 #--------------------------------------------------------------------
 # process_start_science
 #--------------------------------------------------------------------
-sub process_start_science{
-    my($stat)=(@_);
+sub process_start_science
+  {
+     my($stat)=(@_);
     $start_sci_cnt=$start_sci_cnt+1;
     printf LR "%15s%10s%9s%15s\n",$fields[0],$Rec_VCDU,$Rec_Event,
-    $Rec_Eventdata{TLMSID};
-#This was added to confirm that the ocat has been loaded at this point
-#to deal with late obsid updates
+	$Rec_Eventdata{TLMSID};
+      
+   #This was added to confirm that the ocat has been loaded at this point
+   #to deal with late obsid updates
     if(($loaded_ocat == 1 && $compare == 0) ||
-       $cti_flag || $nil_flag){
+       $cti_flag || $nil_flag)
+    {
 	parameter_check($stat);
+    }
+      else
+    {
+	# This is the fix for the ACIS-HRC-ACIS bug which erroneously expects the
+	# second ACIs observation to be without bias if the SI modes of the two acis observations
+	# are the same.
+	$last_simode = $simode
     }
 
    
@@ -1723,12 +1809,12 @@ sub process_start_science{
     $tstart_orig=$dec_day;
     $calstarttime=$fields[0];
     $startscitime=$dec_day;
-    print_status(LR,\%chandra_status); 
-}
+    print_status(LR,\%chandra_status);
+  }  # END PROCESS_START_SCIENCE
 
 #--------------------------------------------------------------------
 # check parameters for observation
-# parameter_check
+#   input: chandra_status
 #--------------------------------------------------------------------
 sub parameter_check{
     my($stat)=(@_);
@@ -1738,9 +1824,10 @@ sub parameter_check{
     #--------------------
     #Parameter block check (only if in OCAT,CTI or NIL simode known)
     #--------------------
-    if ($ocat_simode =~ /_/ ){
+    if ($ocat_simode =~ /_/ )
+      {
 	check_simode($ocat_simode,$last_simode);
-    }
+      }
 
     #--------------------
     #Check the windows if they exist, then clear the SI_MODE
@@ -1851,7 +1938,7 @@ sub parameter_check{
     if ( (!(($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid))) )
        { $compare=1; }
     else
-       { $compare=0; }
+    { $compare=0; }
 } #end sub parameter_check
     
 
@@ -1961,12 +2048,13 @@ sub process_acispkt{
 }
 #--------------------------------------------------------------------
 #load_pblock: record information for parameter blocks
+#                     input: chandra_status
 #--------------------------------------------------------------------
 sub load_pblock{
     my($stat)=(@_);
    
     printf LR "%15s%10s%9s%15s\n",$fields[0],$Rec_VCDU,$Rec_Event,
-               $Rec_Eventdata{TLMSID};
+	$Rec_Eventdata{TLMSID};
     $loadpblockflag=1;
     #Create a temporary file for the pblockreader and pass it in.
     # try new temporary filenames until we get one that didn't already exist
@@ -1975,7 +2063,8 @@ sub load_pblock{
     $pbread = `${script_dir}/pblockreader.pl $Rec_Eventdata{TLMSID} $pblockname`;
     print LR "\nACIS PBLOCK LOADS:\n";
     open (PBLOCK,"$pblockname");
-    while ($pbline = <PBLOCK>) {
+    while ($pbline = <PBLOCK>)
+        {
 	print LR "$pbline"
 	}
     print LR "\n\n";
@@ -1986,21 +2075,24 @@ sub load_pblock{
     
     #check if the TLMSID is in our table
     $tmp_simode=$si_mode_list{$Rec_Eventdata{TLMSID}};
-    if($tmp_simode =~ /_/){
+    if($tmp_simode =~ /_/)
+    {
 	if($nil_flag == 0 &&
-	   $cti_flag == 0 ){ #clear the old if not NIL or CTI
-	    $ocat_simode="";
-	}
+	   $cti_flag == 0 )
+	  { #clear the old if not NIL or CTI
+	     $ocat_simode="";
+ 	  }
 	$simode=$tmp_simode;
     }
-    elsif ($simode!~ /_/){
+    elsif ($simode!~ /_/)
+       {
 	# if not one in our array, check the tln table..slow
 	$simode=find_simode($Rec_Eventdata{TLMSID});
-    }
-#Debug statement        
-#   print "The simode is $simode. The ocat_simode is $ocat_simode\n";
+       } #ENDIF ($simode!~ /_/)
+    
     #----------------------------------------
     #Store this as the new loaded parameter block
+    # Either update it with a WT or, if it's not a WT,  assume it's a WC
     #----------------------------------------
     if($Rec_Eventdata{TLMSID} =~ "WT"){
 	$si_prefix="TE";
@@ -2034,19 +2126,21 @@ sub load_pblock{
     #$temp4=compare_pblock(); #should this be moved?
     #Collect the bias informaton HERE. We have if this is a bias or no.
     #And we have the information for the parameter block. 
-    if($recompbias == 1){
+    if($recompbias == 1)
+       {
 #	print "Biaslength start\n";=()
 #	print "${sacgs_dir}/biaslength.pl\n";
 	$biaslength=`${sacgs_dir}/biaslength.pl -d ${base_dir}/cmdgen/sacgs/current.dat $Rec_Eventdata{TLMSID}`; 
 #	print "Biaslength stop\n";
 	@biasinfo=split(/\s+/,$biaslength); #Split on white space
 	$biastime=($biasinfo[1]-99.0)/86400.0; #subtract 99 from it. 
-    }
-    else{
+       }
+    else
+       {
 	$biastime=0;
-    }
+       }
 
-}
+} # END SUB LOAD_PBLOCK
 
 #--------------------------------------------------------------------
 # load_windowblock: record information for window blocks
@@ -3245,36 +3339,50 @@ sub find_simode{
     
     return $si;
 }
-#--------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 #
-#--------------------------------------------------------------------
+# Subroutine check_simode($ocat_simode,$last_simode)
+#-----------------------------------------------------------------------------
 sub check_simode{
     my($si,$prev_si)=@_;
     $test="none";
     $check_pblock=$WTval;
+
+    # Initialize sibias to the with-bias version of the SI mode
     $sibias="${si}B";
     @pblock=();
     my $cti_flag=0;
     #the OFLS doesn't pay attention to these things....
     #Items that are CTI are always with bias
-    foreach $key (keys %si_mode_list){
-	if($si_mode_list{$key} =~ $si){
+    foreach $key (keys %si_mode_list)
+    {	
+	if($si_mode_list{$key} =~ $si)
+	  {
 	    $cti_flag=1;
-	}
-    }
-    unless($cti_flag == 1){
-	if($si =~ /$prev_si/){
+  	  }
+      }
+    # If this is not a CTI measurement, then 
+    unless($cti_flag == 1)
+      {
+	if($si =~ /$prev_si/)
+ 	  {
 	    $sibias=$si;
-	}
-    }
+	  }
+      } # END UNLESS
 
+    # Ok tin_file is /data/acis/LoadReviews/script/ACIS_current.tln
+    # foo = the No-bias entry for the SI mode
     $foo=`grep -n ${sibias} $tln_file | cut -f1 -d: | head -1`;
     chop($foo);
+
+    # goo is 10 places later than foo. Which strangely enough puts it inside
+    # the set of commands for the with-bias version.
+
     $goo=$foo+10;
+
+    # This extracts the name of the SI mode
     $pblock=`sed -n ${foo},${goo}P $tln_file | grep 'W[T|C]' | head -1| cut -f1 -d:`;
     chop($pblock);
-#    print "**** SIBIAS ${sibias} " .
-#	" SED sed -n ${foo},${goo}P $tln_file\n";
 
     
 #ok-check that this is the stored window;
@@ -4052,7 +4160,8 @@ sub check_SAR(){
 
     #if an acispkt or an ACIS hw command,.
     if ($Rec_Event eq "ACISPKT" ){
-	print LR ">>>WARNING: An ACIS COMMAND is in the vehicle load. Check for SAR.\n";	        add_error("o. An ACIS command is in the vehicle load. Check for SAR.\n\n");
+	print LR ">>>WARNING: An ACIS COMMAND is in the vehicle load. Check for SAR.\n";
+	add_error("o. An ACIS command is in the vehicle load. Check for SAR.\n\n");
     }
     if ($Rec_Eventdata{TLMSID} =~ /\A1/){
 	print LR ">>>WARNING: An ACIS Hardware command is in the vehicle load. Check for SAR.\n";	
