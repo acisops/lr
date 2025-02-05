@@ -1,0 +1,53 @@
+Change Description
+==================
+
+This is an update to support routines that accommodates the ska 2025.1 update to Python 3.12.8.
+
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/44
+
+
+Testing:
+======== 
+
+Each of the programs were tested by running full regression tests.  These were
+carried out by arranging for LR to call the updated programs during test runs of Normal,
+TOO, SCS-107-only and Full Stop loads. ACIS-LoadReview.txt output files and
+thermal model plots were compared and all differences were understood. No unit tests
+were carried out.
+
+
+The production loads involved were:
+
+FEB0325A
+JAN0325A
+JAN1425A
+FEB0724A
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
