@@ -1,7 +1,7 @@
 Change Description
 ==================
 
-This is an update to support routines that accommodates the ska 2025.1 update to Python 3.12.8.
+This is an update to support routines to accommodate the ska 2025.1 update to Python 3.12.8.
 
 
 Files Changed or added:
