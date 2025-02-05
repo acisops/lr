@@ -62,7 +62,7 @@ import SI_Mode_Class
 # Inits
 error_list = []
 # regex for time stamps in ACIS-LoadReview.txt files
-DOY_full_3f = re.compile('\d\d\d\d:\d\d\d:\d\d:\d\d:\d\d.\d\d\d$')
+DOY_full_3f = re.compile('\\d\\d\\d\\d:\\d\\d\\d:\\d\\d:\\d\\d:\\d\\d.\\d\\d\\d$')
 
 #-------------------------------------------------------------------------------
 #
