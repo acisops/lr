@@ -52,7 +52,7 @@ def Insert_Comment_In_ALR( comment_list, ALR_path, extension = "COMMENTS"):
     # the start
     #
     # Define regular expressions to be used in backstop file line searches
-    time_stamp = re.compile('\d\d\d\d:\d\d\d:\d\d:\d\d:\d\d.\d\d\d')
+    time_stamp = re.compile('\\d\\d\\d\\d:\\d\\d\\d:\\d\\d:\\d\\d:\\d\\d.\\d\\d\\d')
     
     # Get the indices of all those lines which begin with a DOY time stamp
     # This is the position of the time stamped line in the ALR file.
