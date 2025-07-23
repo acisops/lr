@@ -61,7 +61,7 @@ There are a number of changes between this version and the perl version.
                                  - If you supply this path, is is assumed that the backstop file for that load week
                                    has been expanded into this directory and that the directory permissions are such
                                    that the out_* model subdirectories can be created and written into.
-                                          NOTE: If the ACIS backstop history state builder is ued, it is assumed that
+                                          NOTE: If the ACIS backstop history state builder is used, it is assumed that
                                                      all necessary previous load weeks exist using the same base path
                                                      as the present review load.
 
