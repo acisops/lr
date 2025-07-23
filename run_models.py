@@ -50,7 +50,7 @@ There are a number of changes between this version and the perl version.
   Usage:
  Specifying a Test Directory:
  
-   /data/acis/LoadReviews/script/run_models.pl load_name -h $hostname  ofls_dir break_string -nlet_file $nlet_file 
+   /data/acis/LoadReviews/script/run_models.py load_name -h $hostname  ofls_dir break_string -nlet_file $nlet_file 
 
  Production Run:
  /data/acis/LoadReviews/script/run_models.py load_name -h $hostname $break_str -nlet_file $nlet_file
