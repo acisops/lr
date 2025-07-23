@@ -80,7 +80,7 @@
 #               - Solve the ACIS-HRC-ACIS SI mode issue when the two ACIS SI
 #                 modes are the same.
 #
-# Update: November 15, 2024
+# Update: July 23, 2025
 #               V3.7
 #               - Eliminate the false error when acis-backstop uses the incorrect AA00 to
 #                 calculate the time between the Stop Science and Obsid Change
