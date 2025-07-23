@@ -104,7 +104,7 @@ Path to OFLS directory      Path to output directory              Path to OFLS d
 
     /proj/sot/ska3/flight/bin/dpa_check APR2825 --oflsdir  /data/acis/LoadReviews/2025/APR2825/ofls -nlet_file nlet_file "b"
 
- Initial: August 23, 2024
+ Initial: July 23, 2025
            Gregg Germain
 
 """
