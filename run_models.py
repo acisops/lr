@@ -53,7 +53,7 @@ There are a number of changes between this version and the perl version.
    /data/acis/LoadReviews/script/run_models.pl load_name -h $hostname  ofls_dir break_string -nlet_file $nlet_file 
 
  Production Run:
- /data/acis/LoadReviews/script /run_models.py load_name -h $hostname $break_str -nlet_file $nlet_file
+ /data/acis/LoadReviews/script/run_models.py load_name -h $hostname $break_str -nlet_file $nlet_file
 
  Inputs: load_name - Required. Name of the Review load including letter (e.g. AUG0924A) comes from LR
 
