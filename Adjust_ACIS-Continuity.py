@@ -33,7 +33,13 @@ The graphical timeline representation of events:
 
                       | Continuity load built, Reviewed and Approved prior to the interrupt |
 
-                                                                                                               |    Review Load |                                          
+                          
+                                                                                                             |    Review Load |                   
+
+Update: July 23, 2025
+              Gregg Germain
+              Comment updates
+                       
 """
 # Create a parser instance
 myparser = argparse.ArgumentParser()
