@@ -48,7 +48,7 @@
 #         - Modified code to handle the fact that ECS measurement Obsid's 
 #           now start at 38000.
 #         - Variables $min_cti_obsid and $max_special_obsid were created 
-#           tomake any future Obsid limit change easy to implement.
+#           to make any future Obsid limit change easy to implement.
 #         - Modified code to print out a row of "-cti"'s when a Perigee Passage
 #           CTI measurement is completed.
 #         - Added numerous comments
@@ -79,6 +79,11 @@
 #               - V3.6
 #               - Solve the ACIS-HRC-ACIS SI mode issue when the two ACIS SI
 #                 modes are the same.
+#
+# Update: November 15, 2024
+#               V3.7
+#               - Eliminate the false error when acis-backstop uses the incorrect AA00 to
+#                 calculate the time between the Stop Science and Obsid Change
 #
 #--------------------------------------------------------------------
 use DBI;
@@ -127,6 +132,11 @@ $server="ocatsqlsrv"; #default server.
 $ctifmtcheck=0;
 $startscitime=0;
 $startsciflag=0;
+
+$science_running_flag = 0;
+$first_stop_science_time = -1.0;
+$last_pblock_loaded = "";
+
 $lastCmdAcisFlag=0;
 $lastCmdAcisTime=0;
 $loadpblockflag=0;
@@ -470,17 +480,20 @@ while ( <BACK> )
 	      } # END OBSID CHANGES
 	    
 	    #Stop Sciences
-	    if ($Rec_Eventdata{TLMSID} =~ /AA00000000/){
-		process_stop_science();
-		confirm_packet_space();
-		last SWITCH;
-	    } # END SUB STOP SCIENCE
+	    if ($Rec_Eventdata{TLMSID} =~ /AA00000000/)
+	      {
+	  	  process_stop_science();
+		  confirm_packet_space();
+		  last SWITCH;
+	      } 
 	    
 	    #Start Science
 	    if ($Rec_Eventdata{TLMSID} =~ /XTZ0000005/ || 
 		$Rec_Eventdata{TLMSID} =~ /XCZ0000005/)
 	     {
-		process_start_science();
+		 # Process the start science command
+		 process_start_science();
+		 
 		check_acistime();		
 		last SWITCH;
   	    }
@@ -496,17 +509,18 @@ while ( <BACK> )
 	    #Load Window Blocks
 	    if ($Rec_Eventdata{TLMSID} =~ /W100*/ ||
 		$Rec_Eventdata{TLMSID} =~ /W200*/)
-	    {
-		load_windowblock(\%chandra_status);
-		check_acistime();
-		last SWITCH;
-	    }
+	       {
+	 	  load_windowblock(\%chandra_status);
+		  check_acistime();
+		  last SWITCH;
+	      }
 	    #all other ACIS commands:
-	    else{
+	    else
+	      {
 		#process_acispkt();
 		process_acispkt(\%perigee_status);
 		check_acistime();
-	    }
+	      }
 	}#end SWITCH   
       }#end lines we care about -  if ($Rec_Event eq "ACISPKT" ||.....
     } #END WHILE BACK - end processing backstop file
@@ -1166,7 +1180,8 @@ sub process_dither{
     update_status("DITH",$DITH,$stat);
     update_history_files(DITHHIST,\%chandra_status);
 #    printf DITHHIST "%15s\tCOMMAND_SW\t%10s\n",$fields[0],$DITH;
-}
+} # END PROCESS_DITHER
+
 #--------------------------------------------------------------------
 # process_radmon: read and record the radmon status
 #--------------------------------------------------------------------
@@ -1240,7 +1255,8 @@ sub process_radmon{
     }
     
      update_status("radmonstatus",$Rec_Eventdata{TLMSID},$stat);
-}
+} # END PROCESS_RADMON
+
 #--------------------------------------------------------------------
 # process_format: read format, report errors if a change
 #                 happens too soon
@@ -1287,9 +1303,8 @@ sub process_format{
 	print LR ">>>ERROR: CHANGE FROM FMT2 OCCURS BEFORE A STOP SCIENCE!\n\n";
 	add_error("o. There is a change from FMT2 before an ACIS stop science.\n\n");
     }
+} # END PROCESS_FORMAT
 
-
-}
 #--------------------------------------------------------------------
 # process_radzone: Record items for the radzone
 #--------------------------------------------------------------------
@@ -1505,7 +1520,8 @@ sub process_sim{
    
 
     return($sim_z);
-}
+} # END PROCESS_SIM
+
 #--------------------------------------------------------------------
 # obsid_change: record and set obsid, collect information from ocat
 #              input:  chandra_status array
@@ -1530,9 +1546,15 @@ sub obsid_change{
     $obsid_cnt=$obsid_cnt+1;
     $obsend=$dec_day;
     $delobs=($obsend-$obsstart)*1440; #in minutes
-    $obsend=0;
-    $obsstart=0;
-    $delstart=($obsend-$startscitime)*1440.;
+    
+    # Calculate the time delta between the obsid change and the time of the first stop science
+    # command after a start science
+    $obsid_change_date = $fields[0];
+    $obsid_change_time = parse_time($obsid_change_date);
+    
+    $three_min_check_delta_t = ($obsid_change_time  -  $first_stop_science_time) * 1440.0;
+
+    $delstart=($obsend-$startscitime)*1440.;  # 1440 minutes in a day
     $late_change_time=($dec_day-$startscitime)*1440.; #obsid changes after startsci
     #------------------------------
     #Check timing issues
@@ -1542,12 +1564,19 @@ sub obsid_change{
 	printf LR "  ==> ObsID change occurs %3.1f minutes after stop science.\n\n",$delobs
        }
 
-    if ($delobs < 2.999999999 && $startsciflag == 0)
-        {
- 	  print LR ">>>ERROR: ObsID change occurs less than 3 minutes after a stop science command.\n\n";
-	  add_error("o. The OBSID change to $obsid that occurs less than 3 mins after a stop science.\n\n");
-	}
+    if ($three_min_check_delta_t < 2.999999999 && $science_running_flag == 0 && $first_stop_science_time != -1 && $last_pblock_loaded != "WT00DAA014")
+    {
+	# Now clear out the $first_stop_science_time and date
+	$first_stop_science_time = -1;
+	$first_stop_science_date = "1998";
+	print LR ">>>ERROR: ObsID change occurs less than 3 minutes after a stop science command.\n\n";
+	add_error("o. The OBSID change to $obsid that occurs less than 3 mins after a stop science.\n\n");
+    }
 
+    # Clear out observation start and end times
+    $obsend=0;
+    $obsstart=0;
+    
     if($check_acis_sci == 1 && ( !(($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) ) )
       {
 	#We expect the 60000-50000 series to change often
@@ -1556,7 +1585,7 @@ sub obsid_change{
 	$check_acis_sci = 0;
       }
 
-    if(($startsciflag == 1 && $late_change_time > 5.00) &&
+    if(($startsciflag == 1 && $late_change_time > 5.00) && ($last_pblock_loaded != "WT00DAA014") &&
       ( !(($obsid >= $min_cti_obsid) && ($obsid <= $max_special_obsid)) ))
        {
  	 print LR ">>>ERROR: The OBSID change to $obsid occurs more than 5 mins after a start science.\n\n";
@@ -1661,11 +1690,13 @@ sub obsid_change{
 	#$temp=compare_pblock();
 	$compare = 1;
        }
-}
+} # END OBSID_CHANGE
+
 #--------------------------------------------------------------------
 # process_stop_science
 #--------------------------------------------------------------------
-sub process_stop_science{
+sub process_stop_science
+{
     
     $obsid=$chandra_status{"OBSID"};
     $FP=$chandra_status{"FPSI"};
@@ -1675,16 +1706,30 @@ sub process_stop_science{
               $Rec_Eventdata{TLMSID};	     		  
     
     #Special section to deal with radzone
-    if($startsciflag != 0){
+    if($startsciflag != 0)
+      {
 	#if we have  started science
 	$compare = 0; #reset these at the end of the observation only
 	$loaded_ocat = 0;
 #	$quiet_flag = 0;
-    }
+      }
     #!done radzone
     $check_acis_sci=0;
     $startsciflag=0;
     $stopscitime = $dec_day;
+
+    # If this is the first Stop Science after a Start Science, then capture the
+    # decimal date which will be used for the 3 minute buffer empty check
+    if($science_running_flag == 1)
+    {
+	# Capture the decimal date
+	$first_stop_science_time = parse_time($fields[0]);;
+        $first_stop_science_date = $fields[0];
+
+	# Set the science runing flag to zero so that the captured date
+	# will not be overwritten
+	$science_running_flag = 0;
+      }
     $per_oldstopsci = $per_stopsci;
     $per_stopsci = $dec_day; 
     $tstop=$dec_day;
@@ -1776,7 +1821,8 @@ sub process_stop_science{
     $tstart=0;
     $biastime=0;
     $stop_sci_count=$stop_sci_count+1;
-}   
+}   # END SUB PROCESS_STOP_SCIENCE
+
 #--------------------------------------------------------------------
 # process_start_science
 #--------------------------------------------------------------------
@@ -1786,7 +1832,7 @@ sub process_start_science
     $start_sci_cnt=$start_sci_cnt+1;
     printf LR "%15s%10s%9s%15s\n",$fields[0],$Rec_VCDU,$Rec_Event,
 	$Rec_Eventdata{TLMSID};
-      
+
    #This was added to confirm that the ocat has been loaded at this point
    #to deal with late obsid updates
     if(($loaded_ocat == 1 && $compare == 0) ||
@@ -1802,15 +1848,20 @@ sub process_start_science
 	$last_simode = $simode
     }
 
-   
-    #add bias time check here
-    $startsciflag=1;
-    $tstart=$dec_day+$biastime;
-    $tstart_orig=$dec_day;
-    $calstarttime=$fields[0];
-    $startscitime=$dec_day;
+     #add bias time check here
+     $startsciflag=1;
+     $tstart=$dec_day+$biastime;
+     $tstart_orig=$dec_day;
+     $calstarttime=$fields[0];
+
+     # Set the time of the start of the science run to the time stamp of this command.
+     $startscitime=$dec_day;
+     
+     # Set the flag indicating that a science run has begun.
+     $science_running_flag = 1;
+
     print_status(LR,\%chandra_status);
-  }  # END PROCESS_START_SCIENCE
+  }  # END SUB PROCESS_START_SCIENCE
 
 #--------------------------------------------------------------------
 # check parameters for observation
@@ -1939,7 +1990,7 @@ sub parameter_check{
        { $compare=1; }
     else
     { $compare=0; }
-} #end sub parameter_check
+} #END SUB PARAMETER_CHECK
     
 
 #--------------------------------------------------------------------
@@ -2045,7 +2096,8 @@ sub process_acispkt{
 #	$quiet_flag=1;
 #    }
    
-}
+} # END SUB PROCESS_ACISPKT
+
 #--------------------------------------------------------------------
 #load_pblock: record information for parameter blocks
 #                     input: chandra_status
@@ -2055,6 +2107,10 @@ sub load_pblock{
    
     printf LR "%15s%10s%9s%15s\n",$fields[0],$Rec_VCDU,$Rec_Event,
 	$Rec_Eventdata{TLMSID};
+
+    # Capture the pblock name
+    $last_pblock_loaded = $Rec_Eventdata{TLMSID};
+    
     $loadpblockflag=1;
     #Create a temporary file for the pblockreader and pass it in.
     # try new temporary filenames until we get one that didn't already exist
@@ -2180,7 +2236,8 @@ sub load_windowblock{
 	$needwindow = 1;
     }
     unlink($pblockname);
-}
+} # END SUB LOAD_WINDOWBLOCK
+
 #--------------------------------------------------------------------
 # find_radzone_simode: return the SI_mode for the CTI measurement
 #                      based on the CRM file
@@ -2215,7 +2272,8 @@ sub find_radzone_simode{
 	
     }
     return $si;
-}
+} # END SUB FIND_RADZONE_SIMODE
+
 #--------------------------------------------------------------------
 # find_NIL_simode: read the NIL er and look for the simode that 
 # matches this obsid
@@ -2234,7 +2292,8 @@ sub find_NIL_simode{
 	}
     }
     return "";
-}
+} # END SUB FIND_NIL_SIMODE
+
 #--------------------------------------------------------------------
 #pad_check: replace Joe's script with a subroutine
 #--------------------------------------------------------------------
@@ -2296,7 +2355,8 @@ sub pad_check{
 	     }
 	 }
      }    
- }
+} # END SUB PAD_CHECK
+    
 #--------------------------------------------------------------------
 # check_errors: check all error flags and report any errors at the 
 #               end of the load
@@ -2379,7 +2439,8 @@ sub check_errors{
     }
     
   
-}#end function?
+} # END SUB CHECK_ERRORS
+
 #--------------------------------------------------------------------
 #END LOAD
 #--------------------------------------------------------------------
@@ -2426,7 +2487,8 @@ print LR "----------------------------------------------------------------------
 
     update_history_files(HIST_OUT,$stat);
 
-}
+} # END SUB END_LOAD
+
 #--------------------------------------------------------------------
 #check_acistime: make sure there are at least 2 minutes after start science
 #--------------------------------------------------------------------
@@ -2613,7 +2675,8 @@ EOF
 
     close(OCATOUT);
     return(0);
-}
+} # END SUB ACISPARAMS
+
 #--------------------------------------------------------------------
 # Instead of winparams
 #--------------------------------------------------------------------
@@ -2720,7 +2783,8 @@ GOO
 #    } #end include 
 #    }#end while winorder(extra windows)
     close(OUT);
-}   #end of the subroutine
+}  # END SUB WINPARAMS
+
 #--------------------------------------------------------------------
 # Read the OCAT for the parameters
 #--------------------------------------------------------------------
@@ -2774,7 +2838,7 @@ open(PBLOCK, $p_file) || warn "ERROR:Failed to read $p_file\n";
     while(<PBLOCK>){
 	@pblock_words=split('=',$_);
 	@pblock_words=trim(@pblock_words);
-	#print("pblock_entries{$pblock_words[0]}=$pblock_words[1]\n");
+
    $pblock_e{$pblock_words[0]}=$pblock_words[1];
     }
     close(PBLOCK);
@@ -2883,13 +2947,10 @@ sub compare_pblock{
 	    push(@ccd_list,$OBSID);
 	    $Test_Passed = 0;
 	}
-	
-    
     
     unlink($pblockname);
     }
    
-    
 }
 
 #--------------------------------------------------------------------
@@ -3124,7 +3185,8 @@ sub compare_params{
     }
     
     return $err_flag;
-}
+} # END SUB COMPARE_PARAMS
+
 #--------------------------------------------------------------------
 # Compare_windows-checks window parameters vs ocat
 #                 Note: this will only do the first specified window
@@ -3310,7 +3372,8 @@ sub compare_windows{
 	return $match;
 	
     }
-}
+} # END SUB COMPARE_WINDOWS
+    
 #--------------------------------------------------------------------
 #find_simode
 #--------------------------------------------------------------------
@@ -3403,7 +3466,7 @@ sub check_simode{
 
    
 return;
-}
+} # END SUB CHECK_SIMODE
 
 #--------------------------------------------------------------------
 #check_windows: confirm that there are windows to compare.
@@ -3675,7 +3738,7 @@ sub compare_states{
     }
 
     return $err_flag;
-}
+} # END SUB COMPARE_STATES
 
 #------------------------------------------------------------
 # Read the manuever file and create two arrays of start and stop
@@ -3776,8 +3839,8 @@ sub split_times{
     my($timeline)=@_;
     @times=split /:/, $timeline;
     @secs=split /\./, $times[5];
-    $dec_day = $times[2] + $times[3]/24 + $times[4]/1440 + $times[5]/86400;
-    
+    #                  DOY          + #hours/24hrs/day + #min/#min/day + #secs/#secs/day
+    $dec_day = $times[2] + $times[3]/24.0 + $times[4]/1440.0 + $times[5]/86400.0;
     return $dec_day;
 }
 
@@ -3869,7 +3932,8 @@ sub convert_event_filter{
 $flag=0;
 
 return $flag;
-} 
+} # END SUB CONVER_EVENT_FILTER
+
 #--------------------------------------------------------------------
 #Perigee angle check
 #--------------------------------------------------------------------
@@ -3982,7 +4046,8 @@ sub perigee_angle_check{
     
     
     return $total_time;
- }
+} # END SUB PERIGEE_ANGLE_CHECK
+
 #---------------------------------------------------------------------
 # add_error: error list is a global
 #--------------------------------------------------------------------

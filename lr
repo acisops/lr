@@ -173,6 +173,13 @@ use File::Copy;
 #              - Determine if the VOC[B] continuity load was uplinked and run as VO; adjust
 #                Continuity ACIS-Continuity.txt file if necessary
 #
+# Update January 16, 2025
+#              V4.6
+#              - Eliminated unnecessary question  regarding the Continuity load
+#              - Fixed the AA00 false error ( Fixed in acis-backstop.pl)
+#              - Runs run_models.py
+#              - Makes the request for the interrupt time general
+#
 ###########################################################
 # usage: lr [present load] [previous week]                #
 #         example:  lr AUG2701A AUG2001                   #
@@ -227,7 +234,7 @@ if ($VO_choice  ne "")
        die("FATAL ERROR - $VO_choice is an invalid value for the VO switch.\nValid values are: VOC, VOR, VOB\n");
       }
     else
-      { print "\n The VO value is: $VO_choice";}
+      { print "\n The supplied VO value is: $VO_choice";}
 
   }
 
@@ -721,7 +728,9 @@ if ($break == 1)
 # the value of the VO switch (if any) it's time to check for the circumstance where
 # the continuity load was reviewed as NORMAL but then after the approval, ITS
 # continuity load was interrupted by an SCS-107 (either a 107-only or Full Stop).
-# 
+#
+# You only want to do this once...so the test includes a test to see if this is the A load.
+#
 # Check to see if this is a TOO type load, whether it's the A load, and if the VO flag was set as VOC or VOB
 # If so, then ask the user if the continuity load was uplinked and run as a Vehicle Only
 # to fill in after ITS continuity load was interrupted by an SCS-107 (either 107-only
@@ -729,12 +738,11 @@ if ($break == 1)
 #
 # NOTE: The adjustment will be made even if this is a Test load.
 #
-if ( ($load_type eq "TOO") and ($upper_load_version eq "A") and \
-     (($VO_choice eq "VOC") or ($VO_choice eq "VOB")))
+if ( ($load_type eq "TOO") and ($upper_load_version eq "A") and (($VO_choice eq "VOC") or ($VO_choice eq "VOB")))
   {
         print "\nOk this Review load: $cur_load ... is interrupting the $prev_load as a TOO interrupt\nbut I also notice that the continuity load, $prev_load, is to be treated as vehicle only.\n";
 	
-	print "\nWas the $prev_load load reviewed as a ".color("bold")."NORMAL".color("reset")." load ".color("bold")."before".color("reset")." its continuity load was interrupted by an SCS-107 (either 107-only or Full Stop),\nsubsequently uplinked as a full load (i.e. Both Science and Vehicle portions), but only the Vehicle Commands were activated\njust to keep the spacecraft maneuvering until a Return to Science load could be approved?[y/n]";
+	print "\nWas the $prev_load load reviewed as a NORMAL load BEFORE its continuity load was interrupted by an SCS-107 (either 107-only or Full Stop),\nsubsequently uplinked as a full load (i.e. Both Science and Vehicle portions), but only the Vehicle Commands were activated\njust to keep the spacecraft maneuvering until a Return to Science load could be approved?[y/n]";
 	$ans_cont_interrupted=<STDIN>;
 	chop($ans_cont_interrupted);
         print "\nResponse: $ans_cont_interrupted\n";
@@ -1014,21 +1022,21 @@ else
 #---------------------------------------------------------------
 #
 # Run Check_Power_Cmds.py
-print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM";
+print "\nEXECUTING THE CHECK POWER COMMAND PROGRAM\n";
 # PRODUCTION
 system("python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py");
 
 # Now execute the Window Check program
-print "\nEXECUTING THE WINDOW CHECK PROGRAM.";
+print "\nEXECUTING THE WINDOW CHECK PROGRAM.\n";
 system('python3 /data/acis/LoadReviews/script/WINDOW_CHECK/Window_Check.py');
 
 # Next execute the SCS-155 Deadman Check
-print "\nEXECUTING THE SCS-155 DEADMAN CHECK PROGRAM";
+print "\nEXECUTING THE SCS-155 DEADMAN CHECK PROGRAM\n";
 
 system("python3 /data/acis/LoadReviews/script/DEADMAN_SCS_155/Deadman_Check.py ${ofls_dir} ${nlet_file}");
 
 # Next execute the HETG Check
-print "\nEXECUTING HETG CHECK PROGRAM";
+print "\nEXECUTING HETG CHECK PROGRAM\n";
 
 system("python3 /data/acis/LoadReviews/script/HETG_CHECK/HETG_Check.py ${ofls_dir} ${nlet_file}");
 
@@ -1041,7 +1049,7 @@ else
   {system("python3 /data/acis/LoadReviews/script/IDLE_DWELL/Find_Idle_Dwells.py  ${ofls_dir}  --vo ${VO_choice}   ");}
 
 # Execute the HRC/TXINGING Timing check
-print "\nEXECUTING THE HRC TXING TIMING CHECK PROGRAM.";
+print "\nEXECUTING THE HRC TXING TIMING CHECK PROGRAM.\n";
 system("python3 /data/acis/LoadReviews/script/HRC_TXING_CHECK/HRC_Txing_Check.py ${ofls_dir} ");
 
 # Read in the ORLIST file
@@ -1067,7 +1075,7 @@ system("$script_dir/backstop_comp.sh");
 # Run psmc_check and dpa_check, dea_check and fp_check...
 # will secure shell to acis.cfa.harvard.edu if not on a linux machine
 #--------------------------------------------------------------------
-print "\nRunning the thermal code...\n";
+print "\nRunning the Thermal Model Programs...\n";
 if ($appx) {
     print "\nThermal models skipped when not on HEAD LAN\n";
 } else {
@@ -1088,13 +1096,12 @@ if ($appx) {
         # the "for score" ofls directory.
         if($test_dir)
             {
-              # Production
-	      system("$script_dir/run_models.pl $cur_load -h $hostname -p $ofls_dir $break_str -nlet_file $nlet_file");
-
+		# PRODUCTION - Test mode - do not copy output files to the production web directory
+		system("python3 $script_dir/run_models.py $cur_load  --oflsdir  $ofls_dir $break_str --nlet_file $nlet_file -t");
             }
         else
-            {
-	      system("$script_dir/run_models.pl $cur_load -h $hostname $break_str -nlet_file $nlet_file");
+	{     # PRODUCTION - For score - copy output files to the production web directory
+	       system("python3 $script_dir/run_models.py $cur_load  $break_str --nlet_file $nlet_file");
             }
 
       } #ENDIF NOT NOMODELS
@@ -1106,7 +1113,7 @@ if ($appx) {
 	system("$script_dir/mk_thermal_html.pl $cur_load");
     }
 }
-print "Done with thermal codes...\n\n";
+print "\nDone with the thermal model programs...\n\n";
 
 #--------------------------------------------------
 #close down
@@ -1403,7 +1410,7 @@ if (${load_version} eq "a" || $q eq "2")
     print "\n\nI have determined that the Review Load is of type: $load_type\n\n";
 
     # Capture the interrupt time
-    print "\tPlease enter the TOO interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
+    print "\tPlease enter the interrupt time in format YYYY:DOY:HH:MM:SS.SS\n";
     $interrupt_time = <STDIN>;
     chop($interrupt_time);
 

@@ -1,7 +1,7 @@
 ################################################################################
 #
 #  Check_Power_Cmds - Check the power command spacing in the load to see if the
-#                     rules ahve been adhered to. Any errors are inserted into a
+#                     rules have been adhered to. Any errors are inserted into a
 #                     new ACIS-LoadReviews.dat file.
 #
 #                     For the time being, this new file is kept separate from
@@ -31,7 +31,6 @@
 #
 ################################################################################
 import argparse
-
 import glob
 
 # bring in the system state class
@@ -162,7 +161,7 @@ python3 /data/acis/LoadReviews/script/CHECK_POWER_COMMANDS/Check_Power_Cmds.py
     If it did not, then stop.
 """
 # Using ARGPARSE
-cl_parser = argparse.ArgumentParser(description='WeeklyPDAMS plots')
+cl_parser = argparse.ArgumentParser(description='Check Power Commands program')
 
 # Add the TEST argument as NON-POSITIONAL.  
 cl_parser.add_argument("-t", '--test', help='In test mode, plots are not moved to htdocs', action="store_true")
@@ -207,7 +206,7 @@ present_cmd = system_packets[array_row_number]
 
 
 # If this is a Vehicle-Only Review load then there will be no ACISPKT commands within the load.
-# So skip the while loop which is intended ot take you to the first one.  
+# So skip the while loop which is intended to take you to the first one.  
 # This means that array_row_number will equal 0
 
 if 'ACISPKT' in system_packets['cmd_type']:
@@ -298,7 +297,7 @@ for eachpacket in system_packets[array_row_number:]:
  
     # Append any violations you found to the master violations list
     if violations_list:
-        all_violations+= violations_list[0]
+        all_violations += violations_list[0]
 
 
 if len(all_violations) == 0:

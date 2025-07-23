@@ -22,6 +22,9 @@ Adjust_ACIS-Continuity.py - LR has determined that a continuity load was reviewe
                                               The ACIS-Continuity.txt file adjustment will be SCS-107  for S107
                                               or STOP for Full Stops.
 
+                                              The NLET file is not modified. It is only used only to determine the type of load
+                                              interruption.
+ 
 The graphical timeline representation of events:
 
 | Continuity-Continuity Load|    

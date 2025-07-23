@@ -1,0 +1,79 @@
+Change Description
+==================
+
+lr is the ACIS Operations  review load processing program. Updates were made to lr and to several of the
+other programs lr executes.
+
+lr, itself, was modified to fix an IF statement that incorrectly analyzed if a load was of the type TOO and the
+continuity load is Vehicle Only. lr was also  modified to call the new run_models.py which replaces run_models.pl
+
+The following updated programs are excuted by lr:
+
+run_models.py was written to continue the conversion of load review programs from Perl to Python. run_models.py included
+a new switch allowing for easier unit testing on existing Production loads.  No interface changes.
+
+acisbackstop.pl was modified to eliminate false errors generated when calculating the time delta
+between an observation's Stop Science command and the next command to change the Obsid.
+
+Check_Power_Cmds.py was modified to be more efficient by avoiding the ACISPKT processing loop when processing a
+Vehicle Only load.
+
+Other updates includes fixing typos and making comments more clear.
+
+
+
+
+
+
+Files Changed or added:
+=======================
+
+
+The updates can be seen here:
+
+https://github.com/acisops/lr/pull/
+
+
+Testing:
+======== 
+
+Unit tests were carried out by running  test scenarios on all the updated  programs except lr.
+
+Then full regression tests were carried out by arranging for the updated lr to call the new
+ programs on Normal, TOO, SCS-107-only and Full Stop loads and loads with and without Vehicle Only Continuity loads. ACIS-LoadReview.txt output files and
+thermal model plots were compared and all differences were understood. 
+
+
+The production loads involved were:
+
+JUL1425A
+APR2825A
+MAY0525A
+MAR2625A
+MAR2725A
+JAN1525A
+
+JAN2624A
+OCT1324A & B
+
+All tests passed.
+
+
+
+Interface impacts
+=================
+
+None
+
+
+Review
+====== 
+
+ACIS Ops
+
+
+Deployment Plan
+===============
+
+Will be deployed after FSDS approval.
+
