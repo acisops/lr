@@ -38,7 +38,7 @@ There are a number of changes between this version and the perl version.
     compatibility,
 
     This means that if you want to put the output files anywhere other than the ofls directory you MUST
-    specify where they should go, withthe path switch.  The Perl version used the $path variable to
+    specify where they should go, with the path switch.  The Perl version used the $path variable to
     determine whether or not to copy the plot files to the web for display.  Since we have disassociated path from oflsdir
     we need another way to prevent copies to the web page.  For that, we use the --web switch.
 
@@ -47,13 +47,12 @@ There are a number of changes between this version and the perl version.
  is an issue. 
 
 
-  Usage:
- Specifying a Test Directory:
- 
-   /data/acis/LoadReviews/script/run_models.py load_name -h $hostname  ofls_dir break_string -nlet_file $nlet_file 
+ Usage:
 
- Production Run:
- /data/acis/LoadReviews/script/run_models.py load_name -h $hostname $break_str -nlet_file $nlet_file
+run_models.py [-h] [--oflsdir OFLSDIR] [--out OUT] [-b]
+                     [--nlet_file NLET_FILE] [--verbose VERBOSE] [-t]
+                     load_name
+
 
  Inputs: load_name - Required. Name of the Review load including letter (e.g. AUG0924A) comes from LR
 
@@ -83,6 +82,8 @@ There are a number of changes between this version and the perl version.
              nlet_file - Full path to the NLET file to be used. (e.g. /data/acis/LoadReviews/NonLoadTrackedEvents.txt)
                                 - The default is the production version
 
+             -verbose - Specifies the level of verbosity for the acis_thermal_model run
+
              -t - If true, write the out_<model> subdirectories to the TEST web pages. The default is False to eliminate
                    the need to specify this switch and maintain backwards compatibility. So if this switch is False, the resultant
                    output files will be written to the PRODUCTION web pages.
@@ -100,9 +101,6 @@ Path to OFLS directory      Path to output directory              Path to OFLS d
    The formulated path to the OFLS directory is:  /data/acis/LoadReviews/<year>/<load>/ofls<version letter>
    It is based upon the load week and version letter which are required input.
 
- Example command line for the 1DPAMZT model:
-
-    /proj/sot/ska3/flight/bin/dpa_check APR2825 --oflsdir  /data/acis/LoadReviews/2025/APR2825/ofls -nlet_file nlet_file "b"
 
  Initial: July 23, 2025
            Gregg Germain
@@ -111,15 +109,15 @@ Path to OFLS directory      Path to output directory              Path to OFLS d
 
 # Set up the parser
 rmparser = argparse.ArgumentParser()
-rmparser.add_argument("load_name", help="Name of the Review load including letter (e.g. AUG0924A)")
-rmparser.add_argument("--oflsdir", help="Full path to the OFLS directory of the review load")
-rmparser.add_argument("--out", help="Full path output  directory for the out_* files (e.g. /data/acis/LoadReviews/2025/APR2825/ofls)")
+rmparser.add_argument("load_name", type=str, help="Name of the Review load including letter (e.g. AUG0924A)")
+rmparser.add_argument("--oflsdir", type=str, help="Full path to the OFLS directory of the review load")
+rmparser.add_argument("--out", type=str,  help="Full path output  directory for the out_* files (e.g. /data/acis/LoadReviews/2025/APR2825/ofls)")
 rmparser.add_argument("-b", help="If in the command line, specifies if the load is an interrupt load",  action="store_true")
 
-rmparser.add_argument("--nlet_file", help="Full Path to the Non Load Event Tracking file to be used", default="/data/acis/LoadReviews/NonLoadTrackedEvents.txt" )
-rmparser.add_argument("--verbose", help="Indicates verbosity of debug comments", default = 0)
+rmparser.add_argument("--nlet_file", type=str, help="Full Path to the Non Load Event Tracking file to be used", default="/data/acis/LoadReviews/NonLoadTrackedEvents.txt" )
+rmparser.add_argument("--verbose",  type=str, help="Indicates verbosity of debug comments", default = 0)
 
-rmparser.add_argument("-t", help="Flag to allow/prevents writing the out_<model> directories to the web page", action="store_true")
+rmparser.add_argument("-t", help="Flag to allow/prevent writing the out_<model> directories to the web page", action="store_true")
 
 # Get the arguments
 args = rmparser.parse_args()
@@ -143,14 +141,14 @@ if args.oflsdir:
     oflsdir = args.oflsdir
 else:
     # Formulate the PRODUCTION directory
-    oflsdir = "/".join(("/data/acis/LoadReviews/" + year, load, "ofls"+ver.lower()))
+    oflsdir = os.path.join("/data/acis/LoadReviews/" + year, load, "ofls"+ver.lower())
 
 # OUT - If a --out switch value was supplied, capture it. Otherwise write the output
 # files into the OFLS directory (as you would for production or when you use the -T switch
 # in LR)
 if args.out:
     # Use the supplied output directory and add to it.
-    out_dir = "/".join((args.out,  "ofls"+ver.lower()))
+    out_dir = os.path.join(args.out,  "ofls"+ver.lower())
 else: #...otherwise the output directory is the same as the ofls directory
     out_dir =  oflsdir
 
@@ -187,18 +185,18 @@ ska_bin_base = '/proj/sot/ska3/flight/bin/'
 # Argument list for us in formulating the run_models command. Specifies
 # the model name, part of the output directory where resultant files are located,
 # and part of the path where the web copies are located.
-# There r twopossibilities: if you are running for production the web page
+# There are two possibilities: if you are running for production the web page
 # subdirectory is the Production subdir. Otherwise it's a test directory
 
 # TEST
 if test_flag == True:
     exec_args = [ ["dpa_check", "out_dpa", "TEST_DPA_thermPredic"],
-                           ["psmc_check",  "out_psmc", "TEST_PSMC_thermPredic"],
-                           ["dpamyt_check", "out_dpamyt", "TEST_DPAMYT_thermPredic"],
-                           ["dea_check", "out_dea", "TEST_DEA_thermPredic"],
+                           ["psmc_check", "out_psmc", "TEST_PSMC_thermPredic"],
+                           ["dpamyt_check",  "out_dpamyt", "TEST_DPAMYT_thermPredic"],
+                           ["dea_check",  "out_dea", "TEST_DEA_thermPredic"],
                            ["acisfp_check", "out_fptemp", "TEST_FP_thermPredic"],
                            ["fep1_mong_check", "out_fep1_mong", "TEST_FEP1_MONG_thermPredic"],
-                           ["fep1_actel_check",  "out_fep1_actel",  "TEST_FEP1_ACTEL_thermPredic"],
+                           ["fep1_actel_check", "out_fep1_actel", "TEST_FEP1_ACTEL_thermPredic"],
                            ["bep_pcb_check", "out_bep_pcb", "TEST_BEP_PCB_thermPredic"]]
 else:
     exec_args = [ ["dpa_check", "out_dpa", "DPA_thermPredic"],
@@ -221,7 +219,7 @@ for each_model in exec_args:
     print("\nExecuting model: ", each_model[0])
     sys.stdout.flush()
     
-    out_path = "/".join((out_dir, each_model[1]))
+    out_path = os.path.join(out_dir, each_model[1])
     # Now create the command line for executing this model 
     model_cmd_line = " ".join((ska_bin_base + each_model[0], "--oflsdir", oflsdir, "--out", out_path, "--nlet_file", nlet_file, "--verbose", verbose_val, break_str ))
 
@@ -232,7 +230,7 @@ for each_model in exec_args:
     # into the appropriate web directory: either the TEST or PRODUCTION directory
 
     # Formulate the web destination
-    web_dir_dest = "/".join((webroot, each_model[2], load, "ofls" + ver.lower(), each_model[1] ))
+    web_dir_dest = os.path.join(webroot, each_model[2], load, "ofls" + ver.lower() )
    
     # Does the directory exist?
     dir_exist = os.path.isdir(web_dir_dest)
@@ -243,5 +241,5 @@ for each_model in exec_args:
 
     # Copy each file in the directory
     for item in os.listdir(out_path):
-        shutil.copy2("/".join((out_path, item)), web_dir_dest)
+        shutil.copy2(os.path.join(out_path, item), web_dir_dest)
         
