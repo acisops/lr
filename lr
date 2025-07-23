@@ -173,7 +173,7 @@ use File::Copy;
 #              - Determine if the VOC[B] continuity load was uplinked and run as VO; adjust
 #                Continuity ACIS-Continuity.txt file if necessary
 #
-# Update January 16, 2025
+# Update July 23, 2025
 #              V4.6
 #              - Eliminated unnecessary question  regarding the Continuity load
 #              - Fixed the AA00 false error ( Fixed in acis-backstop.pl)
