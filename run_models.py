@@ -72,7 +72,7 @@ There are a number of changes between this version and the perl version.
                                   - and if you don't specify the --out switch, run_models will WRITE into that PRODUCTION ofls directory.
 
                              NOTE: If you are running run_models.py from lr, and use the -T switch on lr, then --out need not be specified 
-                                        and the out_* directories will appear under th eTEST directory.
+                                        and the out_* directories will appear under the TEST directory.
 
              out - Optional full, alternate path for the out_* directories. This allows you to run the models
                      on a production load but not write the output files into the production ofls directory.
@@ -98,7 +98,7 @@ Path to OFLS directory                    ---                                   
 Path to OFLS directory      Path to output directory              Path to OFLS directory                         Path to output directory
 
    The formulated path to the OFLS directory is:  /data/acis/LoadReviews/<year>/<load>/ofls<version letter>
-   It is based upon the load week and version letter which are  required input.
+   It is based upon the load week and version letter which are required input.
 
  Example command line for the 1DPAMZT model:
 
