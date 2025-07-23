@@ -25,7 +25,7 @@
 #         - Removed deprecated Chandra.Time
 #         - Eliminated commented-out line
 #
-# Update: February 15, 2022
+# Update: July 23, 2025
 #          Gregg Germain
 #          - Allow for the case of a Vehicle-Only Review load where there are no ACISPKT commands
 #
