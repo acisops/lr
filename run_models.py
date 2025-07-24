@@ -208,6 +208,9 @@ else:
                            ["fep1_actel_check",  "out_fep1_actel",  "FEP1_ACTEL_thermPredic"],
                            ["bep_pcb_check", "out_bep_pcb", "BEP_PCB_thermPredic"] ]
 
+models = ["dpa", "psmc", "dpamyt", "dea", "acisfp", "fep1_mong", "fep1_actel", "bep_pcb"]
+
+prefix = "TEST_" if test_flag else ""
 
 # Specify the base web directory
 webroot = "/proj/web-cxc/htdocs/acis"
@@ -215,13 +218,18 @@ webroot = "/proj/web-cxc/htdocs/acis"
 # Now run each model and create the web directory for the output files, and copy
 # the files into that directory
 #
-for each_model in exec_args:
-    print("\nExecuting model: ", each_model[0])
+for each_model in models:
+    print("\nExecuting model: ", each_model)
     sys.stdout.flush()
+
+    out_suffix = "fptemp" if each_model == "acisfp" else each_model
+    model_upper = "FP" if each_model == "acisfp" else each_model.upper()
+
+    # Create the path to the load model output directory
+    out_path = os.path.join(out_dir, f"out_{out_suffix}")
     
-    out_path = os.path.join(out_dir, each_model[1])
     # Now create the command line for executing this model 
-    model_cmd_line = " ".join((ska_bin_base + each_model[0], "--oflsdir", oflsdir, "--out", out_path, "--nlet_file", nlet_file, "--verbose", verbose_val, break_str ))
+    model_cmd_line = " ".join((ska_bin_base + f"{each_model}_check", "--oflsdir", oflsdir, "--out", out_path, "--nlet_file", nlet_file, "--verbose", verbose_val, break_str ))
 
     # Run the model
     results = subprocess.run(model_cmd_line, shell = True)
@@ -230,7 +238,7 @@ for each_model in exec_args:
     # into the appropriate web directory: either the TEST or PRODUCTION directory
 
     # Formulate the web destination
-    web_dir_dest = os.path.join(webroot, each_model[2], load, "ofls" + ver.lower() )
+    web_dir_dest = os.path.join(webroot, f"{prefix}{model_upper}_thermPredic", load, "ofls" + ver.lower() )
    
     # Does the directory exist?
     dir_exist = os.path.isdir(web_dir_dest)
