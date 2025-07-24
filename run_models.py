@@ -115,7 +115,7 @@ rmparser.add_argument("--out", type=str,  help="Full path output  directory for 
 rmparser.add_argument("-b", help="If in the command line, specifies if the load is an interrupt load",  action="store_true")
 
 rmparser.add_argument("--nlet_file", type=str, help="Full Path to the Non Load Event Tracking file to be used", default="/data/acis/LoadReviews/NonLoadTrackedEvents.txt" )
-rmparser.add_argument("--verbose",  type=str, help="Indicates verbosity of debug comments", default = 0)
+rmparser.add_argument("--verbose",  type=str, help="Indicates verbosity of debug comments", default = "0")
 
 rmparser.add_argument("-t", help="Flag to allow/prevent writing the out_<model> directories to the web page", action="store_true")
 
@@ -159,12 +159,9 @@ if args.b:
 else:
     break_str = ""
 
-# VERBOSE - Process the verbose switch. If a value was given use it. Otherwise
-# Select minimal verbosity
-if args.verbose:
-    verbose_val = str(args.verbose)
-else:
-    verbose_val = "0"
+# VERBOSE - Process the verbose switch
+verbose_val = args.verbose
+
     
 # TEST - Process the -t switch. This controls whether the files are copied to the production or
 # test web page
